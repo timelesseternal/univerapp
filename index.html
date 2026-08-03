@@ -1830,11 +1830,13 @@
         void badge.offsetWidth;
       }
       badge.classList.add('active');
+      requestAnimationFrame(updateDayIndicator); // NEW — раскладка уже с бейджем, пересинхронизируем пилюлю
     } else {
       badge.classList.remove('active');
       weekendBadgeHideTimer = setTimeout(() => {
         badge.style.display = 'none';
         weekendBadgeHideTimer = null;
+        updateDayIndicator(); // NEW — бейдж реально исчез из потока, пересчитать позицию
       }, 220);
     }
   }
@@ -1947,7 +1949,7 @@
       updateWeekendBadge();
       renderSchedule();
     }
-    updateDayIndicator();
+    requestAnimationFrame(updateDayIndicator); // было: updateDayIndicator();
     updateStatusBarAndLive();
   }
 
