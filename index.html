@@ -80,7 +80,7 @@
 
     .app-wrapper {
       padding-top: calc(env(safe-area-inset-top, 20px) + 14px);
-      padding-bottom: calc(env(safe-area-inset-bottom, 20px) + 20px);
+      padding-bottom: calc(env(safe-area-inset-bottom, 20px) + 78px);
       padding-left: 16px;
       padding-right: 16px;
       box-sizing: border-box;
@@ -407,7 +407,7 @@
     }
     .tab-btn.active { color: var(--accent-text); }
 
-    /* ============ DAYS (сегментированный) ============ */
+    /* ============ DAYS (сегментированный контрол, как nav-tabs) ============ */
     .days-grid {
       position: relative;
       display: flex;
@@ -797,47 +797,6 @@
       text-align: center;
     }
 
-    .user-chip {
-      display: flex;
-      align-items: center;
-      gap: 8px;
-      background: var(--paper-2);
-      border-radius: 20px;
-      padding: 5px 12px 5px 5px;
-      cursor: pointer;
-      margin-bottom: 12px;
-      transition: transform 0.15s ease;
-    }
-    .user-chip:active { transform: scale(0.97); }
-    .user-chip-avatar {
-      width: 26px; height: 26px;
-      border-radius: 50%;
-      background: var(--accent);
-      color: var(--accent-text);
-      display: flex; align-items: center; justify-content: center;
-      font-family: var(--font-display);
-      font-weight: 700;
-      font-size: 0.8rem;
-      flex-shrink: 0;
-    }
-    .user-chip-name {
-      font-family: var(--font-body);
-      font-size: 0.82rem;
-      font-weight: 600;
-      color: var(--ink);
-      white-space: nowrap;
-      overflow: hidden;
-      text-overflow: ellipsis;
-    }
-    .user-chip-gpa {
-      font-family: var(--font-mono);
-      font-size: 0.76rem;
-      font-weight: 700;
-      color: var(--accent);
-      margin-left: auto;
-      flex-shrink: 0;
-    }
-
     .gpa-card {
       background: var(--paper-2);
       border-radius: 16px;
@@ -849,6 +808,87 @@
     .gpa-label { font-family: var(--font-body); font-size: 0.86rem; color: var(--ink-soft); }
     .gpa-value { font-family: var(--font-display); font-weight: 700; font-size: 1rem; color: var(--ink); }
     .gpa-value.accent { color: var(--accent); }
+
+    /* ============ BOTTOM TAB BAR ============ */
+    .bottom-tab-bar {
+      position: fixed;
+      left: 0; right: 0; bottom: 0;
+      display: flex;
+      background: var(--paper-2);
+      border-top: 0.5px solid var(--line);
+      padding: 8px 6px calc(env(safe-area-inset-bottom, 0px) + 6px);
+      z-index: 500;
+    }
+    .bottom-tab-btn {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 3px;
+      background: none;
+      border: none;
+      padding: 4px 2px;
+      cursor: pointer;
+      color: var(--ink-soft);
+      font-family: var(--font-body);
+      font-size: 0.66rem;
+      font-weight: 600;
+      transition: color 0.15s ease, transform 0.15s ease;
+    }
+    .bottom-tab-btn:active { transform: scale(0.93); }
+    .bottom-tab-btn.active { color: var(--accent); }
+    .bottom-tab-icon { width: 22px; height: 22px; }
+
+    /* ============ PROFILE ============ */
+    .profile-header {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      margin-bottom: 16px;
+    }
+    .profile-avatar {
+      width: 52px; height: 52px;
+      border-radius: 50%;
+      background: var(--accent);
+      color: var(--accent-text);
+      display: flex; align-items: center; justify-content: center;
+      font-family: var(--font-display);
+      font-weight: 700;
+      font-size: 1.1rem;
+      flex-shrink: 0;
+    }
+    .profile-header-info { min-width: 0; }
+    .profile-name {
+      font-family: var(--font-display);
+      font-weight: 700;
+      font-size: 1.05rem;
+      color: var(--ink);
+      letter-spacing: -0.01em;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+    .profile-id {
+      font-family: var(--font-mono);
+      font-size: 0.78rem;
+      color: var(--ink-soft);
+      margin-top: 2px;
+    }
+    .profile-logout-btn {
+      width: 100%;
+      margin-top: 12px;
+      padding: 13px;
+      border: none;
+      border-radius: 12px;
+      background: var(--paper-2);
+      color: #DC2626;
+      font-family: var(--font-body);
+      font-weight: 600;
+      font-size: 0.9rem;
+      cursor: pointer;
+      transition: transform 0.15s ease, opacity 0.15s ease;
+    }
+    .profile-logout-btn:active { transform: scale(0.98); opacity: 0.8; }
 
     @media (prefers-reduced-motion: reduce) {
       *, *::before, *::after {
@@ -912,62 +952,69 @@
   </div>
 </div>
 
-<div class="modal-overlay" id="accountModal">
-  <div class="modal-card">
-    <div class="modal-title">Аккаунт</div>
-    <div style="font-family: var(--font-body); font-size: 0.9rem; color: var(--ink); margin-bottom: 4px;" id="accountModalName">—</div>
-    <div style="font-family: var(--font-body); font-size: 0.8rem; color: var(--ink-soft); margin-bottom: 18px;" id="accountModalStatus">—</div>
-    <div class="modal-buttons">
-      <button class="modal-btn cancel" onclick="closeAccountModal()">Закрыть</button>
-      <button class="modal-btn save" style="background:#DC2626;" onclick="logout()">Выйти</button>
-    </div>
-  </div>
-</div>
-
 <div class="app-wrapper">
   <div class="container">
-    <div class="user-chip" id="userChip" style="display:none;" onclick="openAccountModal()">
-      <div class="user-chip-avatar" id="userChipAvatar">?</div>
-      <div class="user-chip-name" id="userChipName">—</div>
-      <div class="user-chip-gpa" id="userChipGpa"></div>
-    </div>
 
-    <div class="status-bar">
-      <div class="status-info-left">
-        <span id="weekStatusText"><span class="masthead-eyebrow">Загрузка</span><span class="masthead-headline">—</span></span>
-        <span class="live-lesson-badge" id="liveLessonBadge"><span class="live-dot"></span><span>Идёт пара…</span></span>
-      </div>
-      <div class="header-right-block">
-        <div class="header-right-top">
-          <button class="today-btn" id="todayBtn" onclick="jumpToToday()" aria-label="Перейти к сегодняшнему дню">← сегодня</button>
-          <button class="theme-btn" id="themeBtn" onclick="openAccentModal()" aria-label="Выбрать акцентный цвет"></button>
+    <div class="app-section" id="sectionSchedule">
+      <div class="status-bar">
+        <div class="status-info-left">
+          <span id="weekStatusText"><span class="masthead-eyebrow">Загрузка</span><span class="masthead-headline">—</span></span>
+          <span class="live-lesson-badge" id="liveLessonBadge"><span class="live-dot"></span><span>Идёт пара…</span></span>
         </div>
-        <span class="weather-widget" id="weatherWidget" onclick="openCityModal()" role="button" aria-label="Выбрать город для погоды">— · —°</span>
+        <div class="header-right-block">
+          <div class="header-right-top">
+            <button class="today-btn" id="todayBtn" onclick="jumpToToday()" aria-label="Перейти к сегодняшнему дню">← сегодня</button>
+            <button class="theme-btn" id="themeBtn" onclick="openAccentModal()" aria-label="Выбрать акцентный цвет"></button>
+          </div>
+          <span class="weather-widget" id="weatherWidget" onclick="openCityModal()" role="button" aria-label="Выбрать город для погоды">— · —°</span>
+        </div>
       </div>
+
+      <div class="nav-tabs" id="navTabs">
+        <div class="tab-indicator" id="tabIndicator"></div>
+        <button class="tab-btn active" id="tabCurrent" onclick="switchWeek('current')">Текущая</button>
+        <button class="tab-btn" id="tabNext" onclick="switchWeek('next')">Следующая</button>
+      </div>
+
+      <div class="days-grid" id="daysGrid">
+        <div class="day-indicator" id="dayIndicator"></div>
+        <button class="day-btn" id="btn-ПН" onclick="selectDay('Понедельник', this)">ПН</button>
+        <button class="day-btn" id="btn-ВТ" onclick="selectDay('Вторник', this)">ВТ</button>
+        <button class="day-btn" id="btn-СР" onclick="selectDay('Среда', this)">СР</button>
+        <button class="day-btn" id="btn-ЧТ" onclick="selectDay('Четверг', this)">ЧТ</button>
+        <button class="day-btn" id="btn-ПТ" onclick="selectDay('Пятница', this)">ПТ</button>
+        <button class="day-btn" id="btn-СБ" onclick="selectDay('Суббота', this)">СБ</button>
+        <div class="weekend-badge" id="weekendBadge">Сегодня выходной</div>
+      </div>
+
+      <div id="scheduleContainer"></div>
     </div>
 
-    <div class="nav-tabs" id="navTabs">
-      <div class="tab-indicator" id="tabIndicator"></div>
-      <button class="tab-btn active" id="tabCurrent" onclick="switchWeek('current')">Текущая</button>
-      <button class="tab-btn" id="tabNext" onclick="switchWeek('next')">Следующая</button>
-      <button class="tab-btn" id="tabGrades" onclick="switchWeek('grades')">Оценки</button>
-      <button class="tab-btn" id="tabUmkd" onclick="switchWeek('umkd')">УМКД</button>
-    </div>
+    <div class="app-section" id="sectionUmkd" style="display:none;"></div>
+    <div class="app-section" id="sectionExams" style="display:none;"></div>
+    <div class="app-section" id="sectionProfile" style="display:none;"></div>
 
-    <div class="days-grid" id="daysGrid">
-      <div class="day-indicator" id="dayIndicator"></div>
-      <button class="day-btn" id="btn-ПН" onclick="selectDay('Понедельник', this)">ПН</button>
-      <button class="day-btn" id="btn-ВТ" onclick="selectDay('Вторник', this)">ВТ</button>
-      <button class="day-btn" id="btn-СР" onclick="selectDay('Среда', this)">СР</button>
-      <button class="day-btn" id="btn-ЧТ" onclick="selectDay('Четверг', this)">ЧТ</button>
-      <button class="day-btn" id="btn-ПТ" onclick="selectDay('Пятница', this)">ПТ</button>
-      <button class="day-btn" id="btn-СБ" onclick="selectDay('Суббота', this)">СБ</button>
-      <div class="weekend-badge" id="weekendBadge">Сегодня выходной</div>
-    </div>
-
-    <div id="scheduleContainer"></div>
   </div>
 </div>
+
+<nav class="bottom-tab-bar" id="bottomTabBar">
+  <button class="bottom-tab-btn active" id="section-schedule" onclick="switchSection('schedule')">
+    <svg class="bottom-tab-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="3"/><path d="M16 2v4M8 2v4M3 10h18"/></svg>
+    <span>Расписание</span>
+  </button>
+  <button class="bottom-tab-btn" id="section-umkd" onclick="switchSection('umkd')">
+    <svg class="bottom-tab-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg>
+    <span>УМКД</span>
+  </button>
+  <button class="bottom-tab-btn" id="section-exams" onclick="switchSection('exams')">
+    <svg class="bottom-tab-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>
+    <span>Экзамены</span>
+  </button>
+  <button class="bottom-tab-btn" id="section-profile" onclick="switchSection('profile')">
+    <svg class="bottom-tab-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="4"/><path d="M4 21c0-4 4-6 8-6s8 2 8 6"/></svg>
+    <span>Профиль</span>
+  </button>
+</nav>
 
 <script>
   if ('serviceWorker' in navigator) {
@@ -1106,24 +1153,10 @@
     localStorage.removeItem('platonus_student');
     platonusSession = null;
     platonusStudent = null;
-    closeAccountModal();
-    document.getElementById('userChip').style.display = 'none';
+    liveJournalData = null;
+    switchSection('schedule');
     document.getElementById('loginOverlay').style.display = 'flex';
     showLoginOverlay(true);
-  }
-
-  function openAccountModal() {
-    haptic('light');
-    document.getElementById('accountModalName').textContent = platonusStudent?.studentName || '—';
-    const gpa = platonusStudent?.academicGpa;
-    document.getElementById('accountModalStatus').textContent = gpa != null
-      ? `Академический GPA: ${gpa}`
-      : 'Данные GPA загружаются…';
-    document.getElementById('accountModal').classList.add('active');
-  }
-  function closeAccountModal() {
-    haptic('light');
-    document.getElementById('accountModal').classList.remove('active');
   }
 
   async function platonusFetch(path) {
@@ -1132,7 +1165,7 @@
       headers: { 'x-session': platonusSession },
     });
     if (resp.status === 401) {
-      // session died on Platonus's side (expired / logged out elsewhere) — force re-login
+      // сессия умерла на стороне Platonus (истекла / вышли в другом месте) — форсируем повторный вход
       logout();
       throw new Error('session_expired');
     }
@@ -1140,18 +1173,7 @@
     return resp.json();
   }
 
-  function updateUserChip() {
-    const chip = document.getElementById('userChip');
-    if (!platonusStudent) { chip.style.display = 'none'; return; }
-    chip.style.display = 'flex';
-    const name = platonusStudent.studentName || '';
-    const initials = name.split(' ').filter(Boolean).slice(0, 2).map(w => w[0]).join('').toUpperCase();
-    document.getElementById('userChipAvatar').textContent = initials || '?';
-    document.getElementById('userChipName').textContent = name || 'Студент';
-    document.getElementById('userChipGpa').textContent = platonusStudent.academicGpa != null ? `GPA ${platonusStudent.academicGpa}` : '';
-  }
-
-  // Convert Platonus's timetable JSON into the SCHEDULE structure the rest of the app already renders.
+  // Конвертирует JSON расписания Platonus в структуру SCHEDULE, которую использует остальное приложение.
   const PLT_DAY_NAMES = { 1: 'Понедельник', 2: 'Вторник', 3: 'Среда', 4: 'Четверг', 5: 'Пятница', 6: 'Суббота' };
   const PLT_GROUP_TYPE_LABEL = { 'Л': 'Лекция', 'ЛЗ': 'Лаб. работа', 'СПЗ': 'Семинар', 'П': 'Практика' };
 
@@ -1171,7 +1193,7 @@
     const days = (data.timetable && data.timetable.days) || {};
     Object.keys(days).forEach(dayKey => {
       const dayName = PLT_DAY_NAMES[dayKey];
-      if (!dayName) return; // Sunday (7) or unknown key — no slot in this UI
+      if (!dayName) return; // воскресенье (7) или неизвестный ключ — в этом UI нет слота
       const lessonsForDay = [];
       const lessonsObj = days[dayKey].lessons || {};
       Object.keys(lessonsObj).forEach(hourNumber => {
@@ -1185,7 +1207,7 @@
             'sub': `${lesson.subjectName}${typeLabel ? ' (' + typeLabel + ')' : ''}`,
             'teacher': (lesson.tutorName || '').trim(),
             'room': `${lesson.auditory || ''}`.trim(),
-            'type': lesson.weekNumber || 0, // 0 = every week, 1/2 = numerator/denominator, matches existing UI logic
+            'type': lesson.weekNumber || 0, // 0 = каждую неделю, 1/2 = числитель/знаменатель
           });
         });
       });
@@ -1200,14 +1222,32 @@
     };
   }
 
-  function renderGpaScreen() {
-    const container = document.getElementById('scheduleContainer');
+  function renderProfile() {
+    const container = document.getElementById('sectionProfile');
     if (!platonusStudent) {
-      swapContent(container, '<div class="notice-panel"><div class="notice-title">GPA недоступен</div><div class="notice-hint">Войдите в аккаунт, чтобы увидеть оценки.</div></div>');
+      container.innerHTML = `
+        <span class="masthead-eyebrow" style="margin-bottom:10px; display:block;">Профиль</span>
+        <div class="notice-panel">
+          <div class="notice-title">Вы не вошли в аккаунт</div>
+          <div class="notice-hint">Войдите с логином и паролем от Platonus, чтобы увидеть оценки и GPA.</div>
+        </div>
+      `;
       return;
     }
+
     const s = platonusStudent;
+    const initials = (s.studentName || '').split(' ').filter(Boolean).slice(0, 2).map(w => w[0]).join('').toUpperCase();
+
     let html = `
+      <span class="masthead-eyebrow" style="margin-bottom:10px; display:block;">Профиль</span>
+      <div class="profile-header">
+        <div class="profile-avatar">${initials || '?'}</div>
+        <div class="profile-header-info">
+          <div class="profile-name">${s.studentName || 'Студент'}</div>
+          <div class="profile-id">ID: ${s.studentID ?? '—'}</div>
+        </div>
+      </div>
+
       <div class="gpa-card">
         <div class="gpa-row"><span class="gpa-label">Академический GPA</span><span class="gpa-value accent">${s.academicGpa ?? '—'}</span></div>
         <div class="gpa-row"><span class="gpa-label">Научный GPA</span><span class="gpa-value">${s.scientificGpa ?? '—'}</span></div>
@@ -1238,22 +1278,23 @@
       html += '<div class="notice-panel"><div class="notice-hint">Оценки по предметам загружаются…</div></div>';
     }
 
-    swapContent(container, html);
+    html += `<button class="profile-logout-btn" onclick="logout()">Выйти из аккаунта</button>`;
+
+    container.innerHTML = html;
   }
 
   async function loadLiveStudentData() {
     try {
-      // 1. GPA endpoint doubles as "who am I" — gives studentID without needing it upfront.
+      // 1. Эндпоинт GPA заодно выполняет роль "кто я" — возвращает studentID без необходимости знать его заранее.
       const gpa = await platonusFetch('/api/gpa');
       platonusStudent = gpa;
       localStorage.setItem('platonus_student', JSON.stringify(gpa));
-      updateUserChip();
 
-      // 2. Real timetable for that student.
+      // 2. Настоящее расписание для этого студента.
       const schedule = await platonusFetch(`/api/schedule?studentID=${gpa.studentID}`);
       transformPlatonusSchedule(schedule);
 
-      // 3. Grades journal for the current year/term reported by the schedule call.
+      // 3. Журнал оценок за текущий год/семестр из ответа расписания.
       if (liveScheduleWeekInfo && liveScheduleWeekInfo.selectedStudyYear && liveScheduleWeekInfo.selectedTerm) {
         try {
           liveJournalData = await platonusFetch(
@@ -1266,9 +1307,9 @@
 
       detectToday();
       updateStatusBarAndLive();
-      if (currentMode === 'grades') {
-        renderGpaScreen();
-      } else {
+      if (currentSection === 'profile') {
+        renderProfile();
+      } else if (currentSection === 'schedule') {
         renderSchedule(false);
       }
     } catch (err) {
@@ -1596,7 +1637,7 @@
   }
 
   function updateTabIndicator() {
-    const activeBtn = document.querySelector('.tab-btn.active');
+    const activeBtn = document.querySelector('#navTabs .tab-btn.active');
     const indicator = document.getElementById('tabIndicator');
     if (activeBtn && indicator) {
       indicator.style.width = activeBtn.offsetWidth + 'px';
@@ -1635,7 +1676,7 @@
     updateDayIndicator();
   });
 
-  // Demo data shown before login / if a live fetch fails. Overwritten by transformPlatonusSchedule() after login.
+  // Демо-данные до логина / если реальный запрос не удался. Перезаписываются transformPlatonusSchedule() после входа.
   let SCHEDULE = {
     'Понедельник': [
       {'пара': '1', 'sub': 'Нереляционные базы данных (Лаб. работа)', 'teacher': 'Темирханова С. Е.', 'room': 'Гк434Б', 'type': 1},
@@ -1670,6 +1711,11 @@
     'Операционные системы': [],
     'Основы права и антикоррупционной культуры': []
   };
+
+  // Заполните реальными данными или подключите /api/exams, когда появится соответствующий эндпоинт Platonus
+  let EXAMS_SCHEDULE = [
+    // { subject: 'Операционные системы', examType: 'Экзамен', date: '2026-01-12', time: '09:00', room: 'Гк423', teacher: 'Толымбекова Г. С.' },
+  ];
 
   function getWeekType(date = new Date()) {
     const target = new Date(date.valueOf());
@@ -1796,6 +1842,7 @@
     return maxEnd;
   }
 
+  let currentSection = 'schedule'; // 'schedule' | 'umkd' | 'exams' | 'profile'
   let currentMode = 'current';
   let selectedDay = 'Понедельник';
   let selectedUmkdSubject = null;
@@ -1834,13 +1881,13 @@
         void badge.offsetWidth;
       }
       badge.classList.add('active');
-      requestAnimationFrame(updateDayIndicator); // NEW — раскладка уже с бейджем, пересинхронизируем пилюлю
+      requestAnimationFrame(updateDayIndicator);
     } else {
       badge.classList.remove('active');
       weekendBadgeHideTimer = setTimeout(() => {
         badge.style.display = 'none';
         weekendBadgeHideTimer = null;
-        updateDayIndicator(); // NEW — бейдж реально исчез из потока, пересчитать позицию
+        updateDayIndicator();
       }, 220);
     }
   }
@@ -1865,14 +1912,10 @@
 
     if (currentMode === 'current') {
       statusText.innerHTML = `<span class="masthead-eyebrow">Неделя ${currentWeekRoman}</span><span class="masthead-headline">${currentWeekName}</span>`;
-    } else if (currentMode === 'next') {
+    } else {
       const nextWeekName = currentWeekType === 1 ? "Знаменатель" : "Числитель";
       const nextRoman = currentWeekType === 1 ? "II" : "I";
       statusText.innerHTML = `<span class="masthead-eyebrow">Неделя ${nextRoman} · далее</span><span class="masthead-headline">${nextWeekName}</span>`;
-    } else if (currentMode === 'grades') {
-      statusText.innerHTML = `<span class="masthead-eyebrow">Раздел</span><span class="masthead-headline">Оценки</span>`;
-    } else {
-      statusText.innerHTML = `<span class="masthead-eyebrow">Раздел</span><span class="masthead-headline">УМКД</span>`;
     }
 
     if (!dayHasClasses(realTodayName)) {
@@ -1922,20 +1965,42 @@
 
   function jumpToToday() {
     haptic('light');
+    if (currentSection !== 'schedule') switchSection('schedule');
     switchWeek('current');
     selectDay(realTodayName, null);
+  }
+
+  function switchSection(section) {
+    if (section === currentSection) return;
+    haptic('light');
+    currentSection = section;
+
+    document.querySelectorAll('.bottom-tab-btn').forEach(btn => btn.classList.remove('active'));
+    document.getElementById(`section-${section}`).classList.add('active');
+
+    document.getElementById('sectionSchedule').style.display = section === 'schedule' ? 'block' : 'none';
+    document.getElementById('sectionUmkd').style.display = section === 'umkd' ? 'block' : 'none';
+    document.getElementById('sectionExams').style.display = section === 'exams' ? 'block' : 'none';
+    document.getElementById('sectionProfile').style.display = section === 'profile' ? 'block' : 'none';
+
+    if (section === 'schedule') {
+      requestAnimationFrame(() => requestAnimationFrame(() => { updateTabIndicator(); updateDayIndicator(); }));
+    } else if (section === 'umkd') {
+      renderUmkdSubjects();
+    } else if (section === 'exams') {
+      renderExams();
+    } else if (section === 'profile') {
+      renderProfile();
+    }
   }
 
   function switchWeek(mode) {
     if (mode === currentMode) return;
     haptic('light');
     currentMode = mode;
-    selectedUmkdSubject = null;
-    document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
+    document.querySelectorAll('#navTabs .tab-btn').forEach(btn => btn.classList.remove('active'));
     if (mode === 'current') document.getElementById('tabCurrent').classList.add('active');
     if (mode === 'next') document.getElementById('tabNext').classList.add('active');
-    if (mode === 'grades') document.getElementById('tabGrades').classList.add('active');
-    if (mode === 'umkd') document.getElementById('tabUmkd').classList.add('active');
     updateTabIndicator();
 
     document.querySelectorAll('.day-btn').forEach(btn => btn.classList.remove('active'));
@@ -1943,17 +2008,9 @@
     const dayBtn = shortName ? document.getElementById(`btn-${shortName}`) : null;
     if (dayBtn) dayBtn.classList.add('active');
 
-    const daysGrid = document.getElementById('daysGrid');
-    if (mode === 'grades' || mode === 'umkd') {
-      daysGrid.style.display = 'none';
-      if (mode === 'grades') renderGpaScreen();
-      if (mode === 'umkd') renderUmkdSubjects();
-    } else {
-      daysGrid.style.display = 'flex';
-      updateWeekendBadge();
-      renderSchedule();
-    }
-    requestAnimationFrame(updateDayIndicator); // было: updateDayIndicator();
+    updateWeekendBadge();
+    renderSchedule();
+    requestAnimationFrame(() => requestAnimationFrame(updateDayIndicator));
     updateStatusBarAndLive();
   }
 
@@ -2086,7 +2143,7 @@
   }
 
   function renderUmkdSubjects() {
-    const container = document.getElementById('scheduleContainer');
+    const container = document.getElementById('sectionUmkd');
     let itemsHtml = '';
     for (const subject of Object.keys(UMKD_FILES)) {
       itemsHtml += `
@@ -2096,17 +2153,16 @@
         </div>
       `;
     }
-    const html = `
-      <button class="back-link" onclick="switchWeek('current')">‹ Назад к расписанию</button>
+    container.innerHTML = `
+      <span class="masthead-eyebrow" style="margin-bottom:10px; display:block;">УМКД</span>
       <div class="list-card">${itemsHtml}</div>
     `;
-    swapContent(container, html);
   }
 
   function selectUmkdSubject(subjectName) {
     haptic('light');
     selectedUmkdSubject = subjectName;
-    const container = document.getElementById('scheduleContainer');
+    const container = document.getElementById('sectionUmkd');
     const files = UMKD_FILES[subjectName] || [];
 
     let filesHtml = '';
@@ -2123,13 +2179,49 @@
       });
     }
 
-    const html = `
+    container.innerHTML = `
       <button class="back-link" onclick="renderUmkdSubjects()">‹ Назад к дисциплинам</button>
       <span class="masthead-eyebrow" style="margin-bottom:10px; display:block;">УМКД</span>
       <div class="notice-title" style="margin-bottom:6px;">${subjectName}</div>
       <div class="list-card">${filesHtml}</div>
     `;
-    swapContent(container, html);
+  }
+
+  function renderExams() {
+    const container = document.getElementById('sectionExams');
+    if (!EXAMS_SCHEDULE || EXAMS_SCHEDULE.length === 0) {
+      container.innerHTML = `
+        <span class="masthead-eyebrow" style="margin-bottom:10px; display:block;">Экзамены</span>
+        <div class="notice-panel">
+          <div class="notice-title">Расписание экзаменов пока пусто</div>
+          <div class="notice-hint">Как только сессия появится в системе, здесь будут даты, аудитории и преподаватели.</div>
+        </div>
+      `;
+      return;
+    }
+
+    const sorted = [...EXAMS_SCHEDULE].sort((a, b) => (a.date + a.time).localeCompare(b.date + b.time));
+    let rowsHtml = '';
+    sorted.forEach(exam => {
+      rowsHtml += `
+        <div class="list-row">
+          <div class="row-index">
+            <span class="row-index-main">${exam.date}</span>
+            <span class="row-index-sub">${exam.time}</span>
+          </div>
+          <div class="row-body">
+            <div class="row-top"><span class="row-title">${exam.subject}</span></div>
+            <div class="row-meta">${exam.teacher || ''}<span class="meta-sep">·</span>ауд. ${exam.room || '—'}</div>
+            <div class="row-tags"><span class="tag tag-fill">${exam.examType || 'Экзамен'}</span></div>
+          </div>
+        </div>
+      `;
+    });
+
+    container.innerHTML = `
+      <span class="masthead-eyebrow" style="margin-bottom:10px; display:block;">Экзамены</span>
+      <div class="list-card">${rowsHtml}</div>
+    `;
   }
 
   document.addEventListener('DOMContentLoaded', () => {
@@ -2151,7 +2243,6 @@
     if (platonusSession) {
       showLoginOverlay(false);
       document.getElementById('loginOverlay').style.display = 'none';
-      if (platonusStudent) updateUserChip();
       loadLiveStudentData();
     } else {
       showLoginOverlay(true);
@@ -2159,7 +2250,7 @@
 
     setInterval(() => {
       updateStatusBarAndLive();
-      if (currentMode === 'current' && selectedDay === realTodayName && dayHasClasses(realTodayName)) {
+      if (currentSection === 'schedule' && currentMode === 'current' && selectedDay === realTodayName && dayHasClasses(realTodayName)) {
         renderSchedule(false);
       }
     }, 1000);
