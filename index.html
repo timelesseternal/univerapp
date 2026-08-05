@@ -19,7 +19,6 @@
 
   <style>
     :root {
-      /* -- iOS-native surface tokens -- */
       --paper: #F2F2F7;
       --paper-2: #FFFFFF;
       --ink: #1C1C1E;
@@ -27,7 +26,6 @@
       --line: #E5E5EA;
       --overlay: rgba(0, 0, 0, 0.4);
 
-      /* -- single functional accent -- */
       --accent: #3B82F6;
       --accent-text: #FFFFFF;
       --accent-rgb: 59, 130, 246;
@@ -37,7 +35,6 @@
       --accent-tint-strong: rgba(59, 130, 246, 0.16);
       --accent-tint-soft: rgba(59, 130, 246, 0.06);
 
-      /* -- type -- */
       --font-display: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Inter', sans-serif;
       --font-body: -apple-system, BlinkMacSystemFont, 'SF Pro Text', 'Inter', sans-serif;
       --font-mono: ui-monospace, 'SF Mono', 'JetBrains Mono', monospace;
@@ -91,7 +88,6 @@
       margin: 0 auto;
     }
 
-    /* ============ MASTHEAD ============ */
     .status-bar {
       display: flex;
       justify-content: space-between;
@@ -210,7 +206,6 @@
     }
     .today-btn:active { transform: scale(0.95); opacity: 0.85; }
 
-    /* ============ MODALS ============ */
     .modal-overlay {
       position: fixed;
       top: 0; left: 0;
@@ -315,7 +310,6 @@
     .modal-btn.cancel { color: var(--ink-soft); }
     .modal-btn.save { background: var(--accent); color: var(--accent-text); }
 
-    /* accent picker */
     .accent-swatch-grid {
       display: grid;
       grid-template-columns: repeat(3, 1fr);
@@ -369,7 +363,6 @@
     .accent-default-check { opacity: 0; }
     .accent-default-btn.selected .accent-default-check { opacity: 1; }
 
-    /* ============ TABS (segmented control) ============ */
     .nav-tabs {
       position: relative;
       display: flex;
@@ -407,7 +400,6 @@
     }
     .tab-btn.active { color: var(--accent-text); }
 
-    /* ============ DAYS (сегментированный контрол, как nav-tabs) ============ */
     .days-grid {
       position: relative;
       display: flex;
@@ -480,7 +472,6 @@
     }
     .weekend-badge.active { opacity: 1; }
 
-    /* ============ CONTENT TRANSITION ============ */
     #scheduleContainer {
       transition: opacity 0.2s ease, transform 0.2s ease;
       opacity: 1;
@@ -488,7 +479,6 @@
     }
     #scheduleContainer.content-hidden { opacity: 0; transform: translateY(6px); }
 
-    /* ============ SCHEDULE LIST (grouped card look) ============ */
     .list-card {
       background: var(--paper-2);
       border-radius: 16px;
@@ -595,7 +585,6 @@
       transition: width 0.5s linear;
     }
 
-    /* ============ NOTICE PANEL (day off / finished / empty) ============ */
     .notice-panel {
       background: var(--paper-2);
       border-radius: 16px;
@@ -639,7 +628,6 @@
       padding: 10px 0;
     }
 
-    /* weather block inside notice panel */
     .weather-skeleton { display: flex; flex-direction: column; gap: 8px; }
     .weather-skeleton-row { display: flex; align-items: center; gap: 8px; }
     .weather-skeleton-block {
@@ -670,7 +658,6 @@
       font-family: var(--font-body);
     }
 
-    /* ============ UMKD LISTS ============ */
     .list-card .umkd-subject-row, .list-card .umkd-item {
       display: flex;
       align-items: center;
@@ -710,7 +697,6 @@
     }
     .back-link:active { opacity: 0.6; }
 
-    /* ============ LOGIN SCREEN ============ */
     .login-overlay {
       position: fixed;
       inset: 0;
@@ -809,7 +795,6 @@
     .gpa-value { font-family: var(--font-display); font-weight: 700; font-size: 1rem; color: var(--ink); }
     .gpa-value.accent { color: var(--accent); }
 
-    /* ============ BOTTOM TAB BAR ============ */
     .bottom-tab-bar {
       position: fixed;
       left: 0; right: 0; bottom: 0;
@@ -839,7 +824,6 @@
     .bottom-tab-btn.active { color: var(--accent); }
     .bottom-tab-icon { width: 22px; height: 22px; }
 
-    /* ============ PROFILE ============ */
     .profile-header {
       display: flex;
       align-items: center;
@@ -914,7 +898,7 @@
 
     <button class="login-submit" id="loginSubmitBtn" onclick="submitLogin()">Войти</button>
     <div class="login-error" id="loginError"></div>
-    <div class="login-hint">Пароль отправляется напрямую в Platonus и нигде не сохраняется — только временная сессия, пока вы не выйдете.</div>
+    <div class="login-hint">Логин и пароль сохраняются на этом устройстве через безопасное хранилище Telegram, чтобы не вводить их при каждом входе.</div>
   </div>
 </div>
 
@@ -1067,14 +1051,52 @@
   }
 
   // ==================================================================
+  // ============ ПЕРСИСТЕНТНОЕ ХРАНИЛИЩЕ (Telegram CloudStorage) ============
+  // ==================================================================
+  // CloudStorage переживает очистку кэша WebView и синхронизируется с аккаунтом
+  // Telegram пользователя — в отличие от localStorage, который в некоторых
+  // сценариях (особенно на iOS) может быть очищен системой. Вне Telegram
+  // (например, при локальной разработке в обычном браузере) используем
+  // localStorage как фолбэк.
+  function csGet(key) {
+    return new Promise((resolve) => {
+      if (tg && tg.CloudStorage) {
+        tg.CloudStorage.getItem(key, (err, value) => resolve(err ? null : (value || null)));
+      } else {
+        resolve(localStorage.getItem(key));
+      }
+    });
+  }
+  function csSet(key, value) {
+    return new Promise((resolve) => {
+      if (tg && tg.CloudStorage) {
+        tg.CloudStorage.setItem(key, value, () => resolve());
+      } else {
+        localStorage.setItem(key, value);
+        resolve();
+      }
+    });
+  }
+  function csRemove(key) {
+    return new Promise((resolve) => {
+      if (tg && tg.CloudStorage) {
+        tg.CloudStorage.removeItem(key, () => resolve());
+      } else {
+        localStorage.removeItem(key);
+        resolve();
+      }
+    });
+  }
+
+  // ==================================================================
   // ============ PLATONUS AUTH + LIVE DATA ============
   // ==================================================================
 
-  const API_BASE = ''; // same origin as this page once deployed on Vercel
+  const API_BASE = ''; // тот же origin, что и эта страница после деплоя на Vercel
 
-  let platonusSession = localStorage.getItem('platonus_session') || null;
-  let platonusStudent = JSON.parse(localStorage.getItem('platonus_student') || 'null');
-  let liveScheduleWeekInfo = null; // { selectedTerm, selectedStudyYear, selectedWeek }
+  let platonusSession = null;   // заполняется асинхронно в DOMContentLoaded из CloudStorage
+  let platonusStudent = null;   // заполняется асинхронно в DOMContentLoaded из CloudStorage
+  let liveScheduleWeekInfo = null;
   let liveJournalData = null;
 
   function showLoginOverlay(show) {
@@ -1134,7 +1156,9 @@
       }
 
       platonusSession = data.session;
-      localStorage.setItem('platonus_session', platonusSession);
+      await csSet('platonus_session', platonusSession);
+      await csSet('platonus_login', login);
+      await csSet('platonus_password', password);
       document.getElementById('passwordInput').value = '';
 
       await loadLiveStudentData();
@@ -1149,8 +1173,10 @@
 
   function logout() {
     haptic('medium');
-    localStorage.removeItem('platonus_session');
-    localStorage.removeItem('platonus_student');
+    csRemove('platonus_session');
+    csRemove('platonus_student');
+    csRemove('platonus_login');
+    csRemove('platonus_password');
     platonusSession = null;
     platonusStudent = null;
     liveJournalData = null;
@@ -1159,21 +1185,49 @@
     showLoginOverlay(true);
   }
 
+  async function silentRelogin() {
+    const login = await csGet('platonus_login');
+    const password = await csGet('platonus_password');
+    if (!login || !password) return false;
+
+    try {
+      const resp = await fetch(`${API_BASE}/api/login`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ login, password }),
+      });
+      const data = await resp.json();
+      if (!resp.ok || !data.ok) return false;
+
+      platonusSession = data.session;
+      await csSet('platonus_session', platonusSession);
+      return true;
+    } catch (e) {
+      return false;
+    }
+  }
+
   async function platonusFetch(path) {
     if (!platonusSession) throw new Error('no_session');
-    const resp = await fetch(`${API_BASE}${path}`, {
+    let resp = await fetch(`${API_BASE}${path}`, {
       headers: { 'x-session': platonusSession },
     });
+
     if (resp.status === 401) {
-      // сессия умерла на стороне Platonus (истекла / вышли в другом месте) — форсируем повторный вход
-      logout();
-      throw new Error('session_expired');
+      const relogged = await silentRelogin();
+      if (relogged) {
+        resp = await fetch(`${API_BASE}${path}`, {
+          headers: { 'x-session': platonusSession },
+        });
+      } else {
+        logout();
+        throw new Error('session_expired');
+      }
     }
     if (!resp.ok) throw new Error('request_failed');
     return resp.json();
   }
 
-  // Конвертирует JSON расписания Platonus в структуру SCHEDULE, которую использует остальное приложение.
   const PLT_DAY_NAMES = { 1: 'Понедельник', 2: 'Вторник', 3: 'Среда', 4: 'Четверг', 5: 'Пятница', 6: 'Суббота' };
   const PLT_GROUP_TYPE_LABEL = { 'Л': 'Лекция', 'ЛЗ': 'Лаб. работа', 'СПЗ': 'Семинар', 'П': 'Практика' };
 
@@ -1193,7 +1247,7 @@
     const days = (data.timetable && data.timetable.days) || {};
     Object.keys(days).forEach(dayKey => {
       const dayName = PLT_DAY_NAMES[dayKey];
-      if (!dayName) return; // воскресенье (7) или неизвестный ключ — в этом UI нет слота
+      if (!dayName) return;
       const lessonsForDay = [];
       const lessonsObj = days[dayKey].lessons || {};
       Object.keys(lessonsObj).forEach(hourNumber => {
@@ -1207,7 +1261,7 @@
             'sub': `${lesson.subjectName}${typeLabel ? ' (' + typeLabel + ')' : ''}`,
             'teacher': (lesson.tutorName || '').trim(),
             'room': `${lesson.auditory || ''}`.trim(),
-            'type': lesson.weekNumber || 0, // 0 = каждую неделю, 1/2 = числитель/знаменатель
+            'type': lesson.weekNumber || 0,
           });
         });
       });
@@ -1285,16 +1339,13 @@
 
   async function loadLiveStudentData() {
     try {
-      // 1. Эндпоинт GPA заодно выполняет роль "кто я" — возвращает studentID без необходимости знать его заранее.
       const gpa = await platonusFetch('/api/gpa');
       platonusStudent = gpa;
-      localStorage.setItem('platonus_student', JSON.stringify(gpa));
+      await csSet('platonus_student', JSON.stringify(gpa));
 
-      // 2. Настоящее расписание для этого студента.
       const schedule = await platonusFetch(`/api/schedule?studentID=${gpa.studentID}`);
       transformPlatonusSchedule(schedule);
 
-      // 3. Журнал оценок за текущий год/семестр из ответа расписания.
       if (liveScheduleWeekInfo && liveScheduleWeekInfo.selectedStudyYear && liveScheduleWeekInfo.selectedTerm) {
         try {
           liveJournalData = await platonusFetch(
@@ -1319,7 +1370,6 @@
     }
   }
 
-  // ---- Weather ----
   const CITY_COORDS = {
     'Актау':            { lat: 43.6481, lon: 51.1801 },
     'Актобе':           { lat: 50.2839, lon: 57.2094 },
@@ -1531,7 +1581,6 @@
     }
   }
 
-  // ---- Accent color theming ----
   const ACCENT_THEMES = [
     { id: 'default', name: 'Стандартный', hex: '#3B82F6', text: '#FFFFFF' },
     { id: 'lime', name: 'Лайм', hex: '#A3E635', text: '#1F2937' },
@@ -1676,7 +1725,6 @@
     updateDayIndicator();
   });
 
-  // Демо-данные до логина / если реальный запрос не удался. Перезаписываются transformPlatonusSchedule() после входа.
   let SCHEDULE = {
     'Понедельник': [
       {'пара': '1', 'sub': 'Нереляционные базы данных (Лаб. работа)', 'teacher': 'Темирханова С. Е.', 'room': 'Гк434Б', 'type': 1},
@@ -1712,7 +1760,6 @@
     'Основы права и антикоррупционной культуры': []
   };
 
-  // Заполните реальными данными или подключите /api/exams, когда появится соответствующий эндпоинт Platonus
   let EXAMS_SCHEDULE = [
     // { subject: 'Операционные системы', examType: 'Экзамен', date: '2026-01-12', time: '09:00', room: 'Гк423', teacher: 'Толымбекова Г. С.' },
   ];
@@ -1842,7 +1889,7 @@
     return maxEnd;
   }
 
-  let currentSection = 'schedule'; // 'schedule' | 'umkd' | 'exams' | 'profile'
+  let currentSection = 'schedule';
   let currentMode = 'current';
   let selectedDay = 'Понедельник';
   let selectedUmkdSubject = null;
@@ -2224,7 +2271,11 @@
     `;
   }
 
-  document.addEventListener('DOMContentLoaded', () => {
+  document.addEventListener('DOMContentLoaded', async () => {
+    platonusSession = await csGet('platonus_session');
+    const studentRaw = await csGet('platonus_student');
+    platonusStudent = studentRaw ? JSON.parse(studentRaw) : null;
+
     const savedAccent = localStorage.getItem('user_accent') || 'default';
     applyAccentTheme(savedAccent, false);
     detectToday();
