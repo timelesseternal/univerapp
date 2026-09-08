@@ -1003,7 +1003,7 @@
 <script>
   if ('serviceWorker' in navigator) {
     const swCode = `
-      const CACHE_NAME = 'univer-pwa-v2';
+      const CACHE_NAME = 'univer-pwa-v3';
       self.addEventListener('install', (e) => { self.skipWaiting(); });
       self.addEventListener('activate', (e) => {
         e.waitUntil(
@@ -1013,6 +1013,15 @@
         );
       });
       self.addEventListener('fetch', (e) => {
+        const url = new URL(e.request.url);
+
+        // Никогда не кэшируем /api/* — там приватные данные конкретной сессии,
+        // и SW не различает, кто именно вошёл в аккаунт.
+        if (url.pathname.startsWith('/api/')) {
+          e.respondWith(fetch(e.request));
+          return;
+        }
+
         e.respondWith(
           fetch(e.request).then((networkResponse) => {
             if (networkResponse && networkResponse.status === 200) {
@@ -1211,6 +1220,7 @@
     if (!platonusSession) throw new Error('no_session');
     let resp = await fetch(`${API_BASE}${path}`, {
       headers: { 'x-session': platonusSession },
+      cache: 'no-store',
     });
 
     if (resp.status === 401) {
@@ -1218,6 +1228,7 @@
       if (relogged) {
         resp = await fetch(`${API_BASE}${path}`, {
           headers: { 'x-session': platonusSession },
+          cache: 'no-store',
         });
       } else {
         logout();
