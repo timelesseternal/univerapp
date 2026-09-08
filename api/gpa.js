@@ -7,6 +7,7 @@
 import { getSessionFromRequest, buildPlatonusHeaders } from './_lib/platonus.js';
 
 export default async function handler(req, res) {
+  res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate');
   const session = getSessionFromRequest(req);
   if (!session) {
     res.status(401).json({ error: 'no_session' });
