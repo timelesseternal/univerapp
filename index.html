@@ -1876,11 +1876,19 @@
     const hint = getUpcomingHintFromDate(getTomorrowDate());
     const isActuallyToday = dayName === realTodayName && currentMode === 'current';
     const title = isActuallyToday ? 'Сегодня без пар' : `${dayName}: пар нет`;
-    // ВРЕМЕННО, для отладки: если расписание не загрузилось из-за ошибки,
-    // показываем текст ошибки прямо тут, чтобы увидеть её без консоли разработчика.
-    const debugErrorHtml = lastScheduleLoadError
-      ? `<div class="notice-divider"></div><div class="notice-hint" style="color:#DC2626; font-family: var(--font-mono); font-size: 0.75rem;">debug: ${lastScheduleLoadError}</div>`
-      : '';
+    // ВРЕМЕННО, для отладки: показываем либо текст ошибки загрузки, либо —
+    // если ошибки не было — сводку того, что реально распарсилось в SCHEDULE,
+    // чтобы понять, пустой ли ответ Platonus или проблема в сопоставлении дней.
+    let debugLine;
+    if (lastScheduleLoadError) {
+      debugLine = `error: ${lastScheduleLoadError}`;
+    } else {
+      const daySummary = Object.keys(SCHEDULE).length
+        ? Object.keys(SCHEDULE).map(d => `${d}:${(SCHEDULE[d] || []).length}`).join(', ')
+        : '(SCHEDULE пуст)';
+      debugLine = `today=${realTodayName}, selected=${dayName}, ${daySummary}`;
+    }
+    const debugErrorHtml = `<div class="notice-divider"></div><div class="notice-hint" style="color:#DC2626; font-family: var(--font-mono); font-size: 0.7rem; word-break: break-all;">debug: ${debugLine}</div>`;
     return `
       <div class="notice-panel">
         <span class="notice-eyebrow">выходной</span>
