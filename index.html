@@ -1358,46 +1358,70 @@
     container.innerHTML = html;
   }
 
+  let lastScheduleLoadError = null; // временно: держим текст последней ошибки для отладки на экране
+
   async function loadLiveStudentData() {
+    let gpa = null;
+
     try {
-      const gpa = await platonusFetch('/api/gpa');
+      gpa = await platonusFetch('/api/gpa');
       platonusStudent = gpa;
       await csSet('platonus_student', JSON.stringify(gpa));
-
-      const schedule = await platonusFetch(`/api/schedule?studentID=${gpa.studentID}`);
-      transformPlatonusSchedule(schedule);
-
-      if (liveScheduleWeekInfo && liveScheduleWeekInfo.selectedStudyYear && liveScheduleWeekInfo.selectedTerm) {
-        try {
-          liveJournalData = await platonusFetch(
-            `/api/grades?studentID=${gpa.studentID}&year=${liveScheduleWeekInfo.selectedStudyYear}&term=${liveScheduleWeekInfo.selectedTerm}`
-          );
-        } catch (e) {
-          liveJournalData = null;
-        }
-
-        try {
-          liveUmkdData = await platonusFetch(
-            `/api/umkd?year=${liveScheduleWeekInfo.selectedStudyYear}&term=${liveScheduleWeekInfo.selectedTerm}`
-          );
-        } catch (e) {
-          liveUmkdData = null;
-        }
-      }
-
-      detectToday();
-      updateStatusBarAndLive();
-      if (currentSection === 'profile') {
-        renderProfile();
-      } else if (currentSection === 'schedule') {
-        renderSchedule(false);
-      } else if (currentSection === 'umkd') {
-        renderUmkdSubjects();
-      }
     } catch (err) {
       if (err.message !== 'session_expired') {
-        console.error('Failed to load live student data', err);
+        console.error('Failed to load GPA/profile', err);
       }
+      return; // без GPA дальше идти бессмысленно — нет studentID
+    }
+
+    // Расписание грузим отдельно: ошибка здесь не должна блокировать
+    // оценки и УМКД, которые ни от чего кроме сессии не зависят по логину.
+    try {
+      const schedule = await platonusFetch(`/api/schedule?studentID=${gpa.studentID}`);
+      transformPlatonusSchedule(schedule);
+      lastScheduleLoadError = null;
+    } catch (err) {
+      liveScheduleWeekInfo = null;
+      lastScheduleLoadError = (err && err.message) ? err.message : String(err);
+      console.error('Failed to load/parse schedule', err);
+    }
+
+    if (liveScheduleWeekInfo && liveScheduleWeekInfo.selectedStudyYear && liveScheduleWeekInfo.selectedTerm) {
+      try {
+        liveJournalData = await platonusFetch(
+          `/api/grades?studentID=${gpa.studentID}&year=${liveScheduleWeekInfo.selectedStudyYear}&term=${liveScheduleWeekInfo.selectedTerm}`
+        );
+      } catch (e) {
+        liveJournalData = null;
+      }
+
+      try {
+        liveUmkdData = await platonusFetch(
+          `/api/umkd?year=${liveScheduleWeekInfo.selectedStudyYear}&term=${liveScheduleWeekInfo.selectedTerm}`
+        );
+      } catch (e) {
+        liveUmkdData = null;
+      }
+    } else {
+      // Год/семестр не определились (обычно из-за упавшего расписания выше) —
+      // всё равно пробуем УМКД с текущим годом как запасной вариант,
+      // раз Platonus умеет понимать это и без строгой синхронизации с schedule.
+      const fallbackYear = new Date().getFullYear();
+      try {
+        liveUmkdData = await platonusFetch(`/api/umkd?year=${fallbackYear}&term=1`);
+      } catch (e) {
+        liveUmkdData = null;
+      }
+    }
+
+    detectToday();
+    updateStatusBarAndLive();
+    if (currentSection === 'profile') {
+      renderProfile();
+    } else if (currentSection === 'schedule') {
+      renderSchedule(false);
+    } else if (currentSection === 'umkd') {
+      renderUmkdSubjects();
     }
   }
 
@@ -1840,6 +1864,11 @@
     const hint = getUpcomingHintFromDate(getTomorrowDate());
     const isActuallyToday = dayName === realTodayName && currentMode === 'current';
     const title = isActuallyToday ? 'Сегодня без пар' : `${dayName}: пар нет`;
+    // ВРЕМЕННО, для отладки: если расписание не загрузилось из-за ошибки,
+    // показываем текст ошибки прямо тут, чтобы увидеть её без консоли разработчика.
+    const debugErrorHtml = lastScheduleLoadError
+      ? `<div class="notice-divider"></div><div class="notice-hint" style="color:#DC2626; font-family: var(--font-mono); font-size: 0.75rem;">debug: ${lastScheduleLoadError}</div>`
+      : '';
     return `
       <div class="notice-panel">
         <span class="notice-eyebrow">выходной</span>
@@ -1850,6 +1879,7 @@
           <span class="notice-hint-label">ближайшая пара</span>
           ${hint}
         </div>
+        ${debugErrorHtml}
       </div>
     `;
   }
