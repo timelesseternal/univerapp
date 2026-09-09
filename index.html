@@ -2067,6 +2067,8 @@
     document.getElementById('sectionProfile').style.display = section === 'profile' ? 'block' : 'none';
 
     if (section === 'schedule') {
+      renderSchedule(false);
+      updateStatusBarAndLive();
       requestAnimationFrame(() => requestAnimationFrame(() => { updateTabIndicator(); updateDayIndicator(); }));
     } else if (section === 'umkd') {
       renderUmkdSubjects();
