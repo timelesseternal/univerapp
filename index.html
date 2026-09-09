@@ -1107,6 +1107,7 @@
   let platonusStudent = null;   // заполняется асинхронно в DOMContentLoaded из CloudStorage
   let liveScheduleWeekInfo = null;
   let liveJournalData = null;
+  let liveUmkdData = null;
 
   function showLoginOverlay(show) {
     const el = document.getElementById('loginOverlay');
@@ -1189,6 +1190,7 @@
     platonusSession = null;
     platonusStudent = null;
     liveJournalData = null;
+    liveUmkdData = null;
     switchSection('schedule');
     document.getElementById('loginOverlay').style.display = 'flex';
     showLoginOverlay(true);
@@ -1373,6 +1375,14 @@
         } catch (e) {
           liveJournalData = null;
         }
+
+        try {
+          liveUmkdData = await platonusFetch(
+            `/api/umkd?year=${liveScheduleWeekInfo.selectedStudyYear}&term=${liveScheduleWeekInfo.selectedTerm}`
+          );
+        } catch (e) {
+          liveUmkdData = null;
+        }
       }
 
       detectToday();
@@ -1381,6 +1391,8 @@
         renderProfile();
       } else if (currentSection === 'schedule') {
         renderSchedule(false);
+      } else if (currentSection === 'umkd') {
+        renderUmkdSubjects();
       }
     } catch (err) {
       if (err.message !== 'session_expired') {
@@ -1744,44 +1756,7 @@
     updateDayIndicator();
   });
 
-  let SCHEDULE = {
-    'Понедельник': [
-      {'пара': '1', 'sub': 'Нереляционные базы данных (Лаб. работа)', 'teacher': 'Темирханова С. Е.', 'room': 'Гк434Б', 'type': 2},
-      {'пара': '1', 'sub': 'Методы оптимизации (Лаб. работа)', 'teacher': 'Мендикенов К. К.', 'room': 'Гк434Б', 'type': 1},
-      {'пара': '2', 'sub': 'Методы оптимизации (Лекция)', 'teacher': 'Мендикенов К. К.', 'room': 'Гк423', 'type': 2},
-      {'пара': '2', 'sub': 'Web-технологии и программирование (Лекция)', 'teacher': 'Касылкасова К. Н.', 'room': 'Гк423', 'type': 1}
-    ],
-    'Вторник': [
-      {'пара': '1', 'sub': 'Web-технологии и программирование (Лаб. работа)', 'teacher': 'Касылкасова К. Н.', 'room': 'Гк430А', 'type': 0},
-      {'пара': '2', 'sub': 'Архитектура компьютерных систем (Лекция)', 'teacher': 'Толымбекова Г. С.', 'room': 'Гк423', 'type': 2},
-      {'пара': '2', 'sub': 'Операционные системы (Лаб. работа)', 'teacher': 'Толымбекова Г. С.', 'room': 'Гк400G', 'type': 1},
-      {'пара': '3', 'sub': 'Операционные системы (Лекция)', 'teacher': 'Толымбекова Г. С.', 'room': 'Гк434А', 'type': 2},
-      {'пара': '4', 'sub': 'Нереляционные базы данных (Лаб. работа)', 'teacher': 'Темирханова С. Е.', 'room': 'Гк400Е', 'type': 2}
-    ],
-    'Среда': [
-      {'пара': '2', 'sub': 'Архитектура компьютерных систем (Лаб. работа)', 'teacher': 'Толымбекова Г. С.', 'room': 'Гк400Е', 'type': 0},
-      {'пара': '3', 'sub': 'Методы оптимизации (Лаб. работа)', 'teacher': 'Мендикенов К. К.', 'room': 'Гк400Е', 'type': 2},
-      {'пара': '3', 'sub': 'Нереляционные базы данных (Лекция)', 'teacher': 'Аубакирова А. Е.', 'room': 'Гк423', 'type': 1},
-      {'пара': '4', 'sub': 'Основы права, Основы антикоррупционной культуры (Лекция)', 'teacher': 'Абдрахманова А. А.', 'room': '1к207', 'type': 0}
-    ],
-    'Четверг': [
-      {'пара': '3', 'sub': 'Основы права, Основы антикоррупционной культуры (Семинар)', 'teacher': 'Абдрахманова А. А.', 'room': '1к603', 'type': 2},
-      {'пара': '4', 'sub': 'Операционные системы (Лаб. работа)', 'teacher': 'Толымбекова Г. С.', 'room': 'Гк400А', 'type': 2}
-    ]
-  };
-
-  const UMKD_FILES = {
-    'Нереляционные базы данных': [],
-    'Методы оптимизации': [],
-    'Web-технологии и программирование': [],
-    'Архитектура компьютерных систем': [],
-    'Операционные системы': [],
-    'Основы права и антикоррупционной культуры': []
-  };
-
-  let EXAMS_SCHEDULE = [
-    // { subject: 'Операционные системы', examType: 'Экзамен', date: '2026-01-12', time: '09:00', room: 'Гк423', teacher: 'Толымбекова Г. С.' },
-  ];
+  let SCHEDULE = {};
 
   function getWeekType(date = new Date()) {
     const target = new Date(date.valueOf());
@@ -2210,46 +2185,62 @@
 
   function renderUmkdSubjects() {
     const container = document.getElementById('sectionUmkd');
+
+    if (!liveUmkdData || !Array.isArray(liveUmkdData.records) || liveUmkdData.records.length === 0) {
+      container.innerHTML = `
+        <span class="masthead-eyebrow" style="margin-bottom:10px; display:block;">УМКД</span>
+        <div class="notice-panel">
+          <div class="notice-title">Список пока пуст</div>
+          <div class="notice-hint">Войдите в аккаунт, чтобы увидеть дисциплины текущего семестра.</div>
+        </div>
+      `;
+      return;
+    }
+
     let itemsHtml = '';
-    for (const subject of Object.keys(UMKD_FILES)) {
+    liveUmkdData.records.forEach((rec, index) => {
       itemsHtml += `
-        <div class="umkd-subject-row" onclick="selectUmkdSubject('${subject.replace(/'/g, "\\'")}')">
-          <span>${subject}</span>
+        <div class="umkd-subject-row" onclick="selectUmkdSubject(${index})">
+          <span>${rec.subjectName}</span>
           <span class="umkd-arrow">›</span>
         </div>
       `;
-    }
+    });
+
     container.innerHTML = `
       <span class="masthead-eyebrow" style="margin-bottom:10px; display:block;">УМКД</span>
       <div class="list-card">${itemsHtml}</div>
     `;
   }
 
-  function selectUmkdSubject(subjectName) {
+  function selectUmkdSubject(index) {
     haptic('light');
-    selectedUmkdSubject = subjectName;
     const container = document.getElementById('sectionUmkd');
-    const files = UMKD_FILES[subjectName] || [];
+    const rec = liveUmkdData && liveUmkdData.records ? liveUmkdData.records[index] : null;
 
-    let filesHtml = '';
-    if (files.length === 0) {
-      filesHtml = '<div class="empty-state compact">файлы пока не загружены</div>';
+    if (!rec) {
+      renderUmkdSubjects();
+      return;
+    }
+
+    let bodyHtml;
+    if (rec.umkdFileGenerated && rec.fileId) {
+      bodyHtml = `
+        <div class="umkd-item" onclick="openPdf('${(rec.subjectName || '').replace(/'/g, "\\'")}', '#')">
+          <span>Материал по дисциплине</span>
+          <span class="umkd-arrow">PDF ›</span>
+        </div>
+      `;
     } else {
-      files.forEach(file => {
-        filesHtml += `
-          <div class="umkd-item" onclick="openPdf('${file.name}', '${file.url}')">
-            <span>${file.name}</span>
-            <span class="umkd-arrow">PDF ›</span>
-          </div>
-        `;
-      });
+      bodyHtml = '<div class="empty-state compact">файл ещё не сформирован в Platonus</div>';
     }
 
     container.innerHTML = `
       <button class="back-link" onclick="renderUmkdSubjects()">‹ Назад к дисциплинам</button>
       <span class="masthead-eyebrow" style="margin-bottom:10px; display:block;">УМКД</span>
-      <div class="notice-title" style="margin-bottom:6px;">${subjectName}</div>
-      <div class="list-card">${filesHtml}</div>
+      <div class="notice-title" style="margin-bottom:6px;">${rec.subjectName}</div>
+      <div class="row-meta" style="margin-bottom:12px;">${rec.tutorName || ''}</div>
+      <div class="list-card">${bodyHtml}</div>
     `;
   }
 
@@ -2289,6 +2280,10 @@
       <div class="list-card">${rowsHtml}</div>
     `;
   }
+
+  let EXAMS_SCHEDULE = [
+    // { subject: 'Операционные системы', examType: 'Экзамен', date: '2026-01-12', time: '09:00', room: 'Гк423', teacher: 'Толымбекова Г. С.' },
+  ];
 
   document.addEventListener('DOMContentLoaded', async () => {
     platonusSession = await csGet('platonus_session');
