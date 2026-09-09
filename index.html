@@ -1307,6 +1307,7 @@
       selectedStudyYear: data.selectedStudyYear,
       selectedWeek: data.selectedWeek,
     };
+    lastScheduleServerDebug = data._debug || null;
   }
 
   function renderProfile() {
@@ -1371,6 +1372,7 @@
   }
 
   let lastScheduleLoadError = null; // временно: держим текст последней ошибки для отладки на экране
+  let lastScheduleServerDebug = null; // временно: диагностика от сервера (какая неделя выбрана, был ли ретрай)
 
   async function loadLiveStudentData() {
     let gpa = null;
@@ -1886,7 +1888,10 @@
       const daySummary = Object.keys(SCHEDULE).length
         ? Object.keys(SCHEDULE).map(d => `${d}:${(SCHEDULE[d] || []).length}`).join(', ')
         : '(SCHEDULE пуст)';
-      debugLine = `today=${realTodayName}, selected=${dayName}, ${daySummary}`;
+      const serverInfo = lastScheduleServerDebug
+        ? ` | server: ${JSON.stringify(lastScheduleServerDebug)}`
+        : '';
+      debugLine = `today=${realTodayName}, selected=${dayName}, ${daySummary}${serverInfo}`;
     }
     const debugErrorHtml = `<div class="notice-divider"></div><div class="notice-hint" style="color:#DC2626; font-family: var(--font-mono); font-size: 0.7rem; word-break: break-all;">debug: ${debugLine}</div>`;
     return `
