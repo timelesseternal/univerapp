@@ -1237,7 +1237,19 @@
         throw new Error('session_expired');
       }
     }
-    if (!resp.ok) throw new Error('request_failed');
+    if (!resp.ok) {
+      // Пытаемся вытащить детали ошибки из тела ответа (детальный формат
+      // из api/schedule.js: { error, platonusStatus, detail }), чтобы
+      // видеть точную причину, а не просто "request_failed".
+      let detail = '';
+      try {
+        const body = await resp.json();
+        detail = [body.error, body.platonusStatus, body.detail].filter(Boolean).join(' | ');
+      } catch (e) {
+        // тело не JSON или уже прочитано — оставляем detail пустым
+      }
+      throw new Error(detail ? `request_failed: ${detail}` : 'request_failed');
+    }
     return resp.json();
   }
 
