@@ -1991,13 +1991,37 @@
     return null;
   }
 
+  // Тип текущей недели (1 = Числитель, 2 = Знаменатель) для ФИЛЬТРАЦИИ пар.
+  // Раньше здесь везде стоял getWeekType() — чётность ISO-недели ГОДА (счёт
+  // от 1 января). Но Platonus считает недели семестра от даты начала
+  // семестра (обычно 1 сентября), и эти два отсчёта почти всегда расходятся
+  // по чётности в течение года. Из-за этого приложение иногда показывало
+  // пару с "не той" альтернирующейся недели — предмет/препод/аудиторию от
+  // соседней по чётности недели. Поэтому, когда есть реальный selectedWeek
+  // от Platonus, тип недели выводим из его чётности — так же, как
+  // normalizedWeekType выводится из lesson.weekNumber в
+  // transformPlatonusSchedule() (там 1↔2 инвертируются, здесь та же логика:
+  // чётная учебная неделя → type 1 "Числитель", нечётная → type 2
+  // "Знаменатель"). Календарный getWeekType() остаётся только как фолбэк,
+  // пока данные от Platonus ещё не загрузились (например, до входа).
+  function getCurrentWeekType() {
+    if (liveScheduleWeekInfo && liveScheduleWeekInfo.selectedWeek !== undefined && liveScheduleWeekInfo.selectedWeek !== null) {
+      const num = parseInt(liveScheduleWeekInfo.selectedWeek, 10);
+      if (!isNaN(num)) {
+        return (num % 2 === 0) ? 1 : 2;
+      }
+    }
+    return getWeekType();
+  }
+
   function updateStatusBarAndLive() {
-    const currentWeekType = getWeekType();
+    const currentWeekType = getCurrentWeekType();
     const currentWeekName = currentWeekType === 1 ? "Числитель" : "Знаменатель";
     const currentWeekRoman = currentWeekType === 1 ? "I" : "II";
     const statusText = document.getElementById('weekStatusText');
     const badgeEl = document.getElementById('liveLessonBadge');
     const todayBtn = document.getElementById('todayBtn');
+
 
     todayBtn.style.display = (selectedDay !== realTodayName || currentMode !== 'current') ? 'flex' : 'none';
 
@@ -2019,7 +2043,7 @@
 
     const now = new Date();
     const currentMins = now.getHours() * 60 + now.getMinutes();
-    const currentWeekTypeForToday = getWeekType();
+    const currentWeekTypeForToday = getCurrentWeekType();
 
     const dayLessons = SCHEDULE[realTodayName] || [];
     const activeLessons = dayLessons.filter(l => l.type === 0 || l.type === currentWeekTypeForToday);
@@ -2130,7 +2154,7 @@
 
   function renderSchedule(animate = true) {
     const container = document.getElementById('scheduleContainer');
-    const currentWeekType = getWeekType();
+    const currentWeekType = getCurrentWeekType();
     let targetWeek = currentMode === 'next' ? (currentWeekType === 1 ? 2 : 1) : currentWeekType;
 
     const dayLessons = SCHEDULE[selectedDay] || [];
