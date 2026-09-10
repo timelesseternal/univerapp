@@ -1970,6 +1970,27 @@
     return shortNames[fullDay] || null;
   }
 
+  // Реальный номер учебной недели берём из ответа Platonus (data.selectedWeek,
+  // сохранённый в liveScheduleWeekInfo) — это то же число, что показано у
+  // Platonus в фильтре "НЕДЕЛИ". offset=1 даёт номер следующей недели.
+  // Если данных ещё нет (например, до входа в аккаунт), возвращаем null —
+  // тогда вызывающий код показывает римскую цифру как раньше.
+  // В семестре Platonus всегда максимум 15 недель (как в выпадающем списке
+  // "НЕДЕЛИ" на сайте) — поэтому счёт зацикливаем в диапазоне 1–15: после
+  // 15-й недели следующая снова "1", а не "16".
+  const MAX_TERM_WEEKS = 15;
+
+  function getActualWeekLabel(offset = 0) {
+    if (liveScheduleWeekInfo && liveScheduleWeekInfo.selectedWeek !== undefined && liveScheduleWeekInfo.selectedWeek !== null) {
+      const num = parseInt(liveScheduleWeekInfo.selectedWeek, 10);
+      if (!isNaN(num)) {
+        const wrapped = ((num - 1 + offset) % MAX_TERM_WEEKS + MAX_TERM_WEEKS) % MAX_TERM_WEEKS + 1;
+        return String(wrapped);
+      }
+    }
+    return null;
+  }
+
   function updateStatusBarAndLive() {
     const currentWeekType = getWeekType();
     const currentWeekName = currentWeekType === 1 ? "Числитель" : "Знаменатель";
@@ -1981,11 +2002,13 @@
     todayBtn.style.display = (selectedDay !== realTodayName || currentMode !== 'current') ? 'flex' : 'none';
 
     if (currentMode === 'current') {
-      statusText.innerHTML = `<span class="masthead-eyebrow">Неделя ${currentWeekRoman}</span><span class="masthead-headline">${currentWeekName}</span>`;
+      const weekLabel = getActualWeekLabel(0) || currentWeekRoman;
+      statusText.innerHTML = `<span class="masthead-eyebrow">Неделя ${weekLabel}</span><span class="masthead-headline">${currentWeekName}</span>`;
     } else {
       const nextWeekName = currentWeekType === 1 ? "Знаменатель" : "Числитель";
       const nextRoman = currentWeekType === 1 ? "II" : "I";
-      statusText.innerHTML = `<span class="masthead-eyebrow">Неделя ${nextRoman} · далее</span><span class="masthead-headline">${nextWeekName}</span>`;
+      const nextWeekLabel = getActualWeekLabel(1) || nextRoman;
+      statusText.innerHTML = `<span class="masthead-eyebrow">Неделя ${nextWeekLabel} · далее</span><span class="masthead-headline">${nextWeekName}</span>`;
     }
 
     if (!dayHasClasses(realTodayName)) {
