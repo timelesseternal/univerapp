@@ -1984,7 +1984,14 @@
     if (liveScheduleWeekInfo && liveScheduleWeekInfo.selectedWeek !== undefined && liveScheduleWeekInfo.selectedWeek !== null) {
       const num = parseInt(liveScheduleWeekInfo.selectedWeek, 10);
       if (!isNaN(num)) {
-        const wrapped = ((num - 1 + offset) % MAX_TERM_WEEKS + MAX_TERM_WEEKS) % MAX_TERM_WEEKS + 1;
+        // Platonus присылает selectedWeek с отсчётом от 0 (0 = первая неделя
+        // семестра) — это видно и в api/schedule.js, где week:0 подменяется
+        // на 1 как "минимально валидную". А дропдаун "НЕДЕЛИ" на самом
+        // сайте показывает то же самое, но с отсчётом от 1 (там "2" — это
+        // наш num=1). Поэтому здесь явно переводим в тот же "человеческий"
+        // номер, что видно на сайте Platonus, прежде чем считать offset.
+        const displayWeek = num + 1;
+        const wrapped = ((displayWeek - 1 + offset) % MAX_TERM_WEEKS + MAX_TERM_WEEKS) % MAX_TERM_WEEKS + 1;
         return String(wrapped);
       }
     }
@@ -2008,7 +2015,8 @@
     if (liveScheduleWeekInfo && liveScheduleWeekInfo.selectedWeek !== undefined && liveScheduleWeekInfo.selectedWeek !== null) {
       const num = parseInt(liveScheduleWeekInfo.selectedWeek, 10);
       if (!isNaN(num)) {
-        return (num % 2 === 0) ? 1 : 2;
+        const displayWeek = num + 1; // тот же сдвиг 0→1, что и в getActualWeekLabel()
+        return (displayWeek % 2 === 0) ? 1 : 2;
       }
     }
     return getWeekType();
