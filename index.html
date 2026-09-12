@@ -2127,7 +2127,10 @@
 
     if (browsedWeekInfo && browsedWeekInfo.week !== undefined && browsedWeekInfo.week !== null) {
       const displayWeek = browsedWeekInfo.week + 1;
-      label.textContent = `Неделя ${displayWeek}`;
+      // ВРЕМЕННО: показываем сырое значение week/год/семестр, которое реально
+      // уходит в запрос к Platonus, чтобы сверить его напрямую с номером в
+      // выпадающем списке "НЕДЕЛИ" на platonus.kstu.kz и найти точное смещение.
+      label.textContent = `Неделя ${displayWeek} (raw week=${browsedWeekInfo.week}, year=${browsedWeekInfo.studyYear}, term=${browsedWeekInfo.term})`;
       label.classList.toggle('is-current', isViewingTrueCurrentWeek());
       if (prevBtn) prevBtn.disabled = weekStepBusy || displayWeek <= 1;
       if (nextBtn) nextBtn.disabled = weekStepBusy || displayWeek >= MAX_TERM_WEEKS;
