@@ -1222,63 +1222,107 @@
   // экрана/спиннера), а запрос к Platonus всё равно уходит в фоне — как
   // только пришёл свежий ответ, тихо перерисовываем поверх. Так открытие
   // ощущается мгновенным, но данные не залипают надолго устаревшими.
-  const DATA_CACHE_KEY = 'platonus_data_cache';
+  const META_CACHE_KEY = 'platonus_meta_cache';
+  const JOURNAL_CACHE_KEY = 'platonus_journal_cache';
+  const UMKD_CACHE_KEY = 'platonus_umkd_cache';
 
   async function loadCachedStudentData() {
-    const raw = await csGet(DATA_CACHE_KEY);
-    if (!raw) return null;
-    try {
-      return JSON.parse(raw);
-    } catch (e) {
-      return null;
+    const [metaRaw, journalRaw, umkdRaw] = await Promise.all([
+      csGet(META_CACHE_KEY),
+      csGet(JOURNAL_CACHE_KEY),
+      csGet(UMKD_CACHE_KEY),
+    ]);
+
+    let meta = null;
+    if (metaRaw) {
+      try { meta = JSON.parse(metaRaw); } catch (e) { meta = null; }
     }
+    if (!meta) return null;
+
+    let journal = null;
+    if (journalRaw) {
+      try { journal = JSON.parse(journalRaw); } catch (e) { journal = null; }
+    }
+
+    let umkd = null;
+    if (umkdRaw) {
+      try { umkd = JSON.parse(umkdRaw); } catch (e) { umkd = null; }
+    }
+
+    // Само расписание не дублируем в этом блоке — оно уже лежит отдельными
+    // маленькими ключами в по-недельном кэше (platonus_week_<year>-<term>-<week>),
+    // просто достаём нужные недели оттуда.
+    let scheduleEntry = null;
+    let trueCurrentEntry = null;
+    if (meta.browsedWeekInfo) {
+      const key = weekCacheKey(meta.browsedWeekInfo.studyYear, meta.browsedWeekInfo.term, meta.browsedWeekInfo.week);
+      scheduleEntry = weekScheduleCache[key] || await loadPersistedWeekEntry(key);
+    }
+    if (meta.trueCurrentWeekInfo) {
+      const key = weekCacheKey(meta.trueCurrentWeekInfo.studyYear, meta.trueCurrentWeekInfo.term, meta.trueCurrentWeekInfo.week);
+      trueCurrentEntry = weekScheduleCache[key] || await loadPersistedWeekEntry(key);
+    }
+
+    return { meta, journal, umkd, scheduleEntry, trueCurrentEntry };
   }
 
   function applyCachedStudentData(cache) {
-    if (!cache) return;
-    if (cache.student) platonusStudent = cache.student;
-    if (cache.scheduleWeekInfo) liveScheduleWeekInfo = cache.scheduleWeekInfo;
-    if (cache.schedule) SCHEDULE = cache.schedule;
-    if (cache.lessonTimes) LESSON_TIMES = cache.lessonTimes;
+    if (!cache || !cache.meta) return;
+    const meta = cache.meta;
+
+    if (meta.student) platonusStudent = meta.student;
+    if (meta.scheduleWeekInfo) liveScheduleWeekInfo = meta.scheduleWeekInfo;
+    if (meta.browsedWeekInfo) browsedWeekInfo = meta.browsedWeekInfo;
+    if (meta.trueCurrentWeekInfo) trueCurrentWeekInfo = meta.trueCurrentWeekInfo;
+
     if (cache.journal !== undefined) liveJournalData = cache.journal;
     if (cache.umkd !== undefined) liveUmkdData = cache.umkd;
-    if (cache.browsedWeekInfo) browsedWeekInfo = cache.browsedWeekInfo;
-    if (cache.trueCurrentWeekInfo) trueCurrentWeekInfo = cache.trueCurrentWeekInfo;
-    if (cache.trueCurrentSchedule) trueCurrentSchedule = cache.trueCurrentSchedule;
-    if (cache.trueCurrentLessonTimes) trueCurrentLessonTimes = cache.trueCurrentLessonTimes;
 
-    // Прогреваем и по-недельный кэш восстановленным снимком, чтобы шаг
-    // стрелкой обратно на эту неделю тоже не бил лишний раз в сеть.
-    if (browsedWeekInfo && SCHEDULE && LESSON_TIMES) {
+    if (cache.scheduleEntry && browsedWeekInfo) {
+      SCHEDULE = cache.scheduleEntry.schedule;
+      LESSON_TIMES = cache.scheduleEntry.lessonTimes;
       const key = weekCacheKey(browsedWeekInfo.studyYear, browsedWeekInfo.term, browsedWeekInfo.week);
-      weekScheduleCache[key] = { schedule: SCHEDULE, lessonTimes: LESSON_TIMES, weekInfo: browsedWeekInfo };
+      weekScheduleCache[key] = cache.scheduleEntry;
     }
-    if (trueCurrentWeekInfo && trueCurrentSchedule && trueCurrentLessonTimes) {
+    if (cache.trueCurrentEntry && trueCurrentWeekInfo) {
+      trueCurrentSchedule = cache.trueCurrentEntry.schedule;
+      trueCurrentLessonTimes = cache.trueCurrentEntry.lessonTimes;
       const key = weekCacheKey(trueCurrentWeekInfo.studyYear, trueCurrentWeekInfo.term, trueCurrentWeekInfo.week);
-      weekScheduleCache[key] = { schedule: trueCurrentSchedule, lessonTimes: trueCurrentLessonTimes, weekInfo: trueCurrentWeekInfo };
+      weekScheduleCache[key] = cache.trueCurrentEntry;
     }
 
     updateWeekStepperUI();
   }
 
   async function saveCachedStudentData() {
-    const payload = {
+    // Разбито на несколько маленьких ключей вместо одного большого блока:
+    // у Telegram CloudStorage жёсткий лимит в 4096 символов на значение,
+    // а расписание+журнал+УМКД+дубликат "истинной текущей" недели в одном
+    // JSON легко превышали этот лимит — csSet тихо падал, и кэш никогда
+    // не сохранялся. Расписание отдельно уже кэшируется по неделям через
+    // cacheWeekEntry(), поэтому здесь его не дублируем.
+    const metaPayload = {
       student: platonusStudent,
       scheduleWeekInfo: liveScheduleWeekInfo,
-      schedule: SCHEDULE,
-      lessonTimes: LESSON_TIMES,
-      journal: liveJournalData,
-      umkd: liveUmkdData,
       browsedWeekInfo: browsedWeekInfo,
       trueCurrentWeekInfo: trueCurrentWeekInfo,
-      trueCurrentSchedule: trueCurrentSchedule,
-      trueCurrentLessonTimes: trueCurrentLessonTimes,
       cachedAt: Date.now(),
     };
+
     try {
-      await csSet(DATA_CACHE_KEY, JSON.stringify(payload));
+      await csSet(META_CACHE_KEY, JSON.stringify(metaPayload));
     } catch (e) {
-      // не критично — просто не закэшировалось в этот раз, попробуем в следующий
+      // не критично — просто не закэшируется в этот раз, попробуем в следующий
+    }
+    try {
+      await csSet(JOURNAL_CACHE_KEY, JSON.stringify(liveJournalData ?? null));
+    } catch (e) {
+      // не критично
+    }
+    try {
+      await csSet(UMKD_CACHE_KEY, JSON.stringify(liveUmkdData ?? null));
+    } catch (e) {
+      // не критично
     }
   }
 
@@ -1360,7 +1404,9 @@
     csRemove('platonus_student');
     csRemove('platonus_login');
     csRemove('platonus_password');
-    csRemove(DATA_CACHE_KEY);
+    csRemove(META_CACHE_KEY);
+    csRemove(JOURNAL_CACHE_KEY);
+    csRemove(UMKD_CACHE_KEY);
     platonusSession = null;
     platonusStudent = null;
     liveJournalData = null;
