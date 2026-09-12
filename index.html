@@ -363,42 +363,45 @@
     .accent-default-check { opacity: 0; }
     .accent-default-btn.selected .accent-default-check { opacity: 1; }
 
-    .nav-tabs {
-      position: relative;
+    .week-stepper {
       display: flex;
-      margin-bottom: 4px;
+      align-items: center;
+      justify-content: center;
+      gap: 4px;
+      margin-bottom: 16px;
       background: var(--paper-2);
       border-radius: 10px;
       padding: 3px;
     }
-    .tab-indicator {
-      position: absolute;
-      top: 3px;
-      left: 3px;
-      bottom: 3px;
-      height: auto;
-      width: 0;
-      background: var(--accent);
-      border-radius: 8px;
-      transition: transform 0.25s cubic-bezier(0.4,0,0.2,1), width 0.25s cubic-bezier(0.4,0,0.2,1);
-      z-index: 1;
-    }
-    .tab-btn {
-      position: relative;
-      z-index: 2;
-      flex: 1;
-      padding: 8px 4px;
+    .week-step-btn {
+      flex-shrink: 0;
+      width: 34px;
+      height: 34px;
       border: none;
       background: none;
-      color: var(--ink-soft);
+      color: var(--ink);
+      font-family: var(--font-body);
+      font-weight: 700;
+      font-size: 1.1rem;
+      border-radius: 8px;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: background-color 0.15s ease, opacity 0.15s ease, transform 0.15s ease;
+    }
+    .week-step-btn:active { background: var(--paper); transform: scale(0.93); }
+    .week-step-btn:disabled { opacity: 0.35; cursor: default; }
+    .week-step-btn:disabled:active { background: none; transform: none; }
+    .week-step-label {
+      flex: 1;
+      text-align: center;
       font-family: var(--font-body);
       font-weight: 600;
-      font-size: 0.76rem;
-      cursor: pointer;
-      text-align: center;
-      transition: color 0.2s ease;
+      font-size: 0.86rem;
+      color: var(--ink);
     }
-    .tab-btn.active { color: var(--accent-text); }
+    .week-step-label.is-current { color: var(--accent); }
 
     .days-grid {
       position: relative;
@@ -953,10 +956,10 @@
         </div>
       </div>
 
-      <div class="nav-tabs" id="navTabs">
-        <div class="tab-indicator" id="tabIndicator"></div>
-        <button class="tab-btn active" id="tabCurrent" onclick="switchWeek('current')">Текущая</button>
-        <button class="tab-btn" id="tabNext" onclick="switchWeek('next')">Следующая</button>
+      <div class="week-stepper" id="weekStepper">
+        <button class="week-step-btn" id="weekPrevBtn" onclick="stepWeek(-1)" aria-label="Предыдущая неделя">‹</button>
+        <span class="week-step-label" id="weekStepLabel">Неделя —</span>
+        <button class="week-step-btn" id="weekNextBtn" onclick="stepWeek(1)" aria-label="Следующая неделя">›</button>
       </div>
 
       <div class="days-grid" id="daysGrid">
@@ -1136,6 +1139,11 @@
     if (cache.lessonTimes) LESSON_TIMES = cache.lessonTimes;
     if (cache.journal !== undefined) liveJournalData = cache.journal;
     if (cache.umkd !== undefined) liveUmkdData = cache.umkd;
+    if (cache.browsedWeekInfo) browsedWeekInfo = cache.browsedWeekInfo;
+    if (cache.trueCurrentWeekInfo) trueCurrentWeekInfo = cache.trueCurrentWeekInfo;
+    if (cache.trueCurrentSchedule) trueCurrentSchedule = cache.trueCurrentSchedule;
+    if (cache.trueCurrentLessonTimes) trueCurrentLessonTimes = cache.trueCurrentLessonTimes;
+    updateWeekStepperUI();
   }
 
   async function saveCachedStudentData() {
@@ -1146,6 +1154,10 @@
       lessonTimes: LESSON_TIMES,
       journal: liveJournalData,
       umkd: liveUmkdData,
+      browsedWeekInfo: browsedWeekInfo,
+      trueCurrentWeekInfo: trueCurrentWeekInfo,
+      trueCurrentSchedule: trueCurrentSchedule,
+      trueCurrentLessonTimes: trueCurrentLessonTimes,
       cachedAt: Date.now(),
     };
     try {
@@ -1238,9 +1250,15 @@
     platonusStudent = null;
     liveJournalData = null;
     liveUmkdData = null;
+    browsedWeekInfo = null;
+    trueCurrentWeekInfo = null;
+    trueCurrentSchedule = {};
+    trueCurrentLessonTimes = {};
+    SCHEDULE = {};
     switchSection('schedule');
     document.getElementById('loginOverlay').style.display = 'flex';
     showLoginOverlay(true);
+    updateWeekStepperUI();
   }
 
   async function silentRelogin() {
@@ -1346,10 +1364,16 @@
     });
 
     SCHEDULE = newSchedule;
+    const resolvedWeek = (data.selectedWeek !== undefined && data.selectedWeek !== null) ? data.selectedWeek : data.defaultSelectedWeek;
     liveScheduleWeekInfo = {
       selectedTerm: data.selectedTerm,
       selectedStudyYear: data.selectedStudyYear,
       selectedWeek: data.selectedWeek,
+    };
+    browsedWeekInfo = {
+      studyYear: data.selectedStudyYear,
+      term: data.selectedTerm,
+      week: resolvedWeek,
     };
   }
 
@@ -1433,6 +1457,13 @@
     try {
       const schedule = await platonusFetch(`/api/schedule?studentID=${gpa.studentID}`);
       transformPlatonusSchedule(schedule);
+      // Это и есть "настоящая текущая" неделя (Platonus сам её выбрал, мы не
+      // передавали свой week). Запоминаем отдельным снимком — он не будет
+      // затёрт при дальнейшей навигации стрелками ←/→ по другим неделям, и
+      // именно по нему считается "идёт пара сейчас"/кнопка "сегодня".
+      trueCurrentSchedule = SCHEDULE;
+      trueCurrentLessonTimes = LESSON_TIMES;
+      trueCurrentWeekInfo = browsedWeekInfo ? { ...browsedWeekInfo } : null;
     } catch (err) {
       liveScheduleWeekInfo = null;
       console.error('Failed to load/parse schedule', err);
@@ -1468,6 +1499,7 @@
 
     detectToday();
     updateStatusBarAndLive();
+    updateWeekStepperUI();
     if (currentSection === 'profile') {
       renderProfile();
     } else if (currentSection === 'schedule') {
@@ -1794,15 +1826,6 @@
     }, 140);
   }
 
-  function updateTabIndicator() {
-    const activeBtn = document.querySelector('#navTabs .tab-btn.active');
-    const indicator = document.getElementById('tabIndicator');
-    if (activeBtn && indicator) {
-      indicator.style.width = activeBtn.offsetWidth + 'px';
-      indicator.style.transform = `translateX(${activeBtn.offsetLeft - 3}px)`;
-    }
-  }
-
   function updateDayIndicator() {
     const activeBtn = document.querySelector('.day-btn.active');
     const indicator = document.getElementById('dayIndicator');
@@ -1818,37 +1841,21 @@
   }
 
   function initIndicatorsNoAnim() {
-    const tabIndicator = document.getElementById('tabIndicator');
     const dayIndicator = document.getElementById('dayIndicator');
-    [tabIndicator, dayIndicator].forEach(el => el.style.transition = 'none');
-    updateTabIndicator();
+    dayIndicator.style.transition = 'none';
     updateDayIndicator();
     requestAnimationFrame(() => {
       requestAnimationFrame(() => {
-        [tabIndicator, dayIndicator].forEach(el => el.style.transition = '');
+        dayIndicator.style.transition = '';
       });
     });
   }
 
   window.addEventListener('resize', () => {
-    updateTabIndicator();
     updateDayIndicator();
   });
 
   let SCHEDULE = {};
-
-  function getWeekType(date = new Date()) {
-    const target = new Date(date.valueOf());
-    const dayNr = (date.getDay() + 6) % 7;
-    target.setDate(target.getDate() - dayNr + 3);
-    const firstThursday = target.valueOf();
-    target.setMonth(0, 1);
-    if (target.getDay() !== 4) {
-      target.setMonth(0, 1 + ((4 - target.getDay() + 7) % 7));
-    }
-    const weekNumber = 1 + Math.round((firstThursday - target) / 604800000);
-    return (weekNumber % 2 !== 0) ? 1 : 2;
-  }
 
   let LESSON_TIMES = {
     '1': { start: '09:00', end: '10:45' },
@@ -1872,23 +1879,20 @@
     return Array.isArray(SCHEDULE[dayName]) && SCHEDULE[dayName].length > 0;
   }
 
-  function getTomorrowDate() {
-    const d = new Date();
-    d.setDate(d.getDate() + 1);
-    return d;
-  }
+  const WEEKDAY_ORDER = ['Понедельник', 'Вторник', 'Среда', 'Четверг', 'Пятница', 'Суббота'];
 
-  function getUpcomingHintFromDate(baseDate) {
-    for (let offset = 0; offset <= 8; offset++) {
-      const d = new Date(baseDate);
-      d.setDate(d.getDate() + offset);
-      const dayName = DAY_NAMES_BY_INDEX[d.getDay()];
-      const weekType = getWeekType(d);
+  // Раньше эта подсказка бегала по календарю вперёд на несколько дней,
+  // угадывая тип недели (числитель/знаменатель) через getWeekType(). Теперь
+  // мы вообще не храним чужие недели локально — SCHEDULE содержит только ту
+  // неделю, что реально запрошена у Platonus, поэтому подсказка ищет
+  // ближайшую пару просто среди оставшихся дней ЭТОЙ ЖЕ загруженной недели.
+  function getUpcomingHintInLoadedWeek(afterDayName) {
+    const startIdx = WEEKDAY_ORDER.indexOf(afterDayName);
+    for (let idx = startIdx + 1; idx < WEEKDAY_ORDER.length; idx++) {
+      const dayName = WEEKDAY_ORDER[idx];
       const lessons = (SCHEDULE[dayName] || [])
-        .filter(l => l.type === 0 || l.type === weekType)
         .slice()
         .sort((a, b) => parseInt(a.пара, 10) - parseInt(b.пара, 10));
-
       if (lessons.length > 0) {
         const first = lessons[0];
         const t = LESSON_TIMES[first.пара];
@@ -1897,7 +1901,7 @@
         return `<strong>${first.sub}</strong> — ${shortDay}, ${timeStr}, ауд. ${first.room}`;
       }
     }
-    return 'ближайших пар пока не видно';
+    return 'на этой неделе пар больше нет — глянь следующую неделю стрелкой сверху';
   }
 
   function weatherSkeletonHtml() {
@@ -1916,8 +1920,8 @@
   }
 
   function buildDayOffScreen(dayName, animateEntrance = true) {
-    const hint = getUpcomingHintFromDate(getTomorrowDate());
-    const isActuallyToday = dayName === realTodayName && currentMode === 'current';
+    const hint = getUpcomingHintInLoadedWeek(dayName);
+    const isActuallyToday = dayName === realTodayName && isViewingTrueCurrentWeek();
     const title = isActuallyToday ? 'Сегодня без пар' : `${dayName}: пар нет`;
     return `
       <div class="notice-panel">
@@ -1934,7 +1938,7 @@
   }
 
   function buildDayFinishedScreen(dayName, animateEntrance = true) {
-    const hint = getUpcomingHintFromDate(getTomorrowDate());
+    const hint = getUpcomingHintInLoadedWeek(dayName);
     return `
       <div class="notice-panel">
         <span class="notice-eyebrow">на сегодня всё</span>
@@ -1949,8 +1953,8 @@
     `;
   }
 
-  function getDayLastLessonEndMins(dayName, weekType) {
-    const lessons = (SCHEDULE[dayName] || []).filter(l => l.type === 0 || l.type === weekType);
+  function getDayLastLessonEndMins(dayName) {
+    const lessons = SCHEDULE[dayName] || [];
     let maxEnd = null;
     lessons.forEach(l => {
       const t = LESSON_TIMES[l.пара];
@@ -1963,10 +1967,27 @@
   }
 
   let currentSection = 'schedule';
-  let currentMode = 'current';
   let selectedDay = 'Понедельник';
   let selectedUmkdSubject = null;
   let realTodayName = 'Понедельник';
+
+  // Неделя, которую пользователь сейчас просматривает (то, что реально
+  // загружено в SCHEDULE прямо сейчас) — обновляется стрелками ←/→.
+  let browsedWeekInfo = null; // { studyYear, term, week } — week как прислал Platonus
+  // Настоящая текущая неделя по Platonus, зафиксированная один раз при
+  // входе — по ней решаем, можно ли показывать "идёт пара сейчас" и когда
+  // показывать кнопку "сегодня".
+  let trueCurrentWeekInfo = null;
+  let trueCurrentSchedule = {};
+  let trueCurrentLessonTimes = {};
+
+  function isViewingTrueCurrentWeek() {
+    return !!(browsedWeekInfo && trueCurrentWeekInfo &&
+      browsedWeekInfo.studyYear === trueCurrentWeekInfo.studyYear &&
+      browsedWeekInfo.term === trueCurrentWeekInfo.term &&
+      browsedWeekInfo.week === trueCurrentWeekInfo.week);
+  }
+
 
   const DAY_NAMES_BY_INDEX = ['Воскресенье', 'Понедельник', 'Вторник', 'Среда', 'Четверг', 'Пятница', 'Суббота'];
 
@@ -2028,72 +2049,80 @@
   // В семестре Platonus всегда максимум 15 недель (как в выпадающем списке
   // "НЕДЕЛИ" на сайте) — поэтому счёт зацикливаем в диапазоне 1–15: после
   // 15-й недели следующая снова "1", а не "16".
+  // В семестре Platonus обычно 15 недель (как в выпадающем списке "НЕДЕЛИ"
+  // на самом сайте) — используем как верхнюю границу для стрелок.
   const MAX_TERM_WEEKS = 15;
 
-  function getActualWeekLabel(offset = 0) {
-    if (liveScheduleWeekInfo && liveScheduleWeekInfo.selectedWeek !== undefined && liveScheduleWeekInfo.selectedWeek !== null) {
-      const num = parseInt(liveScheduleWeekInfo.selectedWeek, 10);
-      if (!isNaN(num)) {
-        // Platonus присылает selectedWeek с отсчётом от 0 (0 = первая неделя
-        // семестра) — это видно и в api/schedule.js, где week:0 подменяется
-        // на 1 как "минимально валидную". А дропдаун "НЕДЕЛИ" на самом
-        // сайте показывает то же самое, но с отсчётом от 1 (там "2" — это
-        // наш num=1). Поэтому здесь явно переводим в тот же "человеческий"
-        // номер, что видно на сайте Platonus, прежде чем считать offset.
-        const displayWeek = num + 1;
-        const wrapped = ((displayWeek - 1 + offset) % MAX_TERM_WEEKS + MAX_TERM_WEEKS) % MAX_TERM_WEEKS + 1;
-        return String(wrapped);
-      }
+  let weekStepBusy = false;
+
+  // Показываем "человеческий" номер недели (Platonus считает selectedWeek
+  // от 0, а на сайте дропдаун "НЕДЕЛИ" показывает то же самое от 1).
+  function updateWeekStepperUI() {
+    const label = document.getElementById('weekStepLabel');
+    const prevBtn = document.getElementById('weekPrevBtn');
+    const nextBtn = document.getElementById('weekNextBtn');
+    if (!label) return;
+
+    if (browsedWeekInfo && browsedWeekInfo.week !== undefined && browsedWeekInfo.week !== null) {
+      const displayWeek = browsedWeekInfo.week + 1;
+      label.textContent = `Неделя ${displayWeek}`;
+      label.classList.toggle('is-current', isViewingTrueCurrentWeek());
+      if (prevBtn) prevBtn.disabled = weekStepBusy || displayWeek <= 1;
+      if (nextBtn) nextBtn.disabled = weekStepBusy || displayWeek >= MAX_TERM_WEEKS;
+    } else {
+      label.textContent = 'Неделя —';
+      if (prevBtn) prevBtn.disabled = true;
+      if (nextBtn) nextBtn.disabled = true;
     }
-    return null;
   }
 
-  // Тип текущей недели (1 = Числитель, 2 = Знаменатель) для ФИЛЬТРАЦИИ пар.
-  // Раньше здесь везде стоял getWeekType() — чётность ISO-недели ГОДА (счёт
-  // от 1 января). Но Platonus считает недели семестра от даты начала
-  // семестра (обычно 1 сентября), и эти два отсчёта почти всегда расходятся
-  // по чётности в течение года. Из-за этого приложение иногда показывало
-  // пару с "не той" альтернирующейся недели — предмет/препод/аудиторию от
-  // соседней по чётности недели. Поэтому, когда есть реальный selectedWeek
-  // от Platonus, тип недели выводим из его чётности — так же, как
-  // normalizedWeekType выводится из lesson.weekNumber в
-  // transformPlatonusSchedule() (там 1↔2 инвертируются, здесь та же логика:
-  // чётная учебная неделя → type 1 "Числитель", нечётная → type 2
-  // "Знаменатель"). Календарный getWeekType() остаётся только как фолбэк,
-  // пока данные от Platonus ещё не загрузились (например, до входа).
-  function getCurrentWeekType() {
-    if (liveScheduleWeekInfo && liveScheduleWeekInfo.selectedWeek !== undefined && liveScheduleWeekInfo.selectedWeek !== null) {
-      const num = parseInt(liveScheduleWeekInfo.selectedWeek, 10);
-      if (!isNaN(num)) {
-        const displayWeek = num + 1; // тот же сдвиг 0→1, что и в getActualWeekLabel()
-        return (displayWeek % 2 === 0) ? 1 : 2;
-      }
+  // Стрелки ←/→: вместо того чтобы гадать чётность недели на клиенте,
+  // просто заново спрашиваем Platonus за конкретный номер недели — так же,
+  // как это делает сам сайт при переключении в дропдауне "НЕДЕЛИ". Никакой
+  // клиентской фильтрации по числителю/знаменателю больше нет: что Platonus
+  // прислал для этой недели, то и показываем.
+  async function stepWeek(delta) {
+    if (weekStepBusy || !browsedWeekInfo || !platonusStudent) return;
+    const nextWeekRaw = browsedWeekInfo.week + delta;
+    if (nextWeekRaw < 0 || nextWeekRaw > MAX_TERM_WEEKS - 1) return;
+
+    haptic('light');
+    weekStepBusy = true;
+    updateWeekStepperUI();
+
+    try {
+      const data = await platonusFetch(
+        `/api/schedule?studentID=${platonusStudent.studentID}&year=${browsedWeekInfo.studyYear}&term=${browsedWeekInfo.term}&week=${nextWeekRaw}`
+      );
+      transformPlatonusSchedule(data);
+      detectToday();
+      updateStatusBarAndLive();
+      renderSchedule();
+    } catch (err) {
+      console.error('Failed to load week', err);
+    } finally {
+      weekStepBusy = false;
+      updateWeekStepperUI();
     }
-    return getWeekType();
   }
 
   function updateStatusBarAndLive() {
-    const currentWeekType = getCurrentWeekType();
-    const currentWeekName = currentWeekType === 1 ? "Числитель" : "Знаменатель";
-    const currentWeekRoman = currentWeekType === 1 ? "I" : "II";
     const statusText = document.getElementById('weekStatusText');
     const badgeEl = document.getElementById('liveLessonBadge');
     const todayBtn = document.getElementById('todayBtn');
 
+    const viewingTrueCurrent = isViewingTrueCurrentWeek();
+    const isTodaySelected = selectedDay === realTodayName && viewingTrueCurrent;
+    todayBtn.style.display = isTodaySelected ? 'none' : 'flex';
 
-    todayBtn.style.display = (selectedDay !== realTodayName || currentMode !== 'current') ? 'flex' : 'none';
+    statusText.innerHTML = `<span class="masthead-eyebrow">${isTodaySelected ? 'Сегодня' : ''}</span><span class="masthead-headline">${selectedDay}</span>`;
 
-    if (currentMode === 'current') {
-      const weekLabel = getActualWeekLabel(0) || currentWeekRoman;
-      statusText.innerHTML = `<span class="masthead-eyebrow">Неделя ${weekLabel}</span><span class="masthead-headline">${currentWeekName}</span>`;
-    } else {
-      const nextWeekName = currentWeekType === 1 ? "Знаменатель" : "Числитель";
-      const nextRoman = currentWeekType === 1 ? "II" : "I";
-      const nextWeekLabel = getActualWeekLabel(1) || nextRoman;
-      statusText.innerHTML = `<span class="masthead-eyebrow">Неделя ${nextWeekLabel} · далее</span><span class="masthead-headline">${nextWeekName}</span>`;
-    }
-
-    if (!dayHasClasses(realTodayName)) {
+    // "Идёт пара сейчас" всегда считаем по настоящей текущей неделе
+    // (trueCurrentSchedule), а не по той, что сейчас просматривается
+    // стрелками — иначе бейдж наврёт, если пользователь ушёл смотреть
+    // другую неделю.
+    const todayLessons = trueCurrentSchedule[realTodayName] || [];
+    if (todayLessons.length === 0) {
       badgeEl.innerHTML = `<span class="live-dot"></span><span>сегодня без пар</span>`;
       badgeEl.classList.remove('pulse-live');
       return;
@@ -2101,16 +2130,12 @@
 
     const now = new Date();
     const currentMins = now.getHours() * 60 + now.getMinutes();
-    const currentWeekTypeForToday = getCurrentWeekType();
-
-    const dayLessons = SCHEDULE[realTodayName] || [];
-    const activeLessons = dayLessons.filter(l => l.type === 0 || l.type === currentWeekTypeForToday);
 
     let currentParaNum = null;
     let nextParaInfo = null;
 
-    for (const item of activeLessons) {
-      const t = LESSON_TIMES[item.пара];
+    for (const item of todayLessons) {
+      const t = trueCurrentLessonTimes[item.пара];
       if (!t) continue;
       const startMins = timeToMins(t.start);
       const endMins = timeToMins(t.end);
@@ -2124,14 +2149,12 @@
     }
 
     if (currentParaNum) {
-      const t = LESSON_TIMES[currentParaNum];
+      const t = trueCurrentLessonTimes[currentParaNum];
       const endMins = timeToMins(t.end);
       const leftMins = endMins - currentMins;
       badgeEl.innerHTML = `<span class="live-dot"></span><span>идёт пара №${currentParaNum} — ещё ${leftMins} мин</span>`;
     } else if (nextParaInfo) {
       badgeEl.innerHTML = `<span class="live-dot"></span><span>далее — пара №${nextParaInfo.num} в ${nextParaInfo.start}</span>`;
-    } else if (activeLessons.length === 0) {
-      badgeEl.innerHTML = `<span class="live-dot"></span><span>сегодня без пар</span>`;
     } else {
       badgeEl.innerHTML = `<span class="live-dot"></span><span>пары на сегодня закончены</span>`;
     }
@@ -2141,8 +2164,13 @@
   function jumpToToday() {
     haptic('light');
     if (currentSection !== 'schedule') switchSection('schedule');
-    switchWeek('current');
-    selectDay(realTodayName, null);
+    if (trueCurrentWeekInfo && !isViewingTrueCurrentWeek()) {
+      SCHEDULE = trueCurrentSchedule;
+      LESSON_TIMES = trueCurrentLessonTimes;
+      browsedWeekInfo = { ...trueCurrentWeekInfo };
+      updateWeekStepperUI();
+    }
+    selectDay(realTodayName, null, true);
   }
 
   function switchSection(section) {
@@ -2161,7 +2189,7 @@
     if (section === 'schedule') {
       renderSchedule(false);
       updateStatusBarAndLive();
-      requestAnimationFrame(() => requestAnimationFrame(() => { updateTabIndicator(); updateDayIndicator(); }));
+      requestAnimationFrame(() => requestAnimationFrame(updateDayIndicator));
     } else if (section === 'umkd') {
       renderUmkdSubjects();
     } else if (section === 'exams') {
@@ -2169,26 +2197,6 @@
     } else if (section === 'profile') {
       renderProfile();
     }
-  }
-
-  function switchWeek(mode) {
-    if (mode === currentMode) return;
-    haptic('light');
-    currentMode = mode;
-    document.querySelectorAll('#navTabs .tab-btn').forEach(btn => btn.classList.remove('active'));
-    if (mode === 'current') document.getElementById('tabCurrent').classList.add('active');
-    if (mode === 'next') document.getElementById('tabNext').classList.add('active');
-    updateTabIndicator();
-
-    document.querySelectorAll('.day-btn').forEach(btn => btn.classList.remove('active'));
-    const shortName = getShortDayName(selectedDay);
-    const dayBtn = shortName ? document.getElementById(`btn-${shortName}`) : null;
-    if (dayBtn) dayBtn.classList.add('active');
-
-    updateWeekendBadge();
-    renderSchedule();
-    requestAnimationFrame(() => requestAnimationFrame(updateDayIndicator));
-    updateStatusBarAndLive();
   }
 
   function selectDay(dayName, btnElement, force = false) {
@@ -2212,19 +2220,22 @@
 
   function renderSchedule(animate = true) {
     const container = document.getElementById('scheduleContainer');
-    const currentWeekType = getCurrentWeekType();
-    let targetWeek = currentMode === 'next' ? (currentWeekType === 1 ? 2 : 1) : currentWeekType;
 
-    const dayLessons = SCHEDULE[selectedDay] || [];
-    const filteredLessons = dayLessons.filter(l => l.type === 0 || l.type === targetWeek);
+    // Никакой фильтрации по числителю/знаменателю — SCHEDULE уже содержит
+    // ровно то, что Platonus прислал для запрошенной недели.
+    const lessons = (SCHEDULE[selectedDay] || [])
+      .slice()
+      .sort((a, b) => parseInt(a.пара, 10) - parseInt(b.пара, 10));
 
-    const isViewingLiveToday = currentMode === 'current' && selectedDay === realTodayName;
-    if (isViewingLiveToday && filteredLessons.length > 0) {
-      const lastEndMins = getDayLastLessonEndMins(selectedDay, targetWeek);
+    const weekKey = browsedWeekInfo ? `${browsedWeekInfo.studyYear}-${browsedWeekInfo.term}-${browsedWeekInfo.week}` : 'no-week';
+    const isViewingLiveToday = isViewingTrueCurrentWeek() && selectedDay === realTodayName;
+
+    if (isViewingLiveToday && lessons.length > 0) {
+      const lastEndMins = getDayLastLessonEndMins(selectedDay);
       const now = new Date();
       const nowMins = now.getHours() * 60 + now.getMinutes();
       if (lastEndMins !== null && nowMins > lastEndMins + 30) {
-        const screenKey = `${selectedDay}|${currentMode}|finished`;
+        const screenKey = `${selectedDay}|${weekKey}|finished`;
         const animateEntrance = screenKey !== lastRenderedScreenKey;
         lastRenderedScreenKey = screenKey;
         const html = buildDayFinishedScreen(selectedDay, animateEntrance);
@@ -2233,8 +2244,8 @@
       }
     }
 
-    if (filteredLessons.length === 0) {
-      const screenKey = `${selectedDay}|${currentMode}|off`;
+    if (lessons.length === 0) {
+      const screenKey = `${selectedDay}|${weekKey}|off`;
       const animateEntrance = screenKey !== lastRenderedScreenKey;
       lastRenderedScreenKey = screenKey;
       const html = buildDayOffScreen(selectedDay, animateEntrance);
@@ -2242,7 +2253,7 @@
       return;
     }
 
-    const screenKey = `${selectedDay}|${currentMode}|schedule`;
+    const screenKey = `${selectedDay}|${weekKey}|schedule`;
     const animateCardsEntrance = screenKey !== lastRenderedScreenKey;
     lastRenderedScreenKey = screenKey;
 
@@ -2251,9 +2262,9 @@
     let activeParaNow = null;
     let progressPercent = 0;
 
-    const showLiveProgress = currentMode === 'current' && selectedDay === realTodayName && dayHasClasses(realTodayName);
+    const showLiveProgress = isViewingLiveToday;
     if (showLiveProgress) {
-      for (const item of filteredLessons) {
+      for (const item of lessons) {
         const t = LESSON_TIMES[item.пара];
         if (t) {
           const startMins = timeToMins(t.start);
@@ -2270,11 +2281,11 @@
     }
 
     let rowsHtml = '';
-    filteredLessons.forEach((item, index) => {
-      let typeTagHtml = '';
-      if (item.type === 1) typeTagHtml = '<span class="tag tag-outline">числитель</span>';
-      else if (item.type === 2) typeTagHtml = '<span class="tag tag-outline tag-muted">знаменатель</span>';
-      else typeTagHtml = '<span class="tag tag-fill">каждую неделю</span>';
+    lessons.forEach((item, index) => {
+      // "type" теперь чисто информационный — 0 значит "проходит каждую
+      // неделю без чередования"; для остального ничего не подписываем,
+      // раз мы и так показываем ровно ту неделю, что выбрана.
+      const typeTagHtml = item.type === 0 ? '<span class="tag tag-fill">каждую неделю</span>' : '';
 
       const isActive = (item.пара === activeParaNow);
       let rowClass = isActive ? 'list-row is-live' : 'list-row';
@@ -2430,13 +2441,13 @@
     applyAccentTheme(savedAccent, false);
     detectToday();
     updateStatusBarAndLive();
+    updateWeekStepperUI();
     selectDay(selectedDay, null, true);
     loadWeather();
     initIndicatorsNoAnim();
 
     if (document.fonts && document.fonts.ready) {
       document.fonts.ready.then(() => {
-        updateTabIndicator();
         updateDayIndicator();
       });
     }
@@ -2470,7 +2481,7 @@
 
     setInterval(() => {
       updateStatusBarAndLive();
-      if (currentSection === 'schedule' && currentMode === 'current' && selectedDay === realTodayName && dayHasClasses(realTodayName)) {
+      if (currentSection === 'schedule' && isViewingTrueCurrentWeek() && selectedDay === realTodayName && dayHasClasses(realTodayName)) {
         renderSchedule(false);
       }
     }, 1000);
