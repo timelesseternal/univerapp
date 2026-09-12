@@ -1109,6 +1109,53 @@
   let liveJournalData = null;
   let liveUmkdData = null;
 
+  // ==================================================================
+  // ============ КЭШ ДАННЫХ (stale-while-revalidate) ============
+  // ==================================================================
+  // Расписание/оценки/УМКД кладём в то же CloudStorage, что и сессию.
+  // При открытии приложения сразу рисуем то, что есть в кэше (без пустого
+  // экрана/спиннера), а запрос к Platonus всё равно уходит в фоне — как
+  // только пришёл свежий ответ, тихо перерисовываем поверх. Так открытие
+  // ощущается мгновенным, но данные не залипают надолго устаревшими.
+  const DATA_CACHE_KEY = 'platonus_data_cache';
+
+  async function loadCachedStudentData() {
+    const raw = await csGet(DATA_CACHE_KEY);
+    if (!raw) return null;
+    try {
+      return JSON.parse(raw);
+    } catch (e) {
+      return null;
+    }
+  }
+
+  function applyCachedStudentData(cache) {
+    if (!cache) return;
+    if (cache.student) platonusStudent = cache.student;
+    if (cache.scheduleWeekInfo) liveScheduleWeekInfo = cache.scheduleWeekInfo;
+    if (cache.schedule) SCHEDULE = cache.schedule;
+    if (cache.lessonTimes) LESSON_TIMES = cache.lessonTimes;
+    if (cache.journal !== undefined) liveJournalData = cache.journal;
+    if (cache.umkd !== undefined) liveUmkdData = cache.umkd;
+  }
+
+  async function saveCachedStudentData() {
+    const payload = {
+      student: platonusStudent,
+      scheduleWeekInfo: liveScheduleWeekInfo,
+      schedule: SCHEDULE,
+      lessonTimes: LESSON_TIMES,
+      journal: liveJournalData,
+      umkd: liveUmkdData,
+      cachedAt: Date.now(),
+    };
+    try {
+      await csSet(DATA_CACHE_KEY, JSON.stringify(payload));
+    } catch (e) {
+      // не критично — просто не закэшировалось в этот раз, попробуем в следующий
+    }
+  }
+
   function showLoginOverlay(show) {
     const el = document.getElementById('loginOverlay');
     if (show) {
@@ -1187,6 +1234,7 @@
     csRemove('platonus_student');
     csRemove('platonus_login');
     csRemove('platonus_password');
+    csRemove(DATA_CACHE_KEY);
     platonusSession = null;
     platonusStudent = null;
     liveJournalData = null;
@@ -1428,6 +1476,8 @@
     } else if (currentSection === 'umkd') {
       renderUmkdSubjects();
     }
+
+    saveCachedStudentData();
   }
 
   const CITY_COORDS = {
@@ -2394,6 +2444,25 @@
     if (platonusSession) {
       showLoginOverlay(false);
       document.getElementById('loginOverlay').style.display = 'none';
+
+      // Сразу показываем то, что есть в кэше — без ожидания сети.
+      const cachedData = await loadCachedStudentData();
+      if (cachedData) {
+        applyCachedStudentData(cachedData);
+        detectToday();
+        updateStatusBarAndLive();
+        selectDay(selectedDay, null, true);
+        if (currentSection === 'profile') {
+          renderProfile();
+        } else if (currentSection === 'umkd') {
+          renderUmkdSubjects();
+        } else {
+          renderSchedule(false);
+        }
+      }
+
+      // Свежие данные всё равно грузим в фоне и тихо обновляем экран,
+      // когда придёт ответ (см. конец loadLiveStudentData).
       loadLiveStudentData();
     } else {
       showLoginOverlay(true);
