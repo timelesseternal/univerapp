@@ -1112,6 +1112,109 @@
   let liveUmkdData = null;
 
   // ==================================================================
+  // ============ КЭШ РАСПИСАНИЯ ПО НЕДЕЛЯМ ============
+  // ==================================================================
+  // Раньше каждое нажатие стрелки ←/→ недели заново шло в Platonus и
+  // ждало ответ — отсюда тормоза при перелистывании. Теперь: если неделя
+  // уже когда-либо открывалась (в этой сессии или в прошлый визит —
+  // CloudStorage), показываем её МГНОВЕННО из кэша, а свежие данные всё
+  // равно тихо подгружаем в фоне и подменяем экран, если пользователь
+  // всё ещё смотрит именно эту неделю.
+  const weekScheduleCache = {}; // in-memory: weekKey -> { schedule, lessonTimes, weekInfo }
+
+  function weekCacheKey(studyYear, term, week) {
+    return `${studyYear}-${term}-${week}`;
+  }
+
+  function cacheWeekEntry(entry) {
+    if (!entry || !entry.weekInfo) return;
+    const key = weekCacheKey(entry.weekInfo.studyYear, entry.weekInfo.term, entry.weekInfo.week);
+    weekScheduleCache[key] = entry;
+    csSet(`platonus_week_${key}`, JSON.stringify(entry)).catch(() => {
+      // не критично — просто не сохранится между визитами, в памяти всё равно есть
+    });
+  }
+
+  async function loadPersistedWeekEntry(key) {
+    try {
+      const raw = await csGet(`platonus_week_${key}`);
+      if (!raw) return null;
+      return JSON.parse(raw);
+    } catch (e) {
+      return null;
+    }
+  }
+
+  function applyWeekCacheEntry(entry) {
+    SCHEDULE = entry.schedule;
+    LESSON_TIMES = entry.lessonTimes;
+    browsedWeekInfo = entry.weekInfo;
+    liveScheduleWeekInfo = {
+      selectedTerm: entry.weekInfo.term,
+      selectedStudyYear: entry.weekInfo.studyYear,
+      selectedWeek: entry.weekInfo.week,
+    };
+  }
+
+  // Чисто парсинг ответа Platonus в { schedule, lessonTimes, weekInfo },
+  // без побочных эффектов — можно безопасно вызывать в фоне, не трогая то,
+  // что сейчас показано на экране.
+  function buildScheduleEntryFromPlatonus(data) {
+    const lessonHourByNumber = {};
+    (data.lessonHours || []).forEach(lh => { lessonHourByNumber[lh.number] = lh; });
+
+    const lessonTimes = {};
+    (data.lessonHours || []).forEach(lh => {
+      lessonTimes[String(lh.displayNumber)] = {
+        start: lh.start.slice(0, 5),
+        end: lh.finish.slice(0, 5),
+      };
+    });
+
+    const schedule = {};
+    const days = (data.timetable && data.timetable.days) || {};
+    Object.keys(days).forEach(dayKey => {
+      const dayName = PLT_DAY_NAMES[dayKey];
+      if (!dayName) return;
+      const lessonsForDay = [];
+      const lessonsObj = days[dayKey].lessons || {};
+      Object.keys(lessonsObj).forEach(hourNumber => {
+        const slot = lessonsObj[hourNumber];
+        (slot.lessons || []).forEach(lesson => {
+          const hourInfo = lessonHourByNumber[lesson.number];
+          const displayNumber = hourInfo ? hourInfo.displayNumber : lesson.number;
+          const typeLabel = PLT_GROUP_TYPE_LABEL[lesson.groupTypeShortName] || lesson.groupTypeFullName || '';
+          // Числитель/знаменатель у Platonus и в этом приложении считаются
+          // в обратном порядке, поэтому 1 и 2 намеренно меняются местами.
+          // 0 ("каждую неделю") остаётся без изменений.
+          const rawWeekNumber = lesson.weekNumber || 0;
+          const normalizedWeekType =
+            rawWeekNumber === 1 ? 2 :
+            rawWeekNumber === 2 ? 1 :
+            rawWeekNumber;
+          lessonsForDay.push({
+            'пара': String(displayNumber),
+            'sub': `${lesson.subjectName}${typeLabel ? ' (' + typeLabel + ')' : ''}`,
+            'teacher': (lesson.tutorName || '').trim(),
+            'room': `${lesson.auditory || ''}`.trim(),
+            'type': normalizedWeekType,
+          });
+        });
+      });
+      schedule[dayName] = lessonsForDay;
+    });
+
+    const resolvedWeek = (data.selectedWeek !== undefined && data.selectedWeek !== null) ? data.selectedWeek : data.defaultSelectedWeek;
+    const weekInfo = {
+      studyYear: data.selectedStudyYear,
+      term: data.selectedTerm,
+      week: resolvedWeek,
+    };
+
+    return { schedule, lessonTimes, weekInfo };
+  }
+
+  // ==================================================================
   // ============ КЭШ ДАННЫХ (stale-while-revalidate) ============
   // ==================================================================
   // Расписание/оценки/УМКД кладём в то же CloudStorage, что и сессию.
@@ -1143,6 +1246,18 @@
     if (cache.trueCurrentWeekInfo) trueCurrentWeekInfo = cache.trueCurrentWeekInfo;
     if (cache.trueCurrentSchedule) trueCurrentSchedule = cache.trueCurrentSchedule;
     if (cache.trueCurrentLessonTimes) trueCurrentLessonTimes = cache.trueCurrentLessonTimes;
+
+    // Прогреваем и по-недельный кэш восстановленным снимком, чтобы шаг
+    // стрелкой обратно на эту неделю тоже не бил лишний раз в сеть.
+    if (browsedWeekInfo && SCHEDULE && LESSON_TIMES) {
+      const key = weekCacheKey(browsedWeekInfo.studyYear, browsedWeekInfo.term, browsedWeekInfo.week);
+      weekScheduleCache[key] = { schedule: SCHEDULE, lessonTimes: LESSON_TIMES, weekInfo: browsedWeekInfo };
+    }
+    if (trueCurrentWeekInfo && trueCurrentSchedule && trueCurrentLessonTimes) {
+      const key = weekCacheKey(trueCurrentWeekInfo.studyYear, trueCurrentWeekInfo.term, trueCurrentWeekInfo.week);
+      weekScheduleCache[key] = { schedule: trueCurrentSchedule, lessonTimes: trueCurrentLessonTimes, weekInfo: trueCurrentWeekInfo };
+    }
+
     updateWeekStepperUI();
   }
 
@@ -1319,62 +1434,9 @@
   const PLT_GROUP_TYPE_LABEL = { 'Л': 'Лекция', 'ЛЗ': 'Лаб. работа', 'СПЗ': 'Семинар', 'П': 'Практика' };
 
   function transformPlatonusSchedule(data) {
-    const lessonHourByNumber = {};
-    (data.lessonHours || []).forEach(lh => { lessonHourByNumber[lh.number] = lh; });
-
-    LESSON_TIMES = {};
-    (data.lessonHours || []).forEach(lh => {
-      LESSON_TIMES[String(lh.displayNumber)] = {
-        start: lh.start.slice(0, 5),
-        end: lh.finish.slice(0, 5),
-      };
-    });
-
-    const newSchedule = {};
-    const days = (data.timetable && data.timetable.days) || {};
-    Object.keys(days).forEach(dayKey => {
-      const dayName = PLT_DAY_NAMES[dayKey];
-      if (!dayName) return;
-      const lessonsForDay = [];
-      const lessonsObj = days[dayKey].lessons || {};
-      Object.keys(lessonsObj).forEach(hourNumber => {
-        const slot = lessonsObj[hourNumber];
-        (slot.lessons || []).forEach(lesson => {
-          const hourInfo = lessonHourByNumber[lesson.number];
-          const displayNumber = hourInfo ? hourInfo.displayNumber : lesson.number;
-          const typeLabel = PLT_GROUP_TYPE_LABEL[lesson.groupTypeShortName] || lesson.groupTypeFullName || '';
-          // Числитель/знаменатель у Platonus и в этом приложении считаются
-          // в обратном порядке, поэтому 1 и 2 намеренно меняются местами.
-          // 0 ("каждую неделю") остаётся без изменений.
-          const rawWeekNumber = lesson.weekNumber || 0;
-          const normalizedWeekType =
-            rawWeekNumber === 1 ? 2 :
-            rawWeekNumber === 2 ? 1 :
-            rawWeekNumber;
-          lessonsForDay.push({
-            'пара': String(displayNumber),
-            'sub': `${lesson.subjectName}${typeLabel ? ' (' + typeLabel + ')' : ''}`,
-            'teacher': (lesson.tutorName || '').trim(),
-            'room': `${lesson.auditory || ''}`.trim(),
-            'type': normalizedWeekType,
-          });
-        });
-      });
-      newSchedule[dayName] = lessonsForDay;
-    });
-
-    SCHEDULE = newSchedule;
-    const resolvedWeek = (data.selectedWeek !== undefined && data.selectedWeek !== null) ? data.selectedWeek : data.defaultSelectedWeek;
-    liveScheduleWeekInfo = {
-      selectedTerm: data.selectedTerm,
-      selectedStudyYear: data.selectedStudyYear,
-      selectedWeek: data.selectedWeek,
-    };
-    browsedWeekInfo = {
-      studyYear: data.selectedStudyYear,
-      term: data.selectedTerm,
-      week: resolvedWeek,
-    };
+    const entry = buildScheduleEntryFromPlatonus(data);
+    applyWeekCacheEntry(entry);
+    cacheWeekEntry(entry);
   }
 
   function renderProfile() {
@@ -2076,28 +2138,85 @@
     }
   }
 
-  // Стрелки ←/→: вместо того чтобы гадать чётность недели на клиенте,
-  // просто заново спрашиваем Platonus за конкретный номер недели — так же,
-  // как это делает сам сайт при переключении в дропдауне "НЕДЕЛИ". Никакой
-  // клиентской фильтрации по числителю/знаменателю больше нет: что Platonus
-  // прислал для этой недели, то и показываем.
+  // Тихо обновляет неделю в фоне (без спиннера): если пользователь всё ещё
+  // смотрит именно эту неделю к моменту ответа — подменяет экран свежими
+  // данными; если он уже успел уйти на другую неделю — просто обновляет кэш
+  // про запас и ничего на экране не трогает.
+  async function refreshWeekInBackground(studyYear, term, week) {
+    try {
+      const data = await platonusFetch(
+        `/api/schedule?studentID=${platonusStudent.studentID}&year=${studyYear}&term=${term}&week=${week}`
+      );
+      const entry = buildScheduleEntryFromPlatonus(data);
+      cacheWeekEntry(entry);
+
+      const stillViewingThisWeek = browsedWeekInfo
+        && browsedWeekInfo.studyYear === studyYear
+        && browsedWeekInfo.term === term
+        && browsedWeekInfo.week === week;
+
+      if (stillViewingThisWeek) {
+        applyWeekCacheEntry(entry);
+        detectToday();
+        updateStatusBarAndLive();
+        updateWeekStepperUI();
+        renderSchedule(false);
+      }
+      saveCachedStudentData();
+    } catch (e) {
+      // тихо игнорируем — у пользователя и так уже показана кэшированная неделя
+    }
+  }
+
+  // Стрелки ←/→: сначала смотрим, нет ли этой недели уже в кэше (память,
+  // затем CloudStorage) — если есть, показываем МГНОВЕННО без ожидания сети,
+  // а свежую версию всё равно тихо подгружаем и подменяем в фоне. Сетевой
+  // спиннер показываем, только если недели вообще нигде нет в кэше.
   async function stepWeek(delta) {
     if (weekStepBusy || !browsedWeekInfo || !platonusStudent) return;
     const nextWeekRaw = browsedWeekInfo.week + delta;
     if (nextWeekRaw < 0 || nextWeekRaw > MAX_TERM_WEEKS - 1) return;
 
     haptic('light');
+    const studyYear = browsedWeekInfo.studyYear;
+    const term = browsedWeekInfo.term;
+    const key = weekCacheKey(studyYear, term, nextWeekRaw);
+
+    const memCached = weekScheduleCache[key];
+    if (memCached) {
+      applyWeekCacheEntry(memCached);
+      detectToday();
+      updateStatusBarAndLive();
+      updateWeekStepperUI();
+      renderSchedule();
+      refreshWeekInBackground(studyYear, term, nextWeekRaw);
+      return;
+    }
+
+    const persisted = await loadPersistedWeekEntry(key);
+    if (persisted) {
+      weekScheduleCache[key] = persisted;
+      applyWeekCacheEntry(persisted);
+      detectToday();
+      updateStatusBarAndLive();
+      updateWeekStepperUI();
+      renderSchedule();
+      refreshWeekInBackground(studyYear, term, nextWeekRaw);
+      return;
+    }
+
     weekStepBusy = true;
     updateWeekStepperUI();
 
     try {
       const data = await platonusFetch(
-        `/api/schedule?studentID=${platonusStudent.studentID}&year=${browsedWeekInfo.studyYear}&term=${browsedWeekInfo.term}&week=${nextWeekRaw}`
+        `/api/schedule?studentID=${platonusStudent.studentID}&year=${studyYear}&term=${term}&week=${nextWeekRaw}`
       );
       transformPlatonusSchedule(data);
       detectToday();
       updateStatusBarAndLive();
       renderSchedule();
+      saveCachedStudentData();
     } catch (err) {
       console.error('Failed to load week', err);
     } finally {
