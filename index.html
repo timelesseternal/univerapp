@@ -1159,7 +1159,17 @@
   // Чисто парсинг ответа Platonus в { schedule, lessonTimes, weekInfo },
   // без побочных эффектов — можно безопасно вызывать в фоне, не трогая то,
   // что сейчас показано на экране.
-  function buildScheduleEntryFromPlatonus(data) {
+  //
+  // hadExplicitOverride: true, если мы САМИ явно запросили конкретные
+  // year/term/week (навигация стрелками). В этом случае Platonus корректно
+  // отражает запрошенное в selectedWeek — ему и доверяем.
+  // Если же запрос был БЕЗ явных параметров (первая загрузка при открытии
+  // приложения), Platonus иногда возвращает в selectedWeek что-то вроде
+  // заглушки (например "1"), не совпадающую с реальной текущей неделей —
+  // тогда надёжнее defaultSelectedWeek/activeWeekNumber, которые не зависят
+  // от того, что было запрошено, и всегда указывают на настоящую текущую
+  // учебную неделю.
+  function buildScheduleEntryFromPlatonus(data, hadExplicitOverride) {
     const lessonHourByNumber = {};
     (data.lessonHours || []).forEach(lh => { lessonHourByNumber[lh.number] = lh; });
 
@@ -1205,10 +1215,23 @@
       schedule[dayName] = lessonsForDay;
     });
 
-    const resolvedWeek = (data.selectedWeek !== undefined && data.selectedWeek !== null) ? data.selectedWeek : data.defaultSelectedWeek;
+    let resolvedWeek;
+    let resolvedTerm;
+    if (hadExplicitOverride) {
+      resolvedWeek = (data.selectedWeek !== undefined && data.selectedWeek !== null) ? data.selectedWeek : data.defaultSelectedWeek;
+      resolvedTerm = (data.selectedTerm !== undefined && data.selectedTerm !== null) ? data.selectedTerm : data.defaultSelectedTerm;
+    } else {
+      resolvedWeek = (data.defaultSelectedWeek !== undefined && data.defaultSelectedWeek !== null)
+        ? data.defaultSelectedWeek
+        : ((data.activeWeekNumber !== undefined && data.activeWeekNumber !== null) ? data.activeWeekNumber : data.selectedWeek);
+      resolvedTerm = (data.defaultSelectedTerm !== undefined && data.defaultSelectedTerm !== null)
+        ? data.defaultSelectedTerm
+        : ((data.activeTermNumber !== undefined && data.activeTermNumber !== null) ? data.activeTermNumber : data.selectedTerm);
+    }
+
     const weekInfo = {
       studyYear: data.selectedStudyYear,
-      term: data.selectedTerm,
+      term: resolvedTerm,
       week: resolvedWeek,
     };
 
@@ -1480,8 +1503,8 @@
   const PLT_DAY_NAMES = { 1: 'Понедельник', 2: 'Вторник', 3: 'Среда', 4: 'Четверг', 5: 'Пятница', 6: 'Суббота' };
   const PLT_GROUP_TYPE_LABEL = { 'Л': 'Лекция', 'ЛЗ': 'Лаб. работа', 'СПЗ': 'Семинар', 'П': 'Практика' };
 
-  function transformPlatonusSchedule(data) {
-    const entry = buildScheduleEntryFromPlatonus(data);
+  function transformPlatonusSchedule(data, hadExplicitOverride) {
+    const entry = buildScheduleEntryFromPlatonus(data, hadExplicitOverride);
     applyWeekCacheEntry(entry);
     cacheWeekEntry(entry);
   }
@@ -1565,7 +1588,7 @@
     // оценки и УМКД, которые ни от чего кроме сессии не зависят по логину.
     try {
       const schedule = await platonusFetch(`/api/schedule?studentID=${gpa.studentID}`);
-      transformPlatonusSchedule(schedule);
+      transformPlatonusSchedule(schedule, false);
       // Это и есть "настоящая текущая" неделя (Platonus сам её выбрал, мы не
       // передавали свой week). Запоминаем отдельным снимком — он не будет
       // затёрт при дальнейшей навигации стрелками ←/→ по другим неделям, и
@@ -2209,7 +2232,7 @@
       const data = await platonusFetch(
         `/api/schedule?studentID=${platonusStudent.studentID}&year=${studyYear}&term=${term}&week=${week}`
       );
-      const entry = buildScheduleEntryFromPlatonus(data);
+      const entry = buildScheduleEntryFromPlatonus(data, true);
       cacheWeekEntry(entry);
 
       const stillViewingThisWeek = browsedWeekInfo
@@ -2274,7 +2297,7 @@
       const data = await platonusFetch(
         `/api/schedule?studentID=${platonusStudent.studentID}&year=${studyYear}&term=${term}&week=${nextWeekRaw}`
       );
-      transformPlatonusSchedule(data);
+      transformPlatonusSchedule(data, true);
       detectToday();
       updateStatusBarAndLive();
       renderSchedule();
