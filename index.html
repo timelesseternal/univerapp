@@ -1197,6 +1197,7 @@
             'sub': `${lesson.subjectName}${typeLabel ? ' (' + typeLabel + ')' : ''}`,
             'teacher': (lesson.tutorName || '').trim(),
             'room': `${lesson.auditory || ''}`.trim(),
+            'building': `${lesson.building || ''}`.trim(),
             'type': normalizedWeekType,
           });
         });
@@ -1989,6 +1990,18 @@
 
   const WEEKDAY_ORDER = ['Понедельник', 'Вторник', 'Среда', 'Четверг', 'Пятница', 'Суббота'];
 
+  // Platonus присылает корпус и номер аудитории отдельными полями
+  // (building/auditory) — склеиваем их для отображения в одном месте.
+  function formatRoomLabel(item) {
+    if (!item) return '';
+    const room = item.room || '';
+    const building = item.building || '';
+    if (building && room) return `${building}, ауд. ${room}`;
+    if (building) return building;
+    if (room) return `ауд. ${room}`;
+    return '';
+  }
+
   // Раньше эта подсказка бегала по календарю вперёд на несколько дней,
   // угадывая тип недели (числитель/знаменатель) через getWeekType(). Теперь
   // мы вообще не храним чужие недели локально — SCHEDULE содержит только ту
@@ -2006,7 +2019,7 @@
         const t = LESSON_TIMES[first.пара];
         const timeStr = t ? t.start : '?';
         const shortDay = getShortDayName(dayName) || dayName;
-        return `<strong>${first.sub}</strong> — ${shortDay}, ${timeStr}, ауд. ${first.room}`;
+        return `<strong>${first.sub}</strong> — ${shortDay}, ${timeStr}, ${formatRoomLabel(first)}`;
       }
     }
     return 'на этой неделе пар больше нет — глянь следующую неделю стрелкой сверху';
@@ -2487,7 +2500,7 @@
               <span class="row-title">${item.sub}</span>
               ${isActive ? '<span class="live-tag"><span class="live-dot pulse-live-tag"></span>сейчас</span>' : ''}
             </div>
-            <div class="row-meta">${item.teacher}<span class="meta-sep">·</span>ауд. ${item.room}</div>
+            <div class="row-meta">${item.teacher}<span class="meta-sep">·</span>${formatRoomLabel(item)}</div>
             <div class="row-tags">${typeTagHtml}</div>
             ${progressBarHtml}
           </div>
