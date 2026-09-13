@@ -2163,8 +2163,11 @@
 
   let weekStepBusy = false;
 
-  // Показываем "человеческий" номер недели (Platonus считает selectedWeek
-  // от 0, а на сайте дропдаун "НЕДЕЛИ" показывает то же самое от 1).
+  // Показываем номер недели как есть — он уже 1-в-1 совпадает с тем, что
+  // показывает выпадающий список "НЕДЕЛИ" на platonus.kstu.kz (проверено
+  // напрямую сравнением расписаний). Раньше здесь ошибочно добавлялась
+  // лишняя единица (week + 1), из-за чего цифра на экране была на одну
+  // неделю больше настоящей — сами данные при этом всегда были верными.
   function updateWeekStepperUI() {
     const label = document.getElementById('weekStepLabel');
     const prevBtn = document.getElementById('weekPrevBtn');
@@ -2172,11 +2175,8 @@
     if (!label) return;
 
     if (browsedWeekInfo && browsedWeekInfo.week !== undefined && browsedWeekInfo.week !== null) {
-      const displayWeek = browsedWeekInfo.week + 1;
-      // ВРЕМЕННО: показываем сырое значение week/год/семестр, которое реально
-      // уходит в запрос к Platonus, чтобы сверить его напрямую с номером в
-      // выпадающем списке "НЕДЕЛИ" на platonus.kstu.kz и найти точное смещение.
-      label.textContent = `Неделя ${displayWeek} (raw week=${browsedWeekInfo.week}, year=${browsedWeekInfo.studyYear}, term=${browsedWeekInfo.term})`;
+      const displayWeek = browsedWeekInfo.week;
+      label.textContent = `Неделя ${displayWeek}`;
       label.classList.toggle('is-current', isViewingTrueCurrentWeek());
       if (prevBtn) prevBtn.disabled = weekStepBusy || displayWeek <= 1;
       if (nextBtn) nextBtn.disabled = weekStepBusy || displayWeek >= MAX_TERM_WEEKS;
@@ -2224,7 +2224,7 @@
   async function stepWeek(delta) {
     if (weekStepBusy || !browsedWeekInfo || !platonusStudent) return;
     const nextWeekRaw = browsedWeekInfo.week + delta;
-    if (nextWeekRaw < 0 || nextWeekRaw > MAX_TERM_WEEKS - 1) return;
+    if (nextWeekRaw < 1 || nextWeekRaw > MAX_TERM_WEEKS) return;
 
     haptic('light');
     const studyYear = browsedWeekInfo.studyYear;
