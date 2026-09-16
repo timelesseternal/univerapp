@@ -881,6 +881,49 @@
       text-overflow: ellipsis;
     }
 
+    /* Полноэкранный встроенный просмотрщик PDF для УМКД — открывается
+       поверх всего приложения, файл показывается прямо в iframe без
+       выхода в браузер. */
+    .umkd-file-overlay {
+      position: fixed;
+      inset: 0;
+      background: var(--paper);
+      z-index: 3000;
+      display: flex;
+      flex-direction: column;
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 0.2s ease;
+    }
+    .umkd-file-overlay.active { opacity: 1; pointer-events: auto; }
+    .umkd-file-topbar {
+      display: flex;
+      justify-content: flex-end;
+      padding: calc(env(safe-area-inset-top, 12px) + 8px) 12px 8px;
+      flex-shrink: 0;
+    }
+    .umkd-file-close {
+      width: 36px;
+      height: 36px;
+      border: none;
+      border-radius: 50%;
+      background: var(--paper-2);
+      color: var(--ink);
+      font-size: 1.1rem;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: transform 0.15s ease, opacity 0.15s ease;
+    }
+    .umkd-file-close:active { transform: scale(0.92); opacity: 0.7; }
+    .umkd-file-frame {
+      flex: 1;
+      width: 100%;
+      border: none;
+      background: #FFFFFF;
+    }
+
     .bottom-tab-bar {
       position: fixed;
       left: 0; right: 0; bottom: 0;
@@ -1020,6 +1063,13 @@
       <button class="modal-btn save" onclick="saveAccentTheme()">Сохранить</button>
     </div>
   </div>
+</div>
+
+<div class="umkd-file-overlay" id="umkdFileOverlay">
+  <div class="umkd-file-topbar">
+    <button class="umkd-file-close" onclick="closeUmkdFile()" aria-label="Закрыть">✕</button>
+  </div>
+  <iframe class="umkd-file-frame" id="umkdFileFrame" src="about:blank" title="Документ УМКД"></iframe>
 </div>
 
 <div class="app-wrapper">
@@ -2670,6 +2720,16 @@
     `, animate);
   }
 
+  // Стандартные типы документов УМКД в Platonus — те же 4 категории и те
+  // же fileTypeID видны для любой дисциплины (проверено напрямую через
+  // /rest/student/umkd/<id>/ru), поэтому просто фиксируем их здесь.
+  const UMKD_FILE_TYPES = [
+    { id: 131, label: 'Силлабус (рабочая учебная программа)' },
+    { id: 133, label: 'Конспект лекций' },
+    { id: 134, label: 'Планы семинарских/лабораторных занятий' },
+    { id: 138, label: 'Материалы текущего/рубежного/итогового контроля' },
+  ];
+
   function selectUmkdSubject(index) {
     haptic('light');
     const container = document.getElementById('umkdContainer');
@@ -2682,12 +2742,12 @@
 
     let bodyHtml;
     if (rec.umkdFileGenerated && rec.fileId) {
-      bodyHtml = `
-        <div class="umkd-item" onclick="openPdf('${(rec.subjectName || '').replace(/'/g, "\\'")}', '#')">
-          <span>Материал по дисциплине</span>
+      bodyHtml = UMKD_FILE_TYPES.map(type => `
+        <div class="umkd-item" onclick="openUmkdFile(${type.id}, ${rec.fileId})">
+          <span>${type.label}</span>
           <span class="umkd-arrow">PDF ›</span>
         </div>
-      `;
+      `).join('');
     } else {
       bodyHtml = '<div class="empty-state compact">файл ещё не сформирован в Platonus</div>';
     }
@@ -2700,6 +2760,29 @@
       <div class="list-card">${bodyHtml}</div>
     `, true);
   }
+
+  // Открывает PDF УМКД во встроенном полноэкранном просмотрщике (iframe)
+  // внутри самого приложения — без выхода в браузер. Сессию передаём через
+  // query-параметр (не заголовок), потому что iframe не умеет ставить
+  // кастомные заголовки на свой запрос — см. пояснение в api/umkd-file.js.
+  function openUmkdFile(fileTypeID, umkdid) {
+    haptic('light');
+    if (!platonusSession) return;
+    const url = `${API_BASE}/api/umkd-file?fileTypeID=${encodeURIComponent(fileTypeID)}&umkdid=${encodeURIComponent(umkdid)}&session=${encodeURIComponent(platonusSession)}`;
+    const overlay = document.getElementById('umkdFileOverlay');
+    const frame = document.getElementById('umkdFileFrame');
+    frame.src = url;
+    overlay.classList.add('active');
+  }
+
+  function closeUmkdFile() {
+    haptic('light');
+    const overlay = document.getElementById('umkdFileOverlay');
+    const frame = document.getElementById('umkdFileFrame');
+    overlay.classList.remove('active');
+    frame.src = 'about:blank';
+  }
+
 
   function renderExams(animate = true) {
     const container = document.getElementById('examsContainer');
