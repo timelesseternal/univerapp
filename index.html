@@ -2747,9 +2747,9 @@
     }
 
     let bodyHtml;
-    if (rec.umkdFileGenerated && rec.fileId) {
+    if (rec.umkdID && rec.umkdID > 0) {
       bodyHtml = UMKD_FILE_TYPES.map(type => `
-        <div class="umkd-item" onclick="openUmkdFile(${type.id}, ${rec.fileId})">
+        <div class="umkd-item" onclick="openUmkdFile(${type.id}, ${rec.umkdID})">
           <span>${type.label}</span>
           <span class="umkd-arrow">PDF ›</span>
         </div>
