@@ -797,6 +797,90 @@
     .gpa-value { font-family: var(--font-display); font-weight: 700; font-size: 1rem; color: var(--ink); }
     .gpa-value.accent { color: var(--accent); }
 
+    /* Общий контейнер с плавным появлением содержимого — переиспользуется
+       во всех вкладках (Расписание/УМКД/Экзамены/Профиль), а не только
+       в расписании, как раньше. */
+    .section-inner {
+      transition: opacity 0.2s ease, transform 0.2s ease;
+      opacity: 1;
+      transform: translateY(0);
+    }
+    .section-inner.content-hidden { opacity: 0; transform: translateY(6px); }
+
+    /* Компактная карточка оценки по предмету — в духе карточек на сайте
+       Platonus (кольцо-процент + сетка показателей), но без лишнего шума:
+       код группы прячем, оставляем только название, преподавателя,
+       процент и сами показатели. */
+    .grade-card {
+      background: var(--paper-2);
+      border-radius: 16px;
+      padding: 16px;
+    }
+    .grade-card:not(:last-child) { margin-bottom: 10px; }
+    .grade-title {
+      font-family: var(--font-display);
+      font-weight: 600;
+      font-size: 0.92rem;
+      line-height: 1.3;
+      color: var(--ink);
+      margin-bottom: 2px;
+      letter-spacing: -0.01em;
+    }
+    .grade-tutor {
+      font-size: 0.78rem;
+      color: var(--ink-soft);
+      margin-bottom: 14px;
+    }
+    .grade-body {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+    }
+    .grade-ring-wrap {
+      position: relative;
+      flex-shrink: 0;
+      width: 54px;
+      height: 54px;
+    }
+    .grade-ring-wrap svg { width: 100%; height: 100%; transform: rotate(-90deg); }
+    .grade-ring-bg { fill: none; stroke: var(--line); stroke-width: 4; }
+    .grade-ring-fg { fill: none; stroke-width: 4; stroke-linecap: round; }
+    .grade-ring-value {
+      position: absolute;
+      inset: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-family: var(--font-display);
+      font-weight: 700;
+      font-size: 0.7rem;
+      color: var(--ink);
+    }
+    .grade-metrics-grid {
+      flex: 1;
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 10px 6px;
+      min-width: 0;
+    }
+    .grade-metric { text-align: center; }
+    .grade-metric-value {
+      font-family: var(--font-display);
+      font-weight: 700;
+      font-size: 0.86rem;
+      color: var(--ink);
+      display: block;
+    }
+    .grade-metric-label {
+      font-size: 0.6rem;
+      color: var(--ink-soft);
+      display: block;
+      margin-top: 2px;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
     .bottom-tab-bar {
       position: fixed;
       left: 0; right: 0; bottom: 0;
@@ -976,9 +1060,9 @@
       <div id="scheduleContainer"></div>
     </div>
 
-    <div class="app-section" id="sectionUmkd" style="display:none;"></div>
-    <div class="app-section" id="sectionExams" style="display:none;"></div>
-    <div class="app-section" id="sectionProfile" style="display:none;"></div>
+    <div class="app-section" id="sectionUmkd" style="display:none;"><div class="section-inner" id="umkdContainer"></div></div>
+    <div class="app-section" id="sectionExams" style="display:none;"><div class="section-inner" id="examsContainer"></div></div>
+    <div class="app-section" id="sectionProfile" style="display:none;"><div class="section-inner" id="profileContainer"></div></div>
 
   </div>
 </div>
@@ -1509,16 +1593,54 @@
     cacheWeekEntry(entry);
   }
 
-  function renderProfile() {
-    const container = document.getElementById('sectionProfile');
+  // Строит HTML одной карточки оценки по предмету: кольцо-процент (как на
+  // сайте Platonus, тем же цветом что прислал сервер) + сетка показателей
+  // (Ср.тек./РК/Рейтинг/Экз. и т.п.) — компактно, без кода группы в
+  // названии, чтобы не мешал глазу.
+  function buildGradeCardHtml(subj, index) {
+    const cleanTitle = (subj.subjectName || '').replace(/\s*\([^)]*\)\s*$/, '').trim() || subj.subjectName || '';
+    const percent = Math.max(0, Math.min(100, parseFloat(subj.centerMark) || 0));
+    const ringColor = subj.color || 'var(--accent)';
+    const r = 22;
+    const circumference = 2 * Math.PI * r;
+    const dash = (percent / 100) * circumference;
+
+    const metrics = (subj.exams || []).filter(e => e && e.name);
+    const metricsHtml = metrics.map(e => `
+      <div class="grade-metric">
+        <span class="grade-metric-value">${e.mark ?? '—'}</span>
+        <span class="grade-metric-label">${e.name}</span>
+      </div>
+    `).join('');
+
+    return `
+      <div class="grade-card row-enter" style="animation-delay:${Math.min(index, 8) * 0.04}s;">
+        <div class="grade-title">${cleanTitle}</div>
+        <div class="grade-tutor">${subj.tutorList || ''}</div>
+        <div class="grade-body">
+          <div class="grade-ring-wrap">
+            <svg viewBox="0 0 54 54">
+              <circle class="grade-ring-bg" cx="27" cy="27" r="${r}"></circle>
+              <circle class="grade-ring-fg" cx="27" cy="27" r="${r}" stroke="${ringColor}" stroke-dasharray="${dash} ${circumference}"></circle>
+            </svg>
+            <div class="grade-ring-value">${percent % 1 === 0 ? percent : percent.toFixed(1)}%</div>
+          </div>
+          <div class="grade-metrics-grid">${metricsHtml}</div>
+        </div>
+      </div>
+    `;
+  }
+
+  function renderProfile(animate = true) {
+    const container = document.getElementById('profileContainer');
     if (!platonusStudent) {
-      container.innerHTML = `
+      swapContent(container, `
         <span class="masthead-eyebrow" style="margin-bottom:10px; display:block;">Профиль</span>
         <div class="notice-panel">
           <div class="notice-title">Вы не вошли в аккаунт</div>
           <div class="notice-hint">Войдите с логином и паролем от Platonus, чтобы увидеть оценки и GPA.</div>
         </div>
-      `;
+      `, animate);
       return;
     }
 
@@ -1544,30 +1666,14 @@
     `;
 
     if (liveJournalData && Array.isArray(liveJournalData)) {
-      let rows = '';
-      liveJournalData.forEach(subj => {
-        const examsLine = (subj.exams || [])
-          .filter(e => e.name)
-          .map(e => `${e.name}: ${e.mark}`)
-          .join(' · ');
-        rows += `
-          <div class="list-row">
-            <div class="row-body">
-              <div class="row-top"><span class="row-title">${subj.subjectName}</span></div>
-              <div class="row-meta">${subj.tutorList || ''}</div>
-              <div class="row-meta" style="margin-top:6px;">${examsLine}</div>
-            </div>
-          </div>
-        `;
-      });
-      html += `<div class="list-card">${rows}</div>`;
+      html += liveJournalData.map((subj, index) => buildGradeCardHtml(subj, index)).join('');
     } else {
       html += '<div class="notice-panel"><div class="notice-hint">Оценки по предметам загружаются…</div></div>';
     }
 
     html += `<button class="profile-logout-btn" onclick="logout()">Выйти из аккаунта</button>`;
 
-    container.innerHTML = html;
+    swapContent(container, html, animate);
   }
 
   async function loadLiveStudentData() {
@@ -1633,11 +1739,11 @@
     updateStatusBarAndLive();
     updateWeekStepperUI();
     if (currentSection === 'profile') {
-      renderProfile();
+      renderProfile(false);
     } else if (currentSection === 'schedule') {
       renderSchedule(false);
     } else if (currentSection === 'umkd') {
-      renderUmkdSubjects();
+      renderUmkdSubjects(false);
     }
 
     saveCachedStudentData();
@@ -2534,39 +2640,39 @@
     swapContent(container, html, animate);
   }
 
-  function renderUmkdSubjects() {
-    const container = document.getElementById('sectionUmkd');
+  function renderUmkdSubjects(animate = true) {
+    const container = document.getElementById('umkdContainer');
 
     if (!liveUmkdData || !Array.isArray(liveUmkdData.records) || liveUmkdData.records.length === 0) {
-      container.innerHTML = `
+      swapContent(container, `
         <span class="masthead-eyebrow" style="margin-bottom:10px; display:block;">УМКД</span>
         <div class="notice-panel">
           <div class="notice-title">Список пока пуст</div>
           <div class="notice-hint">Войдите в аккаунт, чтобы увидеть дисциплины текущего семестра.</div>
         </div>
-      `;
+      `, animate);
       return;
     }
 
     let itemsHtml = '';
     liveUmkdData.records.forEach((rec, index) => {
       itemsHtml += `
-        <div class="umkd-subject-row" onclick="selectUmkdSubject(${index})">
+        <div class="umkd-subject-row row-enter" style="animation-delay:${Math.min(index, 8) * 0.04}s;" onclick="selectUmkdSubject(${index})">
           <span>${rec.subjectName}</span>
           <span class="umkd-arrow">›</span>
         </div>
       `;
     });
 
-    container.innerHTML = `
+    swapContent(container, `
       <span class="masthead-eyebrow" style="margin-bottom:10px; display:block;">УМКД</span>
       <div class="list-card">${itemsHtml}</div>
-    `;
+    `, animate);
   }
 
   function selectUmkdSubject(index) {
     haptic('light');
-    const container = document.getElementById('sectionUmkd');
+    const container = document.getElementById('umkdContainer');
     const rec = liveUmkdData && liveUmkdData.records ? liveUmkdData.records[index] : null;
 
     if (!rec) {
@@ -2586,33 +2692,33 @@
       bodyHtml = '<div class="empty-state compact">файл ещё не сформирован в Platonus</div>';
     }
 
-    container.innerHTML = `
+    swapContent(container, `
       <button class="back-link" onclick="renderUmkdSubjects()">‹ Назад к дисциплинам</button>
       <span class="masthead-eyebrow" style="margin-bottom:10px; display:block;">УМКД</span>
       <div class="notice-title" style="margin-bottom:6px;">${rec.subjectName}</div>
       <div class="row-meta" style="margin-bottom:12px;">${rec.tutorName || ''}</div>
       <div class="list-card">${bodyHtml}</div>
-    `;
+    `, true);
   }
 
-  function renderExams() {
-    const container = document.getElementById('sectionExams');
+  function renderExams(animate = true) {
+    const container = document.getElementById('examsContainer');
     if (!EXAMS_SCHEDULE || EXAMS_SCHEDULE.length === 0) {
-      container.innerHTML = `
+      swapContent(container, `
         <span class="masthead-eyebrow" style="margin-bottom:10px; display:block;">Экзамены</span>
         <div class="notice-panel">
           <div class="notice-title">Расписание экзаменов пока пусто</div>
           <div class="notice-hint">Как только сессия появится в системе, здесь будут даты, аудитории и преподаватели.</div>
         </div>
-      `;
+      `, animate);
       return;
     }
 
     const sorted = [...EXAMS_SCHEDULE].sort((a, b) => (a.date + a.time).localeCompare(b.date + b.time));
     let rowsHtml = '';
-    sorted.forEach(exam => {
+    sorted.forEach((exam, index) => {
       rowsHtml += `
-        <div class="list-row">
+        <div class="list-row row-enter" style="animation-delay:${Math.min(index, 8) * 0.04}s;">
           <div class="row-index">
             <span class="row-index-main">${exam.date}</span>
             <span class="row-index-sub">${exam.time}</span>
@@ -2626,10 +2732,10 @@
       `;
     });
 
-    container.innerHTML = `
+    swapContent(container, `
       <span class="masthead-eyebrow" style="margin-bottom:10px; display:block;">Экзамены</span>
       <div class="list-card">${rowsHtml}</div>
-    `;
+    `, animate);
   }
 
   let EXAMS_SCHEDULE = [
@@ -2668,9 +2774,9 @@
         updateStatusBarAndLive();
         selectDay(selectedDay, null, true);
         if (currentSection === 'profile') {
-          renderProfile();
+          renderProfile(false);
         } else if (currentSection === 'umkd') {
-          renderUmkdSubjects();
+          renderUmkdSubjects(false);
         } else {
           renderSchedule(false);
         }
