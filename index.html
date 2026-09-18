@@ -2752,11 +2752,6 @@
 
     let rowsHtml = '';
     lessons.forEach((item, index) => {
-      // "type" теперь чисто информационный — 0 значит "проходит каждую
-      // неделю без чередования"; для остального ничего не подписываем,
-      // раз мы и так показываем ровно ту неделю, что выбрана.
-      const typeTagHtml = item.type === 0 ? '<span class="tag tag-fill">каждую неделю</span>' : '';
-
       const isActive = (item.пара === activeParaNow);
       let rowClass = isActive ? 'list-row is-live' : 'list-row';
       let rowStyle = '';
@@ -2790,7 +2785,6 @@
               ${isActive ? '<span class="live-tag"><span class="live-dot pulse-live-tag"></span>сейчас</span>' : ''}
             </div>
             <div class="row-meta">${item.teacher}<span class="meta-sep">·</span>${formatRoomLabel(item)}</div>
-            <div class="row-tags">${typeTagHtml}</div>
             ${progressBarHtml}
           </div>
         </div>
