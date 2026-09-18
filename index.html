@@ -922,8 +922,27 @@
     .umkd-file-frame {
       flex: 1;
       width: 100%;
-      border: none;
+      overflow-y: auto;
+      overflow-x: hidden;
+      -webkit-overflow-scrolling: touch;
+      background: #525659;
+      padding: 10px 0 24px;
+      box-sizing: border-box;
+    }
+    .umkd-pdf-page {
+      display: block;
+      max-width: calc(100% - 20px);
+      height: auto;
+      margin: 0 auto 10px;
+      box-shadow: 0 1px 6px rgba(0, 0, 0, 0.4);
       background: #FFFFFF;
+    }
+    .umkd-file-status {
+      color: #FFFFFF;
+      text-align: center;
+      font-family: var(--font-body);
+      font-size: 0.9rem;
+      padding: 40px 20px;
     }
 
     .bottom-tab-bar {
@@ -1071,7 +1090,7 @@
   <div class="umkd-file-topbar">
     <button class="umkd-file-close" onclick="closeUmkdFile()" aria-label="Закрыть">✕</button>
   </div>
-  <iframe class="umkd-file-frame" id="umkdFileFrame" src="about:blank" title="Документ УМКД"></iframe>
+  <div class="umkd-file-frame" id="umkdFileFrame"></div>
 </div>
 
 <div class="app-wrapper">
@@ -1992,6 +2011,25 @@
     renderCityList(document.getElementById('citySearchInput').value);
   }
 
+  // Блокировка прокрутки фона, пока открыто модальное окно — иначе на
+  // мобильных (особенно в Telegram WebView) свайп внутри списка городов
+  // прокручивает страницу ПОД модалкой, а не сам список.
+  let bodyScrollLockY = 0;
+  function lockBodyScroll() {
+    bodyScrollLockY = window.scrollY || window.pageYOffset || 0;
+    document.body.style.position = 'fixed';
+    document.body.style.top = `-${bodyScrollLockY}px`;
+    document.body.style.left = '0';
+    document.body.style.right = '0';
+  }
+  function unlockBodyScroll() {
+    document.body.style.position = '';
+    document.body.style.top = '';
+    document.body.style.left = '';
+    document.body.style.right = '';
+    window.scrollTo(0, bodyScrollLockY);
+  }
+
   function openCityModal() {
     haptic('light');
     const modal = document.getElementById('cityModal');
@@ -2000,11 +2038,13 @@
     searchInput.value = '';
     renderCityList('');
     modal.classList.add('active');
+    lockBodyScroll();
   }
 
   function closeCityModal() {
     haptic('light');
     document.getElementById('cityModal').classList.remove('active');
+    unlockBodyScroll();
   }
 
   function saveCityAndLoad() {
@@ -2090,11 +2130,13 @@
     pendingAccentId = currentAccentId;
     renderAccentSwatches();
     document.getElementById('accentModal').classList.add('active');
+    lockBodyScroll();
   }
 
   function closeAccentModal() {
     haptic('light');
     document.getElementById('accentModal').classList.remove('active');
+    unlockBodyScroll();
   }
 
   function openPdf(title, url) {
@@ -2767,18 +2809,75 @@
     `, true);
   }
 
-  // Открывает PDF УМКД во встроенном полноэкранном просмотрщике (iframe)
-  // внутри самого приложения — без выхода в браузер. Сессию передаём через
-  // query-параметр (не заголовок), потому что iframe не умеет ставить
-  // кастомные заголовки на свой запрос — см. пояснение в api/umkd-file.js.
-  function openUmkdFile(fileTypeID, umkdid) {
+  // Раньше файл открывался через <iframe src="..."> — но встроенный
+  // PDF-плагин внутри Telegram WebView часто показывает только первую
+  // страницу и не даёт нормально листать/зумить. Вместо этого сами грузим
+  // PDF.js (только когда реально открыли документ) и рисуем каждую
+  // страницу отдельной картинкой в обычный прокручиваемый список —
+  // работает одинаково надёжно везде, и обычный пинч-зум страницы
+  // (см. setViewportZoomable) зумит уже сам отрендеренный документ.
+  let pdfJsLoadPromise = null;
+  function ensurePdfJsLoaded() {
+    if (window.pdfjsLib) return Promise.resolve();
+    if (pdfJsLoadPromise) return pdfJsLoadPromise;
+    pdfJsLoadPromise = new Promise((resolve, reject) => {
+      const script = document.createElement('script');
+      script.src = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js';
+      script.onload = () => {
+        window.pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+        resolve();
+      };
+      script.onerror = () => reject(new Error('pdfjs_load_failed'));
+      document.head.appendChild(script);
+    });
+    return pdfJsLoadPromise;
+  }
+
+  // Пока открыт просмотрщик PDF, разрешаем обычный пинч-зум страницы (в
+  // остальном приложении зум специально выключен, чтобы не мешал тапам).
+  function setViewportZoomable(zoomable) {
+    const meta = document.querySelector('meta[name="viewport"]');
+    if (!meta) return;
+    meta.setAttribute('content', zoomable
+      ? 'width=device-width, initial-scale=1.0, viewport-fit=cover'
+      : 'width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover');
+  }
+
+  async function openUmkdFile(fileTypeID, umkdid) {
     haptic('light');
     if (!platonusSession) return;
-    const url = `${API_BASE}/api/umkd-file?fileTypeID=${encodeURIComponent(fileTypeID)}&umkdid=${encodeURIComponent(umkdid)}&session=${encodeURIComponent(platonusSession)}`;
+
     const overlay = document.getElementById('umkdFileOverlay');
     const frame = document.getElementById('umkdFileFrame');
-    frame.src = url;
+    frame.innerHTML = '<div class="umkd-file-status">Загрузка документа…</div>';
     overlay.classList.add('active');
+    lockBodyScroll();
+    setViewportZoomable(true);
+
+    try {
+      await ensurePdfJsLoaded();
+      const resp = await fetch(
+        `${API_BASE}/api/umkd-file?fileTypeID=${encodeURIComponent(fileTypeID)}&umkdid=${encodeURIComponent(umkdid)}`,
+        { headers: { 'x-session': platonusSession } }
+      );
+      if (!resp.ok) throw new Error('bad_status_' + resp.status);
+      const arrayBuffer = await resp.arrayBuffer();
+
+      const pdf = await window.pdfjsLib.getDocument({ data: arrayBuffer }).promise;
+      frame.innerHTML = '';
+      for (let pageNum = 1; pageNum <= pdf.numPages; pageNum++) {
+        const page = await pdf.getPage(pageNum);
+        const viewport = page.getViewport({ scale: 1.6 });
+        const canvas = document.createElement('canvas');
+        canvas.className = 'umkd-pdf-page';
+        canvas.width = viewport.width;
+        canvas.height = viewport.height;
+        frame.appendChild(canvas);
+        await page.render({ canvasContext: canvas.getContext('2d'), viewport }).promise;
+      }
+    } catch (err) {
+      frame.innerHTML = '<div class="umkd-file-status">Не удалось загрузить документ. Попробуйте ещё раз.</div>';
+    }
   }
 
   function closeUmkdFile() {
@@ -2786,7 +2885,9 @@
     const overlay = document.getElementById('umkdFileOverlay');
     const frame = document.getElementById('umkdFileFrame');
     overlay.classList.remove('active');
-    frame.src = 'about:blank';
+    frame.innerHTML = '';
+    unlockBodyScroll();
+    setViewportZoomable(false);
   }
 
 
