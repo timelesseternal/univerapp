@@ -1581,6 +1581,21 @@
     }
   }
 
+  // Спрашиваем подтверждение перед выходом — используем нативный диалог
+  // Telegram (выглядит как системный, а не как обычный alert), а вне
+  // Telegram (или если showConfirm недоступен) — обычный confirm().
+  function confirmLogout() {
+    haptic('light');
+    const message = 'Вы уверены, что хотите выйти из аккаунта?';
+    if (tg && tg.showConfirm) {
+      tg.showConfirm(message, (confirmed) => {
+        if (confirmed) logout();
+      });
+    } else if (window.confirm(message)) {
+      logout();
+    }
+  }
+
   function logout() {
     haptic('medium');
     csRemove('platonus_session');
@@ -1746,7 +1761,7 @@
       html += '<div class="notice-panel"><div class="notice-hint">Оценки по предметам загружаются…</div></div>';
     }
 
-    html += `<button class="profile-logout-btn" onclick="logout()">Выйти из аккаунта</button>`;
+    html += `<button class="profile-logout-btn" onclick="confirmLogout()">Выйти из аккаунта</button>`;
 
     swapContent(container, html, animate);
   }
