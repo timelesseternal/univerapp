@@ -558,6 +558,7 @@
       color: var(--ink-soft);
       margin-top: 4px;
     }
+    .row-meta-room { margin-top: 2px; }
     .meta-sep { margin: 0 6px; color: var(--line); }
 
     .row-tags { margin-top: 8px; display: flex; flex-wrap: wrap; gap: 6px; }
@@ -2784,7 +2785,8 @@
               <span class="row-title">${item.sub}</span>
               ${isActive ? '<span class="live-tag"><span class="live-dot pulse-live-tag"></span>сейчас</span>' : ''}
             </div>
-            <div class="row-meta">${item.teacher}<span class="meta-sep">·</span>${formatRoomLabel(item)}</div>
+            <div class="row-meta">${item.teacher}</div>
+            <div class="row-meta row-meta-room">${formatRoomLabel(item)}</div>
             ${progressBarHtml}
           </div>
         </div>
