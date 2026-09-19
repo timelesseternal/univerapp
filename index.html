@@ -1799,6 +1799,14 @@
           <div class="profile-id">ID: ${s.studentID ?? '—'}</div>
         </div>
       </div>
+
+      <div class="gpa-card">
+        <div class="gpa-row"><span class="gpa-label">Академический GPA</span><span class="gpa-value accent">${s.academicGpa ?? '—'}</span></div>
+        <div class="gpa-row"><span class="gpa-label">Научный GPA</span><span class="gpa-value">${s.scientificGpa ?? '—'}</span></div>
+        <div class="gpa-row"><span class="gpa-label">Социальный GPA</span><span class="gpa-value">${s.socialGpa ?? '—'}</span></div>
+        <div class="gpa-row"><span class="gpa-label">Интегральный GPA</span><span class="gpa-value">${s.integralGpa ?? '—'}</span></div>
+      </div>
+
       <button class="profile-logout-btn" onclick="confirmLogout()">Выйти из аккаунта</button>
     `;
 
@@ -1812,22 +1820,13 @@
         <span class="masthead-eyebrow" style="margin-bottom:10px; display:block;">Оценки</span>
         <div class="notice-panel">
           <div class="notice-title">Вы не вошли в аккаунт</div>
-          <div class="notice-hint">Войдите с логином и паролем от Platonus, чтобы увидеть оценки и GPA.</div>
+          <div class="notice-hint">Войдите с логином и паролем от Platonus, чтобы увидеть оценки.</div>
         </div>
       `, animate);
       return;
     }
 
-    const s = platonusStudent;
-    let html = `
-      <span class="masthead-eyebrow" style="margin-bottom:10px; display:block;">Оценки</span>
-      <div class="gpa-card">
-        <div class="gpa-row"><span class="gpa-label">Академический GPA</span><span class="gpa-value accent">${s.academicGpa ?? '—'}</span></div>
-        <div class="gpa-row"><span class="gpa-label">Научный GPA</span><span class="gpa-value">${s.scientificGpa ?? '—'}</span></div>
-        <div class="gpa-row"><span class="gpa-label">Социальный GPA</span><span class="gpa-value">${s.socialGpa ?? '—'}</span></div>
-        <div class="gpa-row"><span class="gpa-label">Интегральный GPA</span><span class="gpa-value">${s.integralGpa ?? '—'}</span></div>
-      </div>
-    `;
+    let html = `<span class="masthead-eyebrow" style="margin-bottom:10px; display:block;">Оценки</span>`;
 
     if (liveJournalData && Array.isArray(liveJournalData)) {
       html += liveJournalData.map((subj, index) => buildGradeCardHtml(subj, index)).join('');
