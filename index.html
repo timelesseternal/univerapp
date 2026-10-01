@@ -1805,10 +1805,17 @@
       if (n.startsWith('рк') && n.endsWith('1')) return 3;
       if (n.startsWith('рк') && n.endsWith('2')) return 4;
       if (n.startsWith('экз')) return 5;
+      if (n.startsWith('курс')) return 5;
       return -1;
     };
 
-    metrics.forEach(m => {
+    // «Экз.» обрабатываем первым, чтобы он занял место раньше «Курс.р.»
+    const sorted = [...metrics].sort((a, b) => {
+      const isExam = (m) => (m.name || '').toLowerCase().startsWith('экз') ? 0 : 1;
+      return isExam(a) - isExam(b);
+    });
+
+    sorted.forEach(m => {
       const idx = slotFor(m.name);
       if (idx !== -1 && slots[idx] === null) slots[idx] = m;
       else extras.push(m);
