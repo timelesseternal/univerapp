@@ -38,6 +38,14 @@
       --font-display: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Inter', sans-serif;
       --font-body: -apple-system, BlinkMacSystemFont, 'SF Pro Text', 'Inter', sans-serif;
       --font-mono: ui-monospace, 'SF Mono', 'JetBrains Mono', monospace;
+
+      /* Панель управления Telegram в fullscreen-режиме (кнопка «Закрыть»,
+         шеврон, «•••») занимает собственную высоту поверх WebView, которую
+         env(safe-area-inset-top) не учитывает. Telegram сообщает её через
+         JS (safeAreaInset / contentSafeAreaInset), и мы прокидываем эти
+         значения сюда через applyTelegramSafeAreaInsets() в скрипте ниже. */
+      --tg-safe-area-top: 0px;
+      --tg-content-safe-area-top: 0px;
     }
 
     [data-theme="dark"] {
@@ -78,7 +86,7 @@
     }
 
     .app-wrapper {
-      padding-top: calc(env(safe-area-inset-top, 20px) + 14px);
+      padding-top: calc(env(safe-area-inset-top, 20px) + var(--tg-safe-area-top) + var(--tg-content-safe-area-top) + 14px);
       padding-bottom: calc(env(safe-area-inset-bottom, 20px) + 78px);
       padding-left: 16px;
       padding-right: 16px;
@@ -827,9 +835,6 @@
     .gpa-value { font-family: var(--font-display); font-weight: 700; font-size: 1rem; color: var(--ink); }
     .gpa-value.accent { color: var(--accent); }
 
-    /* Общий контейнер с плавным появлением содержимого — переиспользуется
-       во всех вкладках (Расписание/УМКД/Экзамены/Профиль), а не только
-       в расписании, как раньше. */
     .section-inner {
       transition: opacity 0.2s ease, transform 0.2s ease;
       opacity: 1;
@@ -837,10 +842,6 @@
     }
     .section-inner.content-hidden { opacity: 0; transform: translateY(6px); }
 
-    /* Компактная карточка оценки по предмету — в духе карточек на сайте
-       Platonus (кольцо-процент + сетка показателей), но без лишнего шума:
-       код группы прячем, оставляем только название, преподавателя,
-       процент и сами показатели. */
     .grade-card {
       background: var(--paper-2);
       border-radius: 16px;
@@ -911,9 +912,6 @@
       text-overflow: ellipsis;
     }
 
-    /* Полноэкранный встроенный просмотрщик PDF для УМКД — открывается
-       поверх всего приложения, файл показывается прямо в iframe без
-       выхода в браузер. */
     .umkd-file-overlay {
       position: fixed;
       inset: 0;
@@ -929,7 +927,7 @@
     .umkd-file-topbar {
       display: flex;
       justify-content: flex-end;
-      padding: calc(env(safe-area-inset-top, 12px) + 8px) 12px 8px;
+      padding: calc(env(safe-area-inset-top, 12px) + var(--tg-safe-area-top) + var(--tg-content-safe-area-top) + 8px) 12px 8px;
       flex-shrink: 0;
     }
     .umkd-file-close {
@@ -1273,6 +1271,20 @@
 
   const tg = window.Telegram ? window.Telegram.WebApp : null;
 
+  // Панель управления Telegram в fullscreen-режиме (кнопка «Закрыть»,
+  // шеврон для сворачивания, «•••») рисуется самим Telegram поверх
+  // WebView и занимает собственную высоту, не входящую в обычные
+  // safe-area инсеты устройства. Telegram сообщает эту высоту через
+  // tg.safeAreaInset / tg.contentSafeAreaInset — прокидываем их в CSS
+  // переменные, которые уже используются в отступах сверху.
+  function applyTelegramSafeAreaInsets() {
+    if (!tg) return;
+    const safeTop = (tg.safeAreaInset && tg.safeAreaInset.top) || 0;
+    const contentTop = (tg.contentSafeAreaInset && tg.contentSafeAreaInset.top) || 0;
+    document.documentElement.style.setProperty('--tg-safe-area-top', safeTop + 'px');
+    document.documentElement.style.setProperty('--tg-content-safe-area-top', contentTop + 'px');
+  }
+
   if (tg) {
     tg.ready();
     tg.expand();
@@ -1289,6 +1301,10 @@
     if (tg.setHeaderColor) tg.setHeaderColor('bg_color');
     if (tg.setBackgroundColor) tg.setBackgroundColor('bg_color');
     tg.onEvent('viewportChanged', () => tg.expand());
+
+    applyTelegramSafeAreaInsets();
+    tg.onEvent('safeAreaChanged', applyTelegramSafeAreaInsets);
+    tg.onEvent('contentSafeAreaChanged', applyTelegramSafeAreaInsets);
   }
 
   function haptic(style) {
@@ -2516,14 +2532,6 @@
     return shortNames[fullDay] || null;
   }
 
-  // Реальный номер учебной недели берём из ответа Platonus (data.selectedWeek,
-  // сохранённый в liveScheduleWeekInfo) — это то же число, что показано у
-  // Platonus в фильтре "НЕДЕЛИ". offset=1 даёт номер следующей недели.
-  // Если данных ещё нет (например, до входа в аккаунт), возвращаем null —
-  // тогда вызывающий код показывает римскую цифру как раньше.
-  // В семестре Platonus всегда максимум 15 недель (как в выпадающем списке
-  // "НЕДЕЛИ" на сайте) — поэтому счёт зацикливаем в диапазоне 1–15: после
-  // 15-й недели следующая снова "1", а не "16".
   // В семестре Platonus обычно 15 недель (как в выпадающем списке "НЕДЕЛИ"
   // на самом сайте) — используем как верхнюю границу для стрелок.
   const MAX_TERM_WEEKS = 15;
@@ -2531,10 +2539,7 @@
   let weekStepBusy = false;
 
   // Показываем номер недели как есть — он уже 1-в-1 совпадает с тем, что
-  // показывает выпадающий список "НЕДЕЛИ" на platonus.kstu.kz (проверено
-  // напрямую сравнением расписаний). Раньше здесь ошибочно добавлялась
-  // лишняя единица (week + 1), из-за чего цифра на экране была на одну
-  // неделю больше настоящей — сами данные при этом всегда были верными.
+  // показывает выпадающий список "НЕДЕЛИ" на platonus.kstu.kz.
   function updateWeekStepperUI() {
     const label = document.getElementById('weekStepLabel');
     const prevBtn = document.getElementById('weekPrevBtn');
