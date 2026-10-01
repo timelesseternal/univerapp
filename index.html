@@ -86,7 +86,7 @@
     }
 
     .app-wrapper {
-      padding-top: calc(env(safe-area-inset-top, 20px) + var(--tg-safe-area-top) + var(--tg-content-safe-area-top) + 14px);
+      padding-top: calc(max(env(safe-area-inset-top, 0px), var(--tg-safe-area-top)) + var(--tg-content-safe-area-top) + 14px);
       padding-bottom: calc(env(safe-area-inset-bottom, 20px) + 78px);
       padding-left: 16px;
       padding-right: 16px;
@@ -927,7 +927,7 @@
     .umkd-file-topbar {
       display: flex;
       justify-content: flex-end;
-      padding: calc(env(safe-area-inset-top, 12px) + var(--tg-safe-area-top) + var(--tg-content-safe-area-top) + 8px) 12px 8px;
+      padding: calc(max(env(safe-area-inset-top, 0px), var(--tg-safe-area-top)) + var(--tg-content-safe-area-top) + 8px) 12px 8px;
       flex-shrink: 0;
     }
     .umkd-file-close {
