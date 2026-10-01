@@ -86,6 +86,8 @@
     }
 
     .app-wrapper {
+      /* env(safe-area-inset-top) и --tg-safe-area-top описывают одно и то же
+         (вырез/статус-бар), поэтому берём большее из них, а не сумму. */
       padding-top: calc(max(env(safe-area-inset-top, 0px), var(--tg-safe-area-top)) + var(--tg-content-safe-area-top) + 14px);
       padding-bottom: calc(env(safe-area-inset-bottom, 20px) + 78px);
       padding-left: 16px;
@@ -927,10 +929,12 @@
     .umkd-file-topbar {
       display: flex;
       justify-content: flex-end;
+      gap: 10px;
       padding: calc(max(env(safe-area-inset-top, 0px), var(--tg-safe-area-top)) + var(--tg-content-safe-area-top) + 8px) 12px 8px;
       flex-shrink: 0;
     }
-    .umkd-file-close {
+    .umkd-file-close,
+    .umkd-file-action {
       width: 36px;
       height: 36px;
       border: none;
@@ -944,7 +948,9 @@
       justify-content: center;
       transition: transform 0.15s ease, opacity 0.15s ease;
     }
-    .umkd-file-close:active { transform: scale(0.92); opacity: 0.7; }
+    .umkd-file-action { display: none; }
+    .umkd-file-close:active,
+    .umkd-file-action:active { transform: scale(0.92); opacity: 0.7; }
     .umkd-file-frame {
       flex: 1;
       width: 100%;
@@ -1143,6 +1149,7 @@
 
 <div class="umkd-file-overlay" id="umkdFileOverlay">
   <div class="umkd-file-topbar">
+    <button class="umkd-file-action" id="umkdShareBtn" onclick="shareUmkdFile()" aria-label="Поделиться"></button>
     <button class="umkd-file-close" onclick="closeUmkdFile()" aria-label="Закрыть">✕</button>
   </div>
   <div class="umkd-file-frame" id="umkdFileFrame"></div>
@@ -1790,6 +1797,7 @@
     applyWeekCacheEntry(entry);
     cacheWeekEntry(entry);
   }
+
   // Раскладка показателей: 3 колонки × 2 строки
   //   Ср.тек.1 | Ср.тек.2 | Рейтинг
   //   РК 1     | РК 2     | Экз.
@@ -1823,7 +1831,7 @@
 
     return { slots, extras };
   }
-  
+
   // Строит HTML одной карточки оценки по предмету: кольцо-процент (как на
   // сайте Platonus, тем же цветом что прислал сервер) + сетка показателей
   // (Ср.тек./РК/Рейтинг/Экз. и т.п.) — компактно, без кода группы в
@@ -2956,6 +2964,8 @@
     { id: 138, label: 'Материалы текущего/рубежного/итогового контроля' },
   ];
 
+  let currentUmkdSubjectName = ''; // для имени файла при «Поделиться»
+
   function selectUmkdSubject(index) {
     haptic('light');
     const container = document.getElementById('umkdContainer');
@@ -2965,6 +2975,8 @@
       renderUmkdSubjects();
       return;
     }
+
+    currentUmkdSubjectName = rec.subjectName || '';
 
     let bodyHtml;
     if (rec.umkdID && rec.umkdID > 0) {
@@ -3021,16 +3033,94 @@
       : 'width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover');
   }
 
+  // ==================================================================
+  // ============ «ПОДЕЛИТЬСЯ» / СОХРАНИТЬ PDF ============
+  // ==================================================================
+  // Телефон: системное окно «Поделиться» (navigator.share с файлом).
+  // Компьютер: диалог «Куда сохранить?» (showSaveFilePicker), а если
+  // браузер его не умеет — обычное скачивание.
+  let currentUmkdPdf = null; // { buffer, fileName } — последний открытый PDF
+
+  const SHARE_ICON = '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 15V3"/><path d="M8 7l4-4 4 4"/><path d="M5 12v7a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-7"/></svg>';
+  const DOWNLOAD_ICON = '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v12"/><path d="M8 11l4 4 4-4"/><path d="M5 21h14"/></svg>';
+
+  function isMobilePlatform() {
+    const p = tg && tg.platform;
+    if (p && p !== 'unknown') return ['ios', 'android', 'android_x'].includes(p);
+    return /Android|iPhone|iPad|iPod/i.test(navigator.userAgent)
+      || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+  }
+
+  function buildUmkdFileName(fileTypeID) {
+    const type = UMKD_FILE_TYPES.find(t => t.id === fileTypeID);
+    const raw = [currentUmkdSubjectName, type ? type.label : 'УМКД'].filter(Boolean).join(' - ');
+    const clean = raw.replace(/[\\/:*?"<>|]+/g, ' ').replace(/\s+/g, ' ').trim().slice(0, 120);
+    return (clean || 'umkd') + '.pdf';
+  }
+
+  function downloadBlob(blob, fileName) {
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = fileName;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    setTimeout(() => URL.revokeObjectURL(url), 10000);
+  }
+
+  async function shareUmkdFile() {
+    haptic('light');
+    if (!currentUmkdPdf) return;
+    const { buffer, fileName } = currentUmkdPdf;
+    const blob = new Blob([buffer], { type: 'application/pdf' });
+
+    if (isMobilePlatform()) {
+      // Телефон: системное окно «Поделиться»
+      const file = new File([blob], fileName, { type: 'application/pdf' });
+      if (navigator.canShare && navigator.canShare({ files: [file] })) {
+        try {
+          await navigator.share({ files: [file], title: fileName });
+          return;
+        } catch (e) {
+          if (e && e.name === 'AbortError') return; // человек сам закрыл окно
+        }
+      }
+    } else if (window.showSaveFilePicker) {
+      // Компьютер: диалог «Куда сохранить?»
+      try {
+        const handle = await window.showSaveFilePicker({
+          suggestedName: fileName,
+          types: [{ description: 'PDF', accept: { 'application/pdf': ['.pdf'] } }],
+        });
+        const writable = await handle.createWritable();
+        await writable.write(blob);
+        await writable.close();
+        return;
+      } catch (e) {
+        if (e && e.name === 'AbortError') return;
+      }
+    }
+
+    // Запасной вариант: обычное скачивание
+    downloadBlob(blob, fileName);
+  }
+
   async function openUmkdFile(fileTypeID, umkdid) {
     haptic('light');
     if (!platonusSession) return;
 
     const overlay = document.getElementById('umkdFileOverlay');
     const frame = document.getElementById('umkdFileFrame');
+    const shareBtn = document.getElementById('umkdShareBtn');
     frame.innerHTML = '<div class="umkd-file-status">Загрузка документа…</div>';
     overlay.classList.add('active');
     lockBodyScroll();
     setViewportZoomable(true);
+
+    currentUmkdPdf = null;
+    shareBtn.style.display = 'none';
+    shareBtn.innerHTML = isMobilePlatform() ? SHARE_ICON : DOWNLOAD_ICON;
 
     try {
       await ensurePdfJsLoaded();
@@ -3040,6 +3130,10 @@
       );
       if (!resp.ok) throw new Error('bad_status_' + resp.status);
       const arrayBuffer = await resp.arrayBuffer();
+
+      // pdf.js забирает буфер себе, поэтому для «Поделиться» храним копию
+      currentUmkdPdf = { buffer: arrayBuffer.slice(0), fileName: buildUmkdFileName(fileTypeID) };
+      shareBtn.style.display = 'flex';
 
       const pdf = await window.pdfjsLib.getDocument({ data: arrayBuffer }).promise;
       frame.innerHTML = '';
@@ -3064,6 +3158,8 @@
     const frame = document.getElementById('umkdFileFrame');
     overlay.classList.remove('active');
     frame.innerHTML = '';
+    currentUmkdPdf = null;
+    document.getElementById('umkdShareBtn').style.display = 'none';
     unlockBodyScroll();
     setViewportZoomable(false);
   }
