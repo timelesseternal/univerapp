@@ -1790,7 +1790,33 @@
     applyWeekCacheEntry(entry);
     cacheWeekEntry(entry);
   }
+  // Раскладка показателей: 3 колонки × 2 строки
+  //   Ср.тек.1 | Ср.тек.2 | Рейтинг
+  //   РК 1     | РК 2     | Экз.
+  function orderGradeMetrics(metrics) {
+    const slots = [null, null, null, null, null, null];
+    const extras = [];
 
+    const slotFor = (name) => {
+      const n = (name || '').toLowerCase().replace(/[\s.]/g, '');
+      if (/^срт?е?к?.*1$/.test(n) && n.startsWith('ср')) return 0;
+      if (/^срт?е?к?.*2$/.test(n) && n.startsWith('ср')) return 1;
+      if (n.includes('рейтинг')) return 2;
+      if (n.startsWith('рк') && n.endsWith('1')) return 3;
+      if (n.startsWith('рк') && n.endsWith('2')) return 4;
+      if (n.startsWith('экз')) return 5;
+      return -1;
+    };
+
+    metrics.forEach(m => {
+      const idx = slotFor(m.name);
+      if (idx !== -1 && slots[idx] === null) slots[idx] = m;
+      else extras.push(m);
+    });
+
+    return { slots, extras };
+  }
+  
   // Строит HTML одной карточки оценки по предмету: кольцо-процент (как на
   // сайте Platonus, тем же цветом что прислал сервер) + сетка показателей
   // (Ср.тек./РК/Рейтинг/Экз. и т.п.) — компактно, без кода группы в
@@ -1804,12 +1830,16 @@
     const dash = (percent / 100) * circumference;
 
     const metrics = (subj.exams || []).filter(e => e && e.name);
-    const metricsHtml = metrics.map(e => `
-      <div class="grade-metric">
-        <span class="grade-metric-value">${e.mark ?? '—'}</span>
-        <span class="grade-metric-label">${e.name}</span>
-      </div>
-    `).join('');
+    const { slots, extras } = orderGradeMetrics(metrics);
+
+    const metricHtml = (e) => e
+      ? `<div class="grade-metric">
+           <span class="grade-metric-value">${e.mark ?? '—'}</span>
+           <span class="grade-metric-label">${e.name}</span>
+         </div>`
+      : `<div class="grade-metric"></div>`; // пустая ячейка, чтобы колонки не съезжали
+
+    const metricsHtml = slots.map(metricHtml).join('') + extras.map(metricHtml).join('');
 
     return `
       <div class="grade-card row-enter" style="animation-delay:${Math.min(index, 8) * 0.04}s;">
