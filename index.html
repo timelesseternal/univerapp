@@ -17,6 +17,60 @@
 
   <script src="https://telegram.org/js/telegram-web-app.js"></script>
 
+  <script>
+    // Apply the saved appearance before first paint to avoid a light flash.
+    (() => {
+      const storageKey = 'user_color_mode';
+      const root = document.documentElement;
+      const systemTheme = window.matchMedia ? window.matchMedia('(prefers-color-scheme: dark)') : null;
+      const telegram = window.Telegram ? window.Telegram.WebApp : null;
+      let preference = null;
+      try {
+        const saved = localStorage.getItem(storageKey);
+        if (saved === 'light' || saved === 'dark') preference = saved;
+      } catch (e) { /* Appearance still works when storage is unavailable. */ }
+
+      function applyAppearance() {
+        const mode = preference || (telegram
+          ? (telegram.colorScheme === 'dark' ? 'dark' : 'light')
+          : (systemTheme && systemTheme.matches ? 'dark' : 'light'));
+        const dark = mode === 'dark';
+        if (dark) root.setAttribute('data-theme', 'dark');
+        else root.removeAttribute('data-theme');
+        root.style.colorScheme = mode;
+        const background = dark ? '#0b1024' : '#eef1fa';
+        const themeMeta = document.querySelector('meta[name="theme-color"]');
+        if (themeMeta) themeMeta.setAttribute('content', background);
+        document.querySelectorAll('.appearance-toggle').forEach(button => {
+          const label = dark ? 'Включить светлую тему' : 'Включить тёмную тему';
+          button.setAttribute('aria-label', label);
+          button.setAttribute('title', label);
+          button.setAttribute('aria-pressed', String(dark));
+        });
+        if (telegram) {
+          try {
+            if (telegram.setHeaderColor) telegram.setHeaderColor(background);
+            if (telegram.setBackgroundColor) telegram.setBackgroundColor(background);
+          } catch (e) { /* Older Telegram clients may not support custom colors. */ }
+        }
+      }
+
+      window.toggleColorMode = () => {
+        preference = root.getAttribute('data-theme') === 'dark' ? 'light' : 'dark';
+        try { localStorage.setItem(storageKey, preference); } catch (e) { /* Keep the in-memory choice. */ }
+        applyAppearance();
+        if (typeof haptic === 'function') haptic('light');
+      };
+      window.syncAppearanceFromSystem = () => { if (!preference) applyAppearance(); };
+      if (systemTheme) {
+        if (systemTheme.addEventListener) systemTheme.addEventListener('change', window.syncAppearanceFromSystem);
+        else if (systemTheme.addListener) systemTheme.addListener(window.syncAppearanceFromSystem);
+      }
+      applyAppearance();
+      document.addEventListener('DOMContentLoaded', applyAppearance);
+    })();
+  </script>
+
   <style>
     :root {
       --paper: #F2F2F7;
@@ -1212,6 +1266,7 @@
     }
     .login-overlay .aurora-backdrop { position: absolute; }
     .login-card {
+      position: relative;
       flex-shrink: 0;
       padding: 30px 26px 26px;
       border-radius: 28px;
@@ -1239,6 +1294,28 @@
     .login-input:focus { box-shadow: inset 0 0 0 1.5px var(--accent), 0 0 0 3px var(--accent-tint-soft); }
     .login-submit { box-shadow: 0 6px 18px rgba(var(--accent-rgb), 0.2); }
     .login-hint { font-size: 0.73rem; line-height: 1.55; }
+    .appearance-toggle {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+      width: 36px;
+      height: 36px;
+      padding: 8px;
+      border: none;
+      border-radius: 50%;
+      background: var(--surface-bg);
+      color: var(--ink);
+      box-shadow: var(--surface-shadow), inset 0 0 0 1px var(--surface-border);
+      cursor: pointer;
+      transition: transform 0.15s ease, background-color 0.25s ease;
+    }
+    .appearance-toggle:active { transform: scale(0.92); }
+    .appearance-toggle svg { width: 20px; height: 20px; }
+    .appearance-toggle .appearance-sun { display: none; }
+    [data-theme="dark"] .appearance-toggle .appearance-sun { display: block; }
+    [data-theme="dark"] .appearance-toggle .appearance-moon { display: none; }
+    .login-card > .appearance-toggle { position: absolute; top: 30px; right: 26px; }
     [data-theme="dark"] .login-error,
     [data-theme="dark"] .profile-logout-btn { color: #fca5a5; }
     button:focus-visible, [role="button"]:focus-visible {
@@ -1276,6 +1353,10 @@
 <div class="login-overlay" id="loginOverlay">
   <div class="aurora-backdrop" aria-hidden="true"><span class="aurora-grain"></span></div>
   <div class="login-card">
+    <button type="button" class="appearance-toggle" onclick="toggleColorMode()" aria-label="Включить тёмную тему" aria-pressed="false">
+      <svg class="appearance-moon" aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M20.9 13.1A9 9 0 0 1 10.9 3.1a9 9 0 1 0 10 10Z"/></svg>
+      <svg class="appearance-sun" aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><circle cx="12" cy="12" r="4"/><path d="M12 2v2m0 16v2M2 12h2m16 0h2M5 5l1.4 1.4m11.2 11.2L19 19M5 19l1.4-1.4M17.6 6.4 19 5"/></svg>
+    </button>
     <div class="login-emblem" aria-hidden="true">
       <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="m2 9 10-5 10 5-10 5L2 9Z"/><path d="M6 11v5c3 3 9 3 12 0v-5M22 9v6"/></svg>
     </div>
@@ -1353,6 +1434,10 @@
         <div class="header-right-block">
           <div class="header-right-top">
             <button class="today-btn" id="todayBtn" onclick="jumpToToday()" aria-label="Перейти к сегодняшнему дню">← сегодня</button>
+            <button type="button" class="appearance-toggle" onclick="toggleColorMode()" aria-label="Включить тёмную тему" aria-pressed="false">
+              <svg class="appearance-moon" aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M20.9 13.1A9 9 0 0 1 10.9 3.1a9 9 0 1 0 10 10Z"/></svg>
+              <svg class="appearance-sun" aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><circle cx="12" cy="12" r="4"/><path d="M12 2v2m0 16v2M2 12h2m16 0h2M5 5l1.4 1.4m11.2 11.2L19 19M5 19l1.4-1.4M17.6 6.4 19 5"/></svg>
+            </button>
             <button class="theme-btn" id="themeBtn" onclick="openAccentModal()" aria-label="Выбрать акцентный цвет"></button>
           </div>
           <span class="weather-widget" id="weatherWidget" onclick="openCityModal()" role="button" aria-label="Выбрать город для погоды">— · —°</span>
@@ -1486,14 +1571,7 @@
     // распознаёт как жест "закрыть приложение" вместо прокрутки —
     // особенно заметно, когда контента больше, чем помещается на экране.
     if (tg.disableVerticalSwipes) tg.disableVerticalSwipes();
-    const isDark = tg.colorScheme === 'dark';
-    if (isDark) {
-      document.documentElement.setAttribute('data-theme', 'dark');
-    } else {
-      document.documentElement.removeAttribute('data-theme');
-    }
-    if (tg.setHeaderColor) tg.setHeaderColor('bg_color');
-    if (tg.setBackgroundColor) tg.setBackgroundColor('bg_color');
+    tg.onEvent('themeChanged', syncAppearanceFromSystem);
     tg.onEvent('viewportChanged', () => tg.expand());
 
     applyTelegramSafeAreaInsets();
