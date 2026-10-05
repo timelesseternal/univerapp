@@ -1328,33 +1328,50 @@
   // сценариях (особенно на iOS) может быть очищен системой. Вне Telegram
   // (например, при локальной разработке в обычном браузере) используем
   // localStorage как фолбэк.
+  // Скрипт telegram-web-app.js создаёт window.Telegram.WebApp и в обычном
+  // браузере, но CloudStorage там не работает (бросает ошибку или молчит).
+  // Поэтому используем его только внутри настоящего Telegram (есть initData
+  // и версия 6.9+), а везде остальное — localStorage.
+  function useCloudStorage() {
+    return !!(tg && tg.CloudStorage && tg.initData
+      && tg.isVersionAtLeast && tg.isVersionAtLeast('6.9'));
+  }
+  function lsSafe(fn, fallback) {
+    try { return fn(); } catch (e) { return fallback; }
+  }
   function csGet(key) {
     return new Promise((resolve) => {
-      if (tg && tg.CloudStorage) {
-        tg.CloudStorage.getItem(key, (err, value) => resolve(err ? null : (value || null)));
-      } else {
-        resolve(localStorage.getItem(key));
+      if (useCloudStorage()) {
+        try {
+          tg.CloudStorage.getItem(key, (err, value) => resolve(err ? null : (value || null)));
+          return;
+        } catch (e) { /* упадём на localStorage */ }
       }
+      resolve(lsSafe(() => localStorage.getItem(key), null));
     });
   }
   function csSet(key, value) {
     return new Promise((resolve) => {
-      if (tg && tg.CloudStorage) {
-        tg.CloudStorage.setItem(key, value, () => resolve());
-      } else {
-        localStorage.setItem(key, value);
-        resolve();
+      if (useCloudStorage()) {
+        try {
+          tg.CloudStorage.setItem(key, value, () => resolve());
+          return;
+        } catch (e) { /* упадём на localStorage */ }
       }
+      lsSafe(() => localStorage.setItem(key, value));
+      resolve();
     });
   }
   function csRemove(key) {
     return new Promise((resolve) => {
-      if (tg && tg.CloudStorage) {
-        tg.CloudStorage.removeItem(key, () => resolve());
-      } else {
-        localStorage.removeItem(key);
-        resolve();
+      if (useCloudStorage()) {
+        try {
+          tg.CloudStorage.removeItem(key, () => resolve());
+          return;
+        } catch (e) { /* упадём на localStorage */ }
       }
+      lsSafe(() => localStorage.removeItem(key));
+      resolve();
     });
   }
 
