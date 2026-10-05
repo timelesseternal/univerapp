@@ -38,7 +38,7 @@
         if (dark) root.setAttribute('data-theme', 'dark');
         else root.removeAttribute('data-theme');
         root.style.colorScheme = mode;
-        const background = dark ? '#101b19' : '#f5f4e9';
+        const background = dark ? '#0b1115' : '#eff2f3';
         const themeMeta = document.querySelector('meta[name="theme-color"]');
         if (themeMeta) themeMeta.setAttribute('content', background);
         document.querySelectorAll('.appearance-toggle').forEach(button => {
@@ -1272,17 +1272,6 @@
       border-radius: 28px;
       margin-block: auto;
     }
-    .login-emblem {
-      display: grid;
-      place-items: center;
-      width: 52px;
-      height: 52px;
-      margin-bottom: 22px;
-      border-radius: 17px;
-      color: var(--accent);
-      background: var(--input-bg);
-      box-shadow: inset 0 0 0 1px var(--surface-border), 0 6px 18px rgba(49, 64, 116, 0.08);
-    }
     .login-title { font-size: 1.8rem; letter-spacing: -0.04em; margin-bottom: 10px; }
     .login-subtitle { line-height: 1.55; }
     .login-input {
@@ -1465,7 +1454,6 @@
     .accent-swatch { min-width: 0; min-height: 76px; padding: 10px 6px; }
     .accent-swatch-label { overflow-wrap: anywhere; }
     .login-card { padding: 28px; }
-    .login-emblem { margin-bottom: 24px; border-radius: 18px; }
     .login-card > .appearance-toggle { top: 28px; right: 28px; width: 40px; height: 40px; border-radius: var(--control-radius); }
     .login-input, .login-submit { min-height: 48px; border-radius: var(--control-radius); }
     .login-field-label { line-height: 1.4; }
@@ -1486,132 +1474,213 @@
       .modal-overlay { align-items: flex-start; }
       .city-list { max-height: 140px; }
     }
-    /* Univer identity: warm paper, botanical glass and a marked timeline. */
+    /* Warm Flame: graphite glass and rose-to-peach highlights. */
     :root {
-      --paper: #f5f4e9;
-      --paper-2: #fffdf6;
-      --ink: #263b34;
-      --ink-soft: #5d6d65;
-      --line: rgba(54, 81, 63, 0.16);
-      --brand-gold: #bc862a;
-      --aurora-base: #f5f4e9;
-      --aurora-blue: rgba(156, 192, 161, 0.48);
-      --aurora-violet: rgba(230, 199, 144, 0.4);
-      --aurora-pearl: rgba(255, 253, 242, 0.94);
-      --surface-bg: rgba(255, 253, 246, 0.72);
-      --surface-border: rgba(255, 255, 247, 0.82);
-      --surface-shadow: 0 8px 24px rgba(43, 66, 49, 0.05), inset 0 1px 0 rgba(255, 255, 249, 0.7);
-      --glass-bg: rgba(255, 253, 246, 0.86);
-      --glass-border: rgba(67, 90, 70, 0.12);
-      --glass-active: rgba(116, 141, 110, 0.13);
-      --glass-shadow: 0 12px 32px rgba(43, 66, 49, 0.12);
-      --input-bg: rgba(250, 250, 239, 0.78);
-      --accent: #795619;
-      --accent-text: #fffdf6;
-      --accent-rgb: 121, 86, 25;
+      --paper: #fff3ef;
+      --paper-2: #fffaf8;
+      --ink: #372b30;
+      --ink-soft: #735e65;
+      --line: rgba(105, 65, 76, 0.15);
+      --flame-start: #ff9a9e;
+      --flame-end: #fad0c4;
+      --flame-ink: #44282e;
+      --aurora-base: #fff3ef;
+      --aurora-blue: rgba(255, 154, 158, 0.42);
+      --aurora-violet: rgba(250, 208, 196, 0.65);
+      --aurora-pearl: rgba(255, 250, 247, 0.95);
+      --surface-bg: rgba(255, 250, 248, 0.68);
+      --surface-border: rgba(255, 255, 255, 0.78);
+      --surface-shadow: 0 10px 32px rgba(109, 57, 70, 0.07), inset 0 1px 0 rgba(255, 255, 255, 0.8);
+      --glass-bg: rgba(255, 250, 248, 0.84);
+      --glass-border: rgba(132, 81, 91, 0.16);
+      --glass-active: rgba(255, 154, 158, 0.22);
+      --glass-shadow: 0 12px 36px rgba(109, 57, 70, 0.14);
+      --input-bg: rgba(255, 249, 247, 0.74);
+      --accent: #ab3549;
+      --accent-text: #fff9f6;
+      --accent-rgb: 171, 53, 73;
       --highlight-border: var(--accent);
-      --highlight-bg: rgba(121, 86, 25, 0.08);
-      --accent-tint-strong: rgba(121, 86, 25, 0.16);
-      --accent-tint-soft: rgba(121, 86, 25, 0.06);
+      --highlight-bg: rgba(171, 53, 73, 0.08);
+      --accent-tint-strong: rgba(171, 53, 73, 0.16);
+      --accent-tint-soft: rgba(171, 53, 73, 0.06);
     }
     [data-theme="dark"] {
-      --paper: #101b19;
-      --paper-2: #1b2c26;
-      --ink: #edf1e8;
-      --ink-soft: #b5c5b8;
-      --line: rgba(177, 202, 176, 0.16);
-      --brand-gold: #e9bf73;
-      --aurora-base: #101b19;
-      --aurora-blue: rgba(61, 112, 86, 0.46);
-      --aurora-violet: rgba(130, 106, 58, 0.22);
-      --aurora-pearl: rgba(148, 184, 154, 0.1);
-      --surface-bg: rgba(26, 43, 36, 0.76);
-      --surface-border: rgba(198, 218, 183, 0.13);
-      --surface-shadow: 0 8px 24px rgba(0, 12, 8, 0.16), inset 0 1px 0 rgba(232, 242, 215, 0.05);
-      --glass-bg: rgba(26, 43, 36, 0.88);
-      --glass-border: rgba(198, 218, 183, 0.16);
-      --glass-active: rgba(197, 216, 171, 0.1);
-      --glass-shadow: 0 12px 32px rgba(0, 12, 8, 0.35);
-      --input-bg: rgba(13, 29, 23, 0.58);
-      --accent: #e9bf73;
-      --accent-text: #18241f;
-      --accent-rgb: 233, 191, 115;
+      --paper: #282828;
+      --paper-2: #353133;
+      --ink: #fff9f6;
+      --ink-soft: #d1bec2;
+      --line: rgba(249, 217, 217, 0.16);
+      --aurora-base: #282828;
+      --aurora-blue: rgba(255, 154, 158, 0.18);
+      --aurora-violet: rgba(250, 208, 196, 0.14);
+      --aurora-pearl: rgba(250, 208, 196, 0.04);
+      --surface-bg: rgba(61, 54, 57, 0.55);
+      --surface-border: rgba(255, 233, 232, 0.2);
+      --surface-shadow: 0 14px 36px rgba(15, 9, 11, 0.2), inset 0 1px 0 rgba(255, 242, 238, 0.13);
+      --glass-bg: rgba(53, 47, 50, 0.78);
+      --glass-border: rgba(255, 233, 232, 0.22);
+      --glass-active: rgba(255, 154, 158, 0.17);
+      --glass-shadow: 0 12px 36px rgba(15, 9, 11, 0.3), inset 0 1px 0 rgba(255, 242, 238, 0.1);
+      --input-bg: rgba(34, 30, 32, 0.5);
+      --accent: #ffacaf;
+      --accent-text: #44282e;
+      --accent-rgb: 255, 172, 175;
       --highlight-border: var(--accent);
-      --highlight-bg: rgba(233, 191, 115, 0.12);
-      --accent-tint-strong: rgba(233, 191, 115, 0.18);
-      --accent-tint-soft: rgba(233, 191, 115, 0.06);
+      --highlight-bg: rgba(255, 172, 175, 0.12);
+      --accent-tint-strong: rgba(255, 172, 175, 0.18);
+      --accent-tint-soft: rgba(255, 172, 175, 0.06);
     }
-    .app-signature {
-      display: flex;
-      align-items: center;
-      gap: 10px;
-      padding: 0 0 18px;
-      margin-bottom: 24px;
-      border-bottom: 1px solid var(--line);
+    .aurora-backdrop::before {
+      background:
+        radial-gradient(ellipse at 6% 48%, var(--aurora-blue), transparent 46%),
+        radial-gradient(ellipse at 92% 66%, var(--aurora-violet), transparent 48%);
     }
-    .signature-mark { display: grid; place-items: center; width: 38px; height: 38px; background: var(--surface-bg); border-radius: 12px 12px 12px 4px; flex-shrink: 0; }
-    .signature-name { font-size: 1rem; font-weight: 700; letter-spacing: -0.04em; line-height: 1.2; }
-    .signature-caption { display: block; font-size: 0.64rem; font-weight: 500; letter-spacing: 0.02em; color: var(--ink-soft); margin-top: 3px; }
-    .signature-campus { margin-left: auto; font-family: var(--font-mono); font-size: 0.65rem; letter-spacing: 0.08em; color: var(--ink-soft); padding: 6px 9px; border: 1px solid var(--line); border-radius: 6px; }
-    .brand-kicker { font-size: 0.7rem; font-weight: 600; letter-spacing: 0.1em; text-transform: uppercase; color: var(--ink-soft); margin-bottom: 10px; }
-    .login-title, .masthead-headline { font-family: Georgia, 'Times New Roman', serif; font-weight: 400; letter-spacing: -0.045em; }
-    .login-title { font-size: 2.8rem; line-height: 1.1; margin-bottom: 16px; }
-    .brand-campus { display: inline-block; vertical-align: middle; font-family: var(--font-mono); font-size: 0.6rem; letter-spacing: 0.07em; color: var(--ink-soft); border: 1px solid var(--line); border-radius: 6px; padding: 5px 7px; }
-    .login-emblem { color: var(--ink); background: transparent; box-shadow: none; border: 1px solid var(--line); border-radius: 18px 18px 18px 5px; width: 58px; height: 58px; }
-    .login-card { border-radius: 28px 28px 28px 8px; }
+    .aurora-backdrop::after {
+      background:
+        radial-gradient(ellipse at 58% 10%, var(--aurora-pearl), transparent 52%),
+        radial-gradient(ellipse at 35% 95%, var(--aurora-blue), transparent 55%);
+    }
+    .login-title, .masthead-headline, .notice-title { font-family: var(--font-display); font-weight: 700; letter-spacing: -0.045em; }
+    .login-title { font-size: 2.35rem; line-height: 1.12; margin-bottom: 14px; }
+    .brand-campus { display: inline-block; vertical-align: middle; font-family: var(--font-mono); font-size: 0.6rem; font-weight: 500; letter-spacing: 0.07em; color: var(--ink-soft); border: 1px solid var(--line); border-radius: 8px; padding: 5px 7px; }
+    .login-card { border-radius: 28px; background-image: linear-gradient(135deg, rgba(255, 255, 255, 0.1), transparent 45%); }
     .login-subtitle { font-size: 0.87rem; }
-    .login-submit { letter-spacing: 0.015em; }
-    .masthead-headline { font-size: clamp(1.75rem, 7vw, 2.2rem); line-height: 1.12; }
-    .masthead-eyebrow, .notice-eyebrow { letter-spacing: 0.08em; text-transform: uppercase; font-size: 0.68rem; font-weight: 600; }
-    .section-inner > .masthead-eyebrow { font-size: 0.8rem; letter-spacing: 0.08em; }
+    .login-submit { background: linear-gradient(110deg, var(--flame-start), var(--flame-end)); color: var(--flame-ink); box-shadow: 0 6px 22px rgba(255, 154, 158, 0.18); }
+    .masthead-headline { font-size: clamp(1.5rem, 6vw, 1.9rem); line-height: 1.18; }
+    .masthead-eyebrow, .notice-eyebrow { letter-spacing: 0.06em; text-transform: uppercase; font-size: 0.68rem; font-weight: 600; }
+    .section-inner > .masthead-eyebrow { font-size: 0.8rem; }
     .status-bar { margin-bottom: 24px; }
-    .week-stepper, .days-grid { background: var(--surface-bg); }
-    .day-btn { font-family: var(--font-mono); font-size: 0.72rem; letter-spacing: 0.02em; }
-    .day-indicator { box-shadow: 0 3px 8px rgba(var(--accent-rgb), 0.16); }
-    #scheduleContainer .list-card {
-      background: transparent;
-      box-shadow: none;
-      overflow: visible;
-      -webkit-backdrop-filter: none;
-      backdrop-filter: none;
-    }
+    .day-btn { font-size: 0.73rem; letter-spacing: 0.01em; }
+    .day-indicator { background: linear-gradient(110deg, var(--flame-start), var(--flame-end)); box-shadow: 0 3px 12px rgba(255, 154, 158, 0.18); }
+    .day-btn.active { color: var(--flame-ink) !important; }
+    .day-btn.active.is-today::after { background-color: var(--flame-ink); }
+    .list-card, .notice-panel, .gpa-card, .grade-card { border-radius: 22px; }
+    #scheduleContainer .list-card { background: transparent; box-shadow: none; overflow: visible; -webkit-backdrop-filter: none; backdrop-filter: none; }
     #scheduleContainer .list-row {
       background: var(--surface-bg);
+      background-image: linear-gradient(135deg, rgba(255, 255, 255, 0.07), transparent 55%);
       border: none;
-      border-radius: 18px 18px 18px 5px;
+      border-radius: 20px;
       box-shadow: var(--surface-shadow), inset 0 0 0 1px var(--surface-border);
-      margin-bottom: 10px;
-      -webkit-backdrop-filter: blur(18px) saturate(130%);
-      backdrop-filter: blur(18px) saturate(130%);
+      margin-bottom: 12px;
+      -webkit-backdrop-filter: blur(22px) saturate(120%);
+      backdrop-filter: blur(22px) saturate(120%);
     }
     #scheduleContainer .list-row:last-child { margin-bottom: 0; }
-    #scheduleContainer .row-index { position: relative; border-left: 1px solid var(--line); min-width: 58px; padding-left: 12px; }
-    #scheduleContainer .row-index::before { content: ''; position: absolute; top: 4px; left: -3px; width: 5px; height: 5px; border-radius: 50%; background: var(--ink-soft); }
+    #scheduleContainer .row-index { position: relative; border-left: 2px solid var(--line); min-width: 58px; padding-left: 12px; }
     #scheduleContainer .is-live { box-shadow: var(--surface-shadow), inset 3px 0 0 var(--accent), inset 0 0 0 1px var(--surface-border); }
-    #scheduleContainer .is-live .row-index::before { background: var(--accent); }
+    #scheduleContainer .is-live .row-index { border-left-color: var(--accent); }
     .row-index-main, .row-index-sub { font-family: var(--font-mono); }
     .row-index-main { font-size: 0.76rem; letter-spacing: -0.02em; }
     .row-index-sub { font-size: 0.63rem; }
     .row-title { font-size: 0.94rem; font-weight: 600; }
     .row-meta { font-size: 0.79rem; }
-    .notice-panel { border-radius: 22px 22px 22px 6px; }
-    .notice-title { font-family: Georgia, 'Times New Roman', serif; font-weight: 400; font-size: 1.5rem; letter-spacing: -0.035em; }
+    .notice-title { font-size: 1.3rem; line-height: 1.35; }
     .gpa-value { font-family: var(--font-mono); }
-    .profile-avatar { border-radius: 18px 18px 18px 5px; }
-    .bottom-tab-bar { border-radius: 20px; }
-    .bottom-tab-btn, .bottom-tab-indicator { border-radius: 15px; }
-    .bottom-tab-btn.active { color: var(--accent); }
-    .tag { border-radius: 6px; }
+    .profile-avatar { background: linear-gradient(110deg, var(--flame-start), var(--flame-end)); color: var(--flame-ink); border-radius: 18px; }
+    .bottom-tab-bar { border-radius: 24px; }
+    .bottom-tab-btn, .bottom-tab-indicator { border-radius: 18px; }
+    .bottom-tab-indicator { background: var(--glass-active); box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.08); }
+    .tag { border-radius: 8px; }
     @supports not ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
       #scheduleContainer .list-row { background: var(--paper-2); }
     }
     @media (max-width: 360px) {
-      .app-signature { margin-bottom: 20px; }
-      .signature-caption { font-size: 0.6rem; }
-      #scheduleContainer .list-row { gap: 10px; }
+          #scheduleContainer .list-row { gap: 10px; }
       #scheduleContainer .row-index { min-width: 54px; }
-      .login-title { font-size: 2.5rem; }
+      .login-title { font-size: 2.15rem; }
     }
+
+    :root { --background-texture: url("./background.png"); }
+    /* Keep background.png beside this HTML file. */
+    :root {
+      --background-tint-rgb: 88, 119, 129;
+      --selected-accent: var(--accent-day, #415d67);
+      --selected-accent-text: #ffffff;
+      --paper: #eff2f3;
+      --paper-2: #fafcfc;
+      --ink: #26343a;
+      --ink-soft: #526269;
+      --line: rgba(50, 77, 86, 0.17);
+      --aurora-base: #eff2f3;
+      --surface-bg: rgba(250, 253, 253, 0.78);
+      --surface-border: rgba(255, 255, 255, 0.78);
+      --surface-shadow: 0 10px 32px rgba(14, 35, 42, 0.1), inset 0 1px 0 rgba(255, 255, 255, 0.7);
+      --glass-bg: rgba(250, 253, 253, 0.88);
+      --glass-border: rgba(50, 77, 86, 0.15);
+      --glass-active: rgba(var(--background-tint-rgb), 0.12);
+      --glass-shadow: 0 12px 36px rgba(14, 35, 42, 0.18);
+      --input-bg: rgba(250, 253, 253, 0.74);
+      --accent: var(--selected-accent);
+      --accent-text: var(--selected-accent-text);
+      --accent-rgb: 65, 93, 103;
+      --highlight-bg: rgba(var(--accent-rgb), 0.08);
+      --accent-tint-strong: rgba(var(--accent-rgb), 0.16);
+      --accent-tint-soft: rgba(var(--accent-rgb), 0.06);
+      --flame-start: #9ebac4;
+      --flame-end: #c5d6dc;
+      --flame-ink: #20353c;
+      --texture-opacity: 0.5;
+      --texture-brightness: 1.25;
+    }
+    [data-theme="dark"] {
+      --selected-accent: var(--accent-night, #b8cfd7);
+      --selected-accent-text: #18282e;
+      --paper: #0b1115;
+      --paper-2: #1b252b;
+      --ink: #f0f5f7;
+      --ink-soft: #bdcbd1;
+      --line: rgba(222, 237, 242, 0.16);
+      --aurora-base: #0b1115;
+      --surface-bg: rgba(19, 28, 34, 0.75);
+      --surface-border: rgba(225, 240, 246, 0.19);
+      --surface-shadow: 0 14px 36px rgba(0, 7, 12, 0.25), inset 0 1px 0 rgba(240, 248, 255, 0.1);
+      --glass-bg: rgba(22, 31, 37, 0.88);
+      --glass-border: rgba(225, 240, 246, 0.2);
+      --glass-active: rgba(var(--background-tint-rgb), 0.24);
+      --glass-shadow: 0 12px 36px rgba(0, 7, 12, 0.4);
+      --input-bg: rgba(11, 20, 26, 0.64);
+      --accent: var(--selected-accent);
+      --accent-text: var(--selected-accent-text);
+      --accent-rgb: 184, 207, 215;
+      --highlight-bg: rgba(var(--accent-rgb), 0.12);
+      --accent-tint-strong: rgba(var(--accent-rgb), 0.18);
+      --accent-tint-soft: rgba(var(--accent-rgb), 0.06);
+      --texture-opacity: 1;
+      --texture-brightness: 0.68;
+    }
+    .aurora-backdrop::before {
+      inset: -4%;
+      background-image: var(--background-texture);
+      background-position: center;
+      background-size: cover;
+      background-repeat: no-repeat;
+      filter: grayscale(1) brightness(var(--texture-brightness));
+      opacity: var(--texture-opacity);
+      animation: textureDrift 38s ease-in-out infinite alternate;
+    }
+    .aurora-backdrop::after {
+      inset: 0;
+      background: linear-gradient(145deg, rgba(var(--background-tint-rgb), 0.78), rgba(var(--background-tint-rgb), 0.55));
+      mix-blend-mode: color;
+      animation: none;
+      will-change: auto;
+    }
+    .aurora-grain { display: none; }
+    @keyframes textureDrift {
+      from { transform: translate3d(-1%, -1%, 0) scale(1.01); }
+      to { transform: translate3d(1%, 1%, 0) scale(1.035); }
+    }
+    .login-title { padding-right: 50px; }
+    .brand-campus { display: block; width: fit-content; margin-top: 10px; }
+    .login-card, #scheduleContainer .list-row {
+      background-image: linear-gradient(135deg, rgba(var(--background-tint-rgb), 0.09), transparent 65%);
+    }
+    .login-submit, .day-indicator { box-shadow: 0 6px 22px rgba(var(--background-tint-rgb), 0.2); }
+    @supports not ((mix-blend-mode: color)) {
+      .aurora-backdrop::after { opacity: 0.3; }
+    }
+
     @media (prefers-reduced-motion: reduce) {
       .aurora-backdrop::before, .aurora-backdrop::after {
         animation: none !important;
@@ -1636,10 +1705,6 @@
       <svg class="appearance-moon" aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M20.9 13.1A9 9 0 0 1 10.9 3.1a9 9 0 1 0 10 10Z"/></svg>
       <svg class="appearance-sun" aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><circle cx="12" cy="12" r="4"/><path d="M12 2v2m0 16v2M2 12h2m16 0h2M5 5l1.4 1.4m11.2 11.2L19 19M5 19l1.4-1.4M17.6 6.4 19 5"/></svg>
     </button>
-    <div class="login-emblem" aria-hidden="true">
-      <svg width="32" height="32" viewBox="0 0 32 32" fill="none"><path d="M8 7v13a8 8 0 0 0 16 0V7" stroke="currentColor" stroke-width="3" stroke-linecap="round"/><path d="m19 11 4 4 6-7" stroke="var(--brand-gold)" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/></svg>
-    </div>
-    <div class="brand-kicker">Твой учебный ритм</div>
     <div class="login-title">Univer <span class="brand-campus">KSTU</span></div>
     <div class="login-subtitle">Войдите с логином и паролем от личного кабинета Platonus — подтянутся ваше расписание, оценки и GPA.</div>
 
@@ -1704,11 +1769,6 @@
 
 <div class="app-wrapper">
   <div class="container">
-    <div class="app-signature">
-      <div class="signature-mark" aria-hidden="true"><svg width="26" height="26" viewBox="0 0 32 32" fill="none"><path d="M8 7v13a8 8 0 0 0 16 0V7" stroke="currentColor" stroke-width="3" stroke-linecap="round"/><path d="m19 11 4 4 6-7" stroke="var(--brand-gold)" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
-      <span class="signature-name">univer<span class="signature-caption">Твой учебный ритм</span></span>
-      <span class="signature-campus">KSTU</span>
-    </div>
 
     <div class="app-section" id="sectionSchedule">
       <div class="status-bar">
@@ -2929,7 +2989,7 @@
   }
 
   const ACCENT_THEMES = [
-    { id: 'default', name: 'Стандартный', hex: '#3B82F6', text: '#FFFFFF' },
+    { id: 'default', name: 'Стандартный', hex: '#9EBAC4', text: '#20353C' },
     { id: 'lime', name: 'Лайм', hex: '#A3E635', text: '#1F2937' },
     { id: 'emerald', name: 'Изумруд', hex: '#065F46', text: '#FFFFFF' },
     { id: 'burgundy', name: 'Бургунди', hex: '#7F1D1D', text: '#FFFFFF' },
@@ -2937,9 +2997,23 @@
     { id: 'plum', name: 'Слива', hex: '#6D28D9', text: '#FFFFFF' },
     { id: 'terracotta', name: 'Терракота', hex: '#C2410C', text: '#FFFFFF' }
   ];
-  const ACCENT_CSS_PROPS = ['--accent', '--accent-text', '--accent-rgb', '--highlight-border', '--highlight-bg', '--progress-bg', '--accent-tint-strong', '--accent-tint-soft'];
+  const ACCENT_CSS_PROPS = ['--accent', '--accent-text', '--accent-rgb', '--highlight-border', '--highlight-bg', '--progress-bg', '--accent-tint-strong', '--accent-tint-soft', '--accent-day', '--accent-night', '--background-tint-rgb', '--flame-start', '--flame-end', '--flame-ink'];
   let currentAccentId = 'default';
   let pendingAccentId = 'default';
+  let accentBeforePreview = 'default';
+
+  function accentGradientText(r, g, b) {
+    const luminance = channels => channels.map(value => {
+      const srgb = value / 255;
+      return srgb <= 0.04045 ? srgb / 12.92 : Math.pow((srgb + 0.055) / 1.055, 2.4);
+    }).reduce((sum, value, index) => sum + value * [0.2126, 0.7152, 0.0722][index], 0);
+    const start = luminance([r, g, b]);
+    const end = luminance([r, g, b].map(value => Math.round(value + (255 - value) * 0.08)));
+    const dark = luminance([23, 32, 39]);
+    const darkContrast = (Math.min(start, end) + 0.05) / (dark + 0.05);
+    const lightContrast = 1.05 / (Math.max(start, end) + 0.05);
+    return darkContrast >= lightContrast ? '#172027' : '#FFFFFF';
+  }
 
   function hexToRgbTriple(hex) {
     const clean = hex.replace('#', '');
@@ -2956,10 +3030,17 @@
       if (!theme) return;
       const { r, g, b } = hexToRgbTriple(theme.hex);
       const rgbStr = `${r}, ${g}, ${b}`;
-      root.setProperty('--accent', theme.hex);
-      root.setProperty('--accent-text', theme.text);
+      const mix = (amount, target) => `rgb(${[r, g, b].map(value => Math.round(value + (target - value) * amount)).join(', ')})`;
+      root.setProperty('--accent-day', mix(0.45, 0));
+      root.setProperty('--accent-night', mix(0.55, 255));
+      root.setProperty('--accent', 'var(--selected-accent)');
+      root.setProperty('--accent-text', 'var(--selected-accent-text)');
       root.setProperty('--accent-rgb', rgbStr);
-      root.setProperty('--highlight-border', theme.hex);
+      root.setProperty('--background-tint-rgb', rgbStr);
+      root.setProperty('--flame-start', theme.hex);
+      root.setProperty('--flame-end', mix(0.08, 255));
+      root.setProperty('--flame-ink', accentGradientText(r, g, b));
+      root.setProperty('--highlight-border', 'var(--accent)');
       root.setProperty('--highlight-bg', `rgba(${rgbStr}, 0.08)`);
       root.setProperty('--progress-bg', `var(--line)`);
       root.setProperty('--accent-tint-strong', `rgba(${rgbStr}, 0.16)`);
@@ -2988,17 +3069,20 @@
   function selectAccentSwatch(id) {
     haptic('light');
     pendingAccentId = id;
+    applyAccentTheme(id, false);
     renderAccentSwatches();
   }
 
   function saveAccentTheme() {
     haptic('medium');
     applyAccentTheme(pendingAccentId);
+    accentBeforePreview = pendingAccentId;
     closeAccentModal();
   }
 
   function openAccentModal() {
     haptic('light');
+    accentBeforePreview = currentAccentId;
     pendingAccentId = currentAccentId;
     renderAccentSwatches();
     document.getElementById('accentModal').classList.add('active');
@@ -3007,6 +3091,7 @@
 
   function closeAccentModal() {
     haptic('light');
+    applyAccentTheme(accentBeforePreview, false);
     document.getElementById('accentModal').classList.remove('active');
     unlockBodyScroll();
   }
