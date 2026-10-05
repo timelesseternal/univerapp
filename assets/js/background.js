@@ -11,7 +11,7 @@
   video.defaultMuted = true;
   video.loop = true;
   video.playsInline = true;
-  video.preload = 'auto';
+  video.preload = 'none';
   video.controls = false;
   video.disablePictureInPicture = true;
   video.setAttribute('muted', '');
@@ -20,6 +20,11 @@
   video.setAttribute('tabindex', '-1');
   let active = null, loaded = false, failed = false, playPending = false, suspended = false;
   const scriptURL = document.currentScript && document.currentScript.src;
+  const connection = navigator.connection;
+  let startupComplete = false;
+  function allowVideo() {
+    return startupComplete && !motion.matches && !(connection && connection.saveData);
+  }
 
   function chooseSurface() {
     const visible = login && !login.classList.contains('hidden') && getComputedStyle(login).display !== 'none';
@@ -31,10 +36,11 @@
       if (loaded) active.classList.add('video-ready');
     }
   }
-  function shouldPlay() { return !motion.matches && !document.hidden && !failed && !suspended; }
+  function shouldPlay() { return allowVideo() && !document.hidden && !failed && !suspended; }
   function sync() {
     chooseSurface();
     if (!shouldPlay()) { video.pause(); return; }
+    if (!video.getAttribute('src')) video.src = new URL('../media/background.mp4', scriptURL || new URL('./assets/js/background.js', document.baseURI)).href;
     if (!video.paused || playPending) return;
     playPending = true;
     try {
@@ -67,8 +73,12 @@
   window.addEventListener('pageshow', () => { suspended = false; sync(); });
   if (motion.addEventListener) motion.addEventListener('change', sync);
   else if (motion.addListener) motion.addListener(sync);
+  if (connection && connection.addEventListener) connection.addEventListener('change', sync);
   if (login) new MutationObserver(sync).observe(login, { attributes: true, attributeFilter: ['class', 'style'] });
   chooseSurface();
-  video.src = new URL('background.mp4', scriptURL || document.baseURI).href;
-  sync();
+  window.addEventListener('univer-ready', () => {
+    const start = () => { startupComplete = true; sync(); };
+    if (window.requestIdleCallback) window.requestIdleCallback(start, { timeout: 3000 });
+    else setTimeout(start, 1500);
+  }, { once: true });
 })();
