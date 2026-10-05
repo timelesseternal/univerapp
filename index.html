@@ -3040,6 +3040,7 @@
   // Компьютер: диалог «Куда сохранить?» (showSaveFilePicker), а если
   // браузер его не умеет — обычное скачивание.
   let currentUmkdPdf = null; // { buffer, fileName } — последний открытый PDF
+  let currentUmkdRef = null; // { fileTypeID, umkdid } — для ссылки на скачивание через сервер
 
   const SHARE_ICON = '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 15V3"/><path d="M8 7l4-4 4 4"/><path d="M5 12v7a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-7"/></svg>';
   const DOWNLOAD_ICON = '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v12"/><path d="M8 11l4 4 4-4"/><path d="M5 21h14"/></svg>';
@@ -3076,14 +3077,35 @@
     const blob = new Blob([buffer], { type: 'application/pdf' });
 
     if (isMobilePlatform()) {
-      // Телефон: системное окно «Поделиться»
       const file = new File([blob], fileName, { type: 'application/pdf' });
-      if (navigator.canShare && navigator.canShare({ files: [file] })) {
+
+      // 1) Системное «Поделиться», если WebView умеет отправлять файлы
+      if (navigator.share && navigator.canShare && navigator.canShare({ files: [file] })) {
         try {
           await navigator.share({ files: [file], title: fileName });
           return;
         } catch (e) {
           if (e && e.name === 'AbortError') return; // человек сам закрыл окно
+        }
+      }
+
+      // 2) Нативное окно Telegram для скачивания (нужна ссылка на сервер)
+      if (currentUmkdRef) {
+        const url = `${location.origin}${API_BASE}/api/umkd-file`
+          + `?fileTypeID=${encodeURIComponent(currentUmkdRef.fileTypeID)}`
+          + `&umkdid=${encodeURIComponent(currentUmkdRef.umkdid)}`
+          + `&session=${encodeURIComponent(platonusSession)}`
+          + `&download=1`
+          + `&name=${encodeURIComponent(fileName)}`;
+
+        if (tg && tg.downloadFile && tg.isVersionAtLeast && tg.isVersionAtLeast('8.0')) {
+          tg.downloadFile({ url, file_name: fileName });
+          return;
+        }
+        // 3) Старый Telegram: откроем ссылку во внешнем браузере, он скачает файл
+        if (tg && tg.openLink) {
+          tg.openLink(url);
+          return;
         }
       }
     } else if (window.showSaveFilePicker) {
@@ -3119,6 +3141,7 @@
     setViewportZoomable(true);
 
     currentUmkdPdf = null;
+    currentUmkdRef = { fileTypeID, umkdid };
     shareBtn.style.display = 'none';
     shareBtn.innerHTML = isMobilePlatform() ? SHARE_ICON : DOWNLOAD_ICON;
 
@@ -3159,6 +3182,7 @@
     overlay.classList.remove('active');
     frame.innerHTML = '';
     currentUmkdPdf = null;
+    currentUmkdRef = null;
     document.getElementById('umkdShareBtn').style.display = 'none';
     unlockBodyScroll();
     setViewportZoomable(false);
