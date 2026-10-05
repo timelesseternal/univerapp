@@ -38,7 +38,7 @@
         if (dark) root.setAttribute('data-theme', 'dark');
         else root.removeAttribute('data-theme');
         root.style.colorScheme = mode;
-        const background = dark ? '#0b1024' : '#eef1fa';
+        const background = dark ? '#101b19' : '#f5f4e9';
         const themeMeta = document.querySelector('meta[name="theme-color"]');
         if (themeMeta) themeMeta.setAttribute('content', background);
         document.querySelectorAll('.appearance-toggle').forEach(button => {
@@ -1486,6 +1486,132 @@
       .modal-overlay { align-items: flex-start; }
       .city-list { max-height: 140px; }
     }
+    /* Univer identity: warm paper, botanical glass and a marked timeline. */
+    :root {
+      --paper: #f5f4e9;
+      --paper-2: #fffdf6;
+      --ink: #263b34;
+      --ink-soft: #5d6d65;
+      --line: rgba(54, 81, 63, 0.16);
+      --brand-gold: #bc862a;
+      --aurora-base: #f5f4e9;
+      --aurora-blue: rgba(156, 192, 161, 0.48);
+      --aurora-violet: rgba(230, 199, 144, 0.4);
+      --aurora-pearl: rgba(255, 253, 242, 0.94);
+      --surface-bg: rgba(255, 253, 246, 0.72);
+      --surface-border: rgba(255, 255, 247, 0.82);
+      --surface-shadow: 0 8px 24px rgba(43, 66, 49, 0.05), inset 0 1px 0 rgba(255, 255, 249, 0.7);
+      --glass-bg: rgba(255, 253, 246, 0.86);
+      --glass-border: rgba(67, 90, 70, 0.12);
+      --glass-active: rgba(116, 141, 110, 0.13);
+      --glass-shadow: 0 12px 32px rgba(43, 66, 49, 0.12);
+      --input-bg: rgba(250, 250, 239, 0.78);
+      --accent: #795619;
+      --accent-text: #fffdf6;
+      --accent-rgb: 121, 86, 25;
+      --highlight-border: var(--accent);
+      --highlight-bg: rgba(121, 86, 25, 0.08);
+      --accent-tint-strong: rgba(121, 86, 25, 0.16);
+      --accent-tint-soft: rgba(121, 86, 25, 0.06);
+    }
+    [data-theme="dark"] {
+      --paper: #101b19;
+      --paper-2: #1b2c26;
+      --ink: #edf1e8;
+      --ink-soft: #b5c5b8;
+      --line: rgba(177, 202, 176, 0.16);
+      --brand-gold: #e9bf73;
+      --aurora-base: #101b19;
+      --aurora-blue: rgba(61, 112, 86, 0.46);
+      --aurora-violet: rgba(130, 106, 58, 0.22);
+      --aurora-pearl: rgba(148, 184, 154, 0.1);
+      --surface-bg: rgba(26, 43, 36, 0.76);
+      --surface-border: rgba(198, 218, 183, 0.13);
+      --surface-shadow: 0 8px 24px rgba(0, 12, 8, 0.16), inset 0 1px 0 rgba(232, 242, 215, 0.05);
+      --glass-bg: rgba(26, 43, 36, 0.88);
+      --glass-border: rgba(198, 218, 183, 0.16);
+      --glass-active: rgba(197, 216, 171, 0.1);
+      --glass-shadow: 0 12px 32px rgba(0, 12, 8, 0.35);
+      --input-bg: rgba(13, 29, 23, 0.58);
+      --accent: #e9bf73;
+      --accent-text: #18241f;
+      --accent-rgb: 233, 191, 115;
+      --highlight-border: var(--accent);
+      --highlight-bg: rgba(233, 191, 115, 0.12);
+      --accent-tint-strong: rgba(233, 191, 115, 0.18);
+      --accent-tint-soft: rgba(233, 191, 115, 0.06);
+    }
+    .app-signature {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 0 0 18px;
+      margin-bottom: 24px;
+      border-bottom: 1px solid var(--line);
+    }
+    .signature-mark { display: grid; place-items: center; width: 38px; height: 38px; background: var(--surface-bg); border-radius: 12px 12px 12px 4px; flex-shrink: 0; }
+    .signature-name { font-size: 1rem; font-weight: 700; letter-spacing: -0.04em; line-height: 1.2; }
+    .signature-caption { display: block; font-size: 0.64rem; font-weight: 500; letter-spacing: 0.02em; color: var(--ink-soft); margin-top: 3px; }
+    .signature-campus { margin-left: auto; font-family: var(--font-mono); font-size: 0.65rem; letter-spacing: 0.08em; color: var(--ink-soft); padding: 6px 9px; border: 1px solid var(--line); border-radius: 6px; }
+    .brand-kicker { font-size: 0.7rem; font-weight: 600; letter-spacing: 0.1em; text-transform: uppercase; color: var(--ink-soft); margin-bottom: 10px; }
+    .login-title, .masthead-headline { font-family: Georgia, 'Times New Roman', serif; font-weight: 400; letter-spacing: -0.045em; }
+    .login-title { font-size: 2.8rem; line-height: 1.1; margin-bottom: 16px; }
+    .brand-campus { display: inline-block; vertical-align: middle; font-family: var(--font-mono); font-size: 0.6rem; letter-spacing: 0.07em; color: var(--ink-soft); border: 1px solid var(--line); border-radius: 6px; padding: 5px 7px; }
+    .login-emblem { color: var(--ink); background: transparent; box-shadow: none; border: 1px solid var(--line); border-radius: 18px 18px 18px 5px; width: 58px; height: 58px; }
+    .login-card { border-radius: 28px 28px 28px 8px; }
+    .login-subtitle { font-size: 0.87rem; }
+    .login-submit { letter-spacing: 0.015em; }
+    .masthead-headline { font-size: clamp(1.75rem, 7vw, 2.2rem); line-height: 1.12; }
+    .masthead-eyebrow, .notice-eyebrow { letter-spacing: 0.08em; text-transform: uppercase; font-size: 0.68rem; font-weight: 600; }
+    .section-inner > .masthead-eyebrow { font-size: 0.8rem; letter-spacing: 0.08em; }
+    .status-bar { margin-bottom: 24px; }
+    .week-stepper, .days-grid { background: var(--surface-bg); }
+    .day-btn { font-family: var(--font-mono); font-size: 0.72rem; letter-spacing: 0.02em; }
+    .day-indicator { box-shadow: 0 3px 8px rgba(var(--accent-rgb), 0.16); }
+    #scheduleContainer .list-card {
+      background: transparent;
+      box-shadow: none;
+      overflow: visible;
+      -webkit-backdrop-filter: none;
+      backdrop-filter: none;
+    }
+    #scheduleContainer .list-row {
+      background: var(--surface-bg);
+      border: none;
+      border-radius: 18px 18px 18px 5px;
+      box-shadow: var(--surface-shadow), inset 0 0 0 1px var(--surface-border);
+      margin-bottom: 10px;
+      -webkit-backdrop-filter: blur(18px) saturate(130%);
+      backdrop-filter: blur(18px) saturate(130%);
+    }
+    #scheduleContainer .list-row:last-child { margin-bottom: 0; }
+    #scheduleContainer .row-index { position: relative; border-left: 1px solid var(--line); min-width: 58px; padding-left: 12px; }
+    #scheduleContainer .row-index::before { content: ''; position: absolute; top: 4px; left: -3px; width: 5px; height: 5px; border-radius: 50%; background: var(--ink-soft); }
+    #scheduleContainer .is-live { box-shadow: var(--surface-shadow), inset 3px 0 0 var(--accent), inset 0 0 0 1px var(--surface-border); }
+    #scheduleContainer .is-live .row-index::before { background: var(--accent); }
+    .row-index-main, .row-index-sub { font-family: var(--font-mono); }
+    .row-index-main { font-size: 0.76rem; letter-spacing: -0.02em; }
+    .row-index-sub { font-size: 0.63rem; }
+    .row-title { font-size: 0.94rem; font-weight: 600; }
+    .row-meta { font-size: 0.79rem; }
+    .notice-panel { border-radius: 22px 22px 22px 6px; }
+    .notice-title { font-family: Georgia, 'Times New Roman', serif; font-weight: 400; font-size: 1.5rem; letter-spacing: -0.035em; }
+    .gpa-value { font-family: var(--font-mono); }
+    .profile-avatar { border-radius: 18px 18px 18px 5px; }
+    .bottom-tab-bar { border-radius: 20px; }
+    .bottom-tab-btn, .bottom-tab-indicator { border-radius: 15px; }
+    .bottom-tab-btn.active { color: var(--accent); }
+    .tag { border-radius: 6px; }
+    @supports not ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
+      #scheduleContainer .list-row { background: var(--paper-2); }
+    }
+    @media (max-width: 360px) {
+      .app-signature { margin-bottom: 20px; }
+      .signature-caption { font-size: 0.6rem; }
+      #scheduleContainer .list-row { gap: 10px; }
+      #scheduleContainer .row-index { min-width: 54px; }
+      .login-title { font-size: 2.5rem; }
+    }
     @media (prefers-reduced-motion: reduce) {
       .aurora-backdrop::before, .aurora-backdrop::after {
         animation: none !important;
@@ -1511,9 +1637,10 @@
       <svg class="appearance-sun" aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><circle cx="12" cy="12" r="4"/><path d="M12 2v2m0 16v2M2 12h2m16 0h2M5 5l1.4 1.4m11.2 11.2L19 19M5 19l1.4-1.4M17.6 6.4 19 5"/></svg>
     </button>
     <div class="login-emblem" aria-hidden="true">
-      <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="m2 9 10-5 10 5-10 5L2 9Z"/><path d="M6 11v5c3 3 9 3 12 0v-5M22 9v6"/></svg>
+      <svg width="32" height="32" viewBox="0 0 32 32" fill="none"><path d="M8 7v13a8 8 0 0 0 16 0V7" stroke="currentColor" stroke-width="3" stroke-linecap="round"/><path d="m19 11 4 4 6-7" stroke="var(--brand-gold)" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/></svg>
     </div>
-    <div class="login-title">Univer KSTU</div>
+    <div class="brand-kicker">Твой учебный ритм</div>
+    <div class="login-title">Univer <span class="brand-campus">KSTU</span></div>
     <div class="login-subtitle">Войдите с логином и паролем от личного кабинета Platonus — подтянутся ваше расписание, оценки и GPA.</div>
 
     <label class="login-field-label" for="loginInput">Логин</label>
@@ -1577,6 +1704,11 @@
 
 <div class="app-wrapper">
   <div class="container">
+    <div class="app-signature">
+      <div class="signature-mark" aria-hidden="true"><svg width="26" height="26" viewBox="0 0 32 32" fill="none"><path d="M8 7v13a8 8 0 0 0 16 0V7" stroke="currentColor" stroke-width="3" stroke-linecap="round"/><path d="m19 11 4 4 6-7" stroke="var(--brand-gold)" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+      <span class="signature-name">univer<span class="signature-caption">Твой учебный ритм</span></span>
+      <span class="signature-campus">KSTU</span>
+    </div>
 
     <div class="app-section" id="sectionSchedule">
       <div class="status-bar">
