@@ -19,9 +19,9 @@
       --accent-tint-strong: rgba(59, 130, 246, 0.16);
       --accent-tint-soft: rgba(59, 130, 246, 0.06);
 
-      --font-display: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Inter', sans-serif;
-      --font-body: -apple-system, BlinkMacSystemFont, 'SF Pro Text', 'Inter', sans-serif;
-      --font-mono: ui-monospace, 'SF Mono', 'JetBrains Mono', monospace;
+
+
+
 
       /* Панель управления Telegram в fullscreen-режиме (кнопка «Закрыть»,
          шеврон, «•••») занимает собственную высоту поверх WebView, которую
@@ -56,7 +56,7 @@
 
     * {
       box-sizing: border-box;
-      font-family: var(--font-body);
+
       -webkit-tap-highlight-color: transparent;
     }
 
@@ -105,20 +105,20 @@
 
     .masthead-eyebrow {
       display: block;
-      font-family: var(--font-body);
-      font-size: 0.78rem;
-      font-weight: 600;
+
+
+
       color: var(--accent);
       margin-bottom: 2px;
     }
 
     .masthead-headline {
       display: block;
-      font-family: var(--font-display);
-      font-weight: 700;
-      font-size: 1.7rem;
-      letter-spacing: -0.02em;
-      line-height: 1.1;
+
+
+
+
+
       color: var(--ink);
       white-space: nowrap;
       overflow: hidden;
@@ -129,9 +129,9 @@
       display: flex;
       align-items: center;
       gap: 6px;
-      font-family: var(--font-body);
-      font-size: 0.8rem;
-      font-weight: 500;
+
+
+
       color: var(--ink-soft);
       margin-top: 6px;
       white-space: nowrap;
@@ -173,9 +173,9 @@
     }
 
     .weather-widget, .theme-btn {
-      font-family: var(--font-body);
-      font-size: 0.75rem;
-      font-weight: 600;
+
+
+
       color: var(--ink);
       background: var(--paper-2);
       border: none;
@@ -198,9 +198,9 @@
       border: none;
       border-radius: 20px;
       padding: 6px 12px;
-      font-family: var(--font-body);
-      font-weight: 600;
-      font-size: 0.75rem;
+
+
+
       cursor: pointer;
       transition: transform 0.15s ease, opacity 0.15s ease;
     }
@@ -236,9 +236,9 @@
     .modal-overlay.active .modal-card { transform: translateY(0) scale(1); opacity: 1; }
 
     .modal-title {
-      font-family: var(--font-display);
-      font-size: 0.95rem;
-      font-weight: 700;
+
+
+
       margin-bottom: 14px;
       color: var(--ink);
       padding-bottom: 12px;
@@ -252,8 +252,8 @@
       border-bottom: 0.5px solid var(--line);
       background: transparent;
       color: var(--ink);
-      font-family: var(--font-body);
-      font-size: 0.95rem;
+
+
       outline: none;
       margin-bottom: 12px;
     }
@@ -268,8 +268,8 @@
     }
     .city-list-item {
       padding: 11px 4px;
-      font-family: var(--font-body);
-      font-size: 0.9rem;
+
+
       color: var(--ink);
       cursor: pointer;
       border-bottom: 0.5px solid var(--line);
@@ -281,15 +281,15 @@
       background: var(--accent);
       color: var(--accent-text);
       padding-left: 10px;
-      font-weight: 600;
+
       border-bottom-color: transparent;
     }
     .city-list-empty {
       padding: 18px 2px;
       text-align: center;
       color: var(--ink-soft);
-      font-family: var(--font-body);
-      font-size: 0.85rem;
+
+
     }
 
     .modal-buttons { display: flex; gap: 10px; }
@@ -298,9 +298,9 @@
       padding: 11px;
       border: none;
       border-radius: 12px;
-      font-family: var(--font-body);
-      font-weight: 600;
-      font-size: 0.85rem;
+
+
+
       cursor: pointer;
       background: var(--paper);
       color: var(--ink);
@@ -322,8 +322,8 @@
       border-radius: 12px;
       padding: 10px 4px;
       cursor: pointer;
-      font-family: var(--font-body);
-      font-size: 0.66rem;
+
+
       text-align: center;
       transition: box-shadow 0.15s ease, transform 0.15s ease;
     }
@@ -333,13 +333,13 @@
     }
     .accent-swatch-check {
       display: block;
-      font-size: 0.8rem;
+
       margin-bottom: 3px;
       opacity: 0;
     }
     .accent-swatch.selected .accent-swatch-check { opacity: 1; }
-    .accent-swatch-label { display: block; line-height: 1.2; font-weight: 600; }
-    .accent-swatch-hex { display: block; font-size: 0.6rem; opacity: 0.75; margin-top: 3px; }
+    .accent-swatch-label { display: block;   }
+    .accent-swatch-hex { display: block;  opacity: 0.75; margin-top: 3px; }
 
     .accent-default-btn {
       width: 100%;
@@ -348,9 +348,9 @@
       padding: 11px;
       margin-bottom: 14px;
       cursor: pointer;
-      font-family: var(--font-body);
-      font-weight: 600;
-      font-size: 0.85rem;
+
+
+
       display: flex;
       align-items: center;
       justify-content: center;
@@ -380,9 +380,9 @@
       border: none;
       background: none;
       color: var(--ink);
-      font-family: var(--font-body);
-      font-weight: 700;
-      font-size: 1.1rem;
+
+
+
       border-radius: 8px;
       cursor: pointer;
       display: flex;
@@ -396,9 +396,9 @@
     .week-step-label {
       flex: 1;
       text-align: center;
-      font-family: var(--font-body);
-      font-weight: 600;
-      font-size: 0.86rem;
+
+
+
       color: var(--ink);
     }
     .week-step-label.is-current { color: var(--accent); }
@@ -432,9 +432,9 @@
       border: none;
       background: none;
       color: var(--ink-soft);
-      font-family: var(--font-body);
-      font-weight: 600;
-      font-size: 0.76rem;
+
+
+
       border-radius: 8px;
       cursor: pointer;
       text-align: center;
@@ -462,9 +462,9 @@
       padding: 8px 4px;
       background: none;
       border-radius: 8px;
-      font-family: var(--font-body);
-      font-weight: 600;
-      font-size: 0.76rem;
+
+
+
       color: var(--accent);
       position: relative;
       z-index: 2;
@@ -506,19 +506,19 @@
     .row-index {
       flex-shrink: 0;
       min-width: 46px;
-      font-family: var(--font-body);
+
       border-left: 2px solid var(--line);
       padding-left: 10px;
     }
     .row-index-main {
       display: block;
-      font-weight: 600;
-      font-size: 0.82rem;
+
+
       color: var(--ink);
     }
     .row-index-sub {
       display: block;
-      font-size: 0.68rem;
+
       color: var(--ink-soft);
       margin-top: 2px;
     }
@@ -534,25 +534,25 @@
       gap: 10px;
     }
     .row-title {
-      font-family: var(--font-display);
-      font-weight: 600;
-      font-size: 0.98rem;
-      line-height: 1.3;
+
+
+
+
       color: var(--ink);
-      letter-spacing: -0.01em;
+
     }
     .live-tag {
       flex-shrink: 0;
       display: flex;
       align-items: center;
       gap: 5px;
-      font-family: var(--font-body);
-      font-size: 0.66rem;
-      font-weight: 700;
+
+
+
       color: var(--accent);
     }
     .row-meta {
-      font-size: 0.83rem;
+
       color: var(--ink-soft);
       margin-top: 4px;
     }
@@ -562,9 +562,9 @@
     .row-tags { margin-top: 8px; display: flex; flex-wrap: wrap; gap: 6px; }
     .tag {
       display: inline-block;
-      font-family: var(--font-body);
-      font-size: 0.66rem;
-      font-weight: 600;
+
+
+
       padding: 3px 8px;
       border-radius: 20px;
     }
@@ -594,39 +594,39 @@
       padding: 22px 18px;
     }
     .notice-eyebrow {
-      font-family: var(--font-body);
-      font-size: 0.76rem;
-      font-weight: 600;
+
+
+
       color: var(--accent);
       margin-bottom: 6px;
       display: block;
     }
     .notice-title {
-      font-family: var(--font-display);
-      font-weight: 700;
-      font-size: 1.2rem;
-      letter-spacing: -0.02em;
+
+
+
+
       color: var(--ink);
       margin-bottom: 16px;
     }
     .notice-divider { height: 0.5px; background: var(--line); margin: 16px 0; }
     .notice-hint {
-      font-family: var(--font-body);
-      font-size: 0.9rem;
+
+
       color: var(--ink);
-      line-height: 1.5;
+
     }
     .notice-hint-label {
       display: block;
-      font-family: var(--font-body);
-      font-size: 0.72rem;
-      font-weight: 600;
+
+
+
       color: var(--ink-soft);
       margin-bottom: 6px;
     }
     .empty-state.compact {
-      font-family: var(--font-body);
-      font-size: 0.85rem;
+
+
       color: var(--ink-soft);
       padding: 10px 0;
     }
@@ -647,18 +647,18 @@
       gap: 10px;
       margin-bottom: 8px;
       flex-wrap: wrap;
-      font-family: var(--font-body);
+
     }
-    .day-off-weather-emoji { font-size: 1.1rem; }
-    .day-off-weather-temp { font-size: 1.4rem; font-weight: 700; color: var(--ink); font-family: var(--font-display); }
-    .day-off-weather-desc { font-size: 0.85rem; color: var(--ink-soft); font-family: var(--font-body); }
+
+    .day-off-weather-temp {   color: var(--ink);  }
+    .day-off-weather-desc {  color: var(--ink-soft);  }
     .day-off-weather-details {
       display: flex;
       flex-wrap: wrap;
       gap: 8px 14px;
-      font-size: 0.78rem;
+
       color: var(--ink-soft);
-      font-family: var(--font-body);
+
     }
 
     .list-card .umkd-subject-row, .list-card .umkd-item {
@@ -668,17 +668,17 @@
       padding: 14px 14px;
       border-bottom: 0.5px solid var(--line);
       cursor: pointer;
-      font-family: var(--font-display);
-      font-weight: 600;
-      font-size: 0.94rem;
+
+
+
       color: var(--ink);
     }
-    .list-card .umkd-item { font-family: var(--font-body); font-weight: 500; font-size: 0.88rem; }
+
     .list-card .umkd-subject-row:last-child, .list-card .umkd-item:last-child { border-bottom: none; }
     .umkd-arrow {
-      font-family: var(--font-body);
+
       color: var(--ink-soft);
-      font-size: 0.9rem;
+
       flex-shrink: 0;
       padding-left: 10px;
     }
@@ -691,9 +691,9 @@
       border: none;
       padding: 8px 0;
       margin-bottom: 12px;
-      font-family: var(--font-body);
-      font-size: 0.9rem;
-      font-weight: 500;
+
+
+
       color: var(--accent);
       cursor: pointer;
       transition: opacity 0.15s ease;
@@ -715,24 +715,24 @@
     .login-overlay.hidden { opacity: 0; pointer-events: none; }
     .login-card { max-width: 380px; margin: 0 auto; width: 100%; }
     .login-title {
-      font-family: var(--font-display);
-      font-weight: 700;
-      font-size: 1.6rem;
-      letter-spacing: -0.02em;
+
+
+
+
       color: var(--ink);
       margin-bottom: 4px;
     }
     .login-subtitle {
-      font-family: var(--font-body);
-      font-size: 0.9rem;
+
+
       color: var(--ink-soft);
       margin-bottom: 24px;
-      line-height: 1.4;
+
     }
     .login-field-label {
-      font-family: var(--font-body);
-      font-size: 0.76rem;
-      font-weight: 600;
+
+
+
       color: var(--ink-soft);
       margin-bottom: 6px;
       display: block;
@@ -744,8 +744,8 @@
       border-radius: 12px;
       background: var(--paper-2);
       color: var(--ink);
-      font-family: var(--font-body);
-      font-size: 0.95rem;
+
+
       outline: none;
       margin-bottom: 14px;
       box-shadow: 0 0 0 1.5px transparent;
@@ -786,9 +786,9 @@
       border-radius: 12px;
       background: var(--accent);
       color: var(--accent-text);
-      font-family: var(--font-body);
-      font-weight: 700;
-      font-size: 0.95rem;
+
+
+
       cursor: pointer;
       margin-top: 6px;
       transition: transform 0.15s ease, opacity 0.15s ease;
@@ -796,20 +796,20 @@
     .login-submit:active { transform: scale(0.98); }
     .login-submit:disabled { opacity: 0.6; }
     .login-error {
-      font-family: var(--font-body);
-      font-size: 0.85rem;
+
+
       color: #DC2626;
       margin-top: 12px;
       display: none;
-      line-height: 1.4;
+
     }
     .login-error.visible { display: block; }
     .login-hint {
-      font-family: var(--font-body);
-      font-size: 0.76rem;
+
+
       color: var(--ink-soft);
       margin-top: 18px;
-      line-height: 1.4;
+
       text-align: center;
     }
 
@@ -821,8 +821,8 @@
     }
     .gpa-row { display: flex; justify-content: space-between; align-items: center; padding: 8px 0; }
     .gpa-row:not(:last-child) { border-bottom: 0.5px solid var(--line); }
-    .gpa-label { font-family: var(--font-body); font-size: 0.86rem; color: var(--ink-soft); }
-    .gpa-value { font-family: var(--font-display); font-weight: 700; font-size: 1rem; color: var(--ink); }
+    .gpa-label {   color: var(--ink-soft); }
+    .gpa-value {    color: var(--ink); }
     .gpa-value.accent { color: var(--accent); }
 
     .section-inner {
@@ -839,16 +839,16 @@
     }
     .grade-card:not(:last-child) { margin-bottom: 10px; }
     .grade-title {
-      font-family: var(--font-display);
-      font-weight: 600;
-      font-size: 0.92rem;
-      line-height: 1.3;
+
+
+
+
       color: var(--ink);
       margin-bottom: 2px;
-      letter-spacing: -0.01em;
+
     }
     .grade-tutor {
-      font-size: 0.78rem;
+
       color: var(--ink-soft);
       margin-bottom: 14px;
     }
@@ -872,9 +872,9 @@
       display: flex;
       align-items: center;
       justify-content: center;
-      font-family: var(--font-display);
-      font-weight: 700;
-      font-size: 0.7rem;
+
+
+
       color: var(--ink);
     }
     .grade-metrics-grid {
@@ -886,14 +886,14 @@
     }
     .grade-metric { text-align: center; }
     .grade-metric-value {
-      font-family: var(--font-display);
-      font-weight: 700;
-      font-size: 0.86rem;
+
+
+
       color: var(--ink);
       display: block;
     }
     .grade-metric-label {
-      font-size: 0.6rem;
+
       color: var(--ink-soft);
       display: block;
       margin-top: 2px;
@@ -929,7 +929,7 @@
       border-radius: 50%;
       background: var(--paper-2);
       color: var(--ink);
-      font-size: 1.1rem;
+
       cursor: pointer;
       display: flex;
       align-items: center;
@@ -960,8 +960,8 @@
     .umkd-file-status {
       color: #FFFFFF;
       text-align: center;
-      font-family: var(--font-body);
-      font-size: 0.9rem;
+
+
       padding: 40px 20px;
     }
 
@@ -1003,10 +1003,10 @@
       padding: 4px 2px;
       cursor: pointer;
       color: var(--ink-soft);
-      font-family: var(--font-body);
-      font-size: 0.6rem;
-      font-weight: 600;
-      letter-spacing: -0.02em;
+
+
+
+
       transition: color 0.15s ease, transform 0.15s ease;
     }
     .bottom-tab-btn:active { transform: scale(0.93); }
@@ -1049,25 +1049,25 @@
       background: var(--accent);
       color: var(--accent-text);
       display: flex; align-items: center; justify-content: center;
-      font-family: var(--font-display);
-      font-weight: 700;
-      font-size: 1.1rem;
+
+
+
       flex-shrink: 0;
     }
     .profile-header-info { min-width: 0; }
     .profile-name {
-      font-family: var(--font-display);
-      font-weight: 700;
-      font-size: 1.05rem;
+
+
+
       color: var(--ink);
-      letter-spacing: -0.01em;
+
       white-space: nowrap;
       overflow: hidden;
       text-overflow: ellipsis;
     }
     .profile-id {
-      font-family: var(--font-mono);
-      font-size: 0.78rem;
+
+
       color: var(--ink-soft);
       margin-top: 2px;
     }
@@ -1079,9 +1079,9 @@
       border-radius: 12px;
       background: var(--paper-2);
       color: #DC2626;
-      font-family: var(--font-body);
-      font-weight: 600;
-      font-size: 0.9rem;
+
+
+
       cursor: pointer;
       transition: transform 0.15s ease, opacity 0.15s ease;
     }
@@ -1198,17 +1198,17 @@
       border-radius: 28px;
       margin-block: auto;
     }
-    .login-title { font-size: 1.8rem; letter-spacing: -0.04em; margin-bottom: 10px; }
-    .login-subtitle { line-height: 1.55; }
+    .login-title {   margin-bottom: 10px; }
+
     .login-input {
       background: var(--input-bg);
       box-shadow: inset 0 0 0 1px var(--line);
-      font-size: 16px;
+
     }
     .login-input::placeholder { color: var(--ink-soft); opacity: 0.85; }
     .login-input:focus { box-shadow: inset 0 0 0 1.5px var(--accent), 0 0 0 3px var(--accent-tint-soft); }
     .login-submit { box-shadow: 0 6px 18px rgba(var(--accent-rgb), 0.2); }
-    .login-hint { font-size: 0.73rem; line-height: 1.55; }
+
     .appearance-toggle {
       display: inline-flex;
       align-items: center;
@@ -1257,7 +1257,7 @@
       --card-padding: 18px;
       --space-section: 16px;
     }
-    button, input { line-height: 1.35; }
+
     button, [role="button"] { touch-action: manipulation; }
     .app-wrapper {
       padding-inline: var(--layout-gutter);
@@ -1266,15 +1266,15 @@
     .container { max-width: var(--layout-width); }
     .status-bar { gap: 16px; margin-bottom: 20px; padding-bottom: 0; }
     .status-info-left { padding-block: 4px; }
-    .masthead-eyebrow { font-size: 0.75rem; line-height: 1.4; margin-bottom: 6px; }
+    .masthead-eyebrow {   margin-bottom: 6px; }
     .masthead-headline {
-      font-size: clamp(1.35rem, 5.5vw, 1.7rem);
-      line-height: 1.2;
+
+
       white-space: normal;
       overflow-wrap: anywhere;
       text-wrap: balance;
     }
-    .live-lesson-badge { white-space: normal; line-height: 1.4; gap: 6px; }
+    .live-lesson-badge { white-space: normal;  gap: 6px; }
     .live-dot { flex-shrink: 0; }
     .header-right-block { width: auto; max-width: 190px; padding-left: 0; gap: 8px; }
     .header-right-top { display: flex; align-items: center; gap: 8px; }
@@ -1294,15 +1294,15 @@
       min-height: 40px;
       padding: 8px 10px;
       justify-content: center;
-      font-size: 0.7rem;
+
       border-radius: 12px;
     }
     .weather-widget {
       max-width: 100%;
       min-height: 32px;
       padding: 6px 10px;
-      font-size: 0.68rem;
-      line-height: 1.4;
+
+
       white-space: normal;
       overflow-wrap: anywhere;
       text-align: right;
@@ -1312,48 +1312,48 @@
     }
     .week-stepper { margin-bottom: var(--space-section); border-radius: var(--control-radius); }
     .week-step-btn { width: 40px; height: 40px; border-radius: 11px; }
-    .week-step-label { min-width: 0; padding-inline: 4px; line-height: 1.4; font-variant-numeric: tabular-nums; }
+    .week-step-label { min-width: 0; padding-inline: 4px;   }
     .days-grid { margin: 0 0 20px; border-radius: var(--control-radius); }
     .day-btn { min-width: 0; min-height: 40px; padding: 10px 2px; border-radius: 11px; }
     .day-indicator { border-radius: 11px; }
     .list-card, .notice-panel, .gpa-card, .grade-card { border-radius: var(--card-radius); }
     .list-row { gap: 14px; padding: var(--card-padding); align-items: flex-start; }
-    .row-index { min-width: 52px; padding-left: 10px; line-height: 1.45; font-variant-numeric: tabular-nums; }
+    .row-index { min-width: 52px; padding-left: 10px;   }
     .row-index-main, .row-index-sub { white-space: nowrap; }
-    .row-title, .grade-title { overflow-wrap: anywhere; line-height: 1.45; }
+    .row-title, .grade-title { overflow-wrap: anywhere;  }
     .row-top { align-items: flex-start; flex-wrap: wrap; gap: 6px 10px; }
     .row-title { flex: 1 1 140px; min-width: 0; }
-    .live-tag { line-height: 1.45; padding-block: 3px; }
-    .row-meta, .grade-tutor { line-height: 1.5; overflow-wrap: anywhere; }
+    .live-tag {  padding-block: 3px; }
+    .row-meta, .grade-tutor {  overflow-wrap: anywhere; }
     .row-tags { gap: 6px; }
-    .tag { line-height: 1.4; }
+
     .notice-panel { padding: 22px var(--card-padding); }
-    .notice-title { line-height: 1.35; overflow-wrap: anywhere; }
+    .notice-title {  overflow-wrap: anywhere; }
     .notice-hint { overflow-wrap: anywhere; }
     .gpa-card, .grade-card { padding: var(--card-padding); }
     .gpa-row { gap: 16px; padding-block: 12px; align-items: baseline; }
-    .gpa-label { min-width: 0; line-height: 1.45; }
-    .gpa-value { flex-shrink: 0; font-variant-numeric: tabular-nums; }
+    .gpa-label { min-width: 0;  }
+    .gpa-value { flex-shrink: 0;  }
     .grade-tutor { margin-bottom: 16px; }
     .grade-body { gap: 16px; }
     .grade-metrics-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px 8px; }
     .grade-metric { min-width: 0; }
-    .grade-metric-value { font-variant-numeric: tabular-nums; line-height: 1.4; }
-    .grade-metric-label { white-space: normal; overflow-wrap: anywhere; line-height: 1.4; }
+
+    .grade-metric-label { white-space: normal; overflow-wrap: anywhere;  }
     .list-card .umkd-subject-row, .list-card .umkd-item {
       padding: var(--card-padding);
       gap: 12px;
-      line-height: 1.45;
+
       min-height: 56px;
     }
     .umkd-subject-row > span:first-child, .umkd-item > span:first-child { min-width: 0; overflow-wrap: anywhere; }
     .umkd-arrow { padding-left: 0; }
-    .list-card > .empty-state.compact { padding: var(--card-padding); line-height: 1.5; }
-    .back-link { min-height: 40px; text-align: left; line-height: 1.45; }
+    .list-card > .empty-state.compact { padding: var(--card-padding);  }
+    .back-link { min-height: 40px; text-align: left;  }
     .profile-header { gap: 14px; margin-bottom: 20px; }
     .profile-header-info { flex: 1; }
-    .profile-name { white-space: normal; overflow-wrap: anywhere; line-height: 1.4; }
-    .profile-id { line-height: 1.5; overflow-wrap: anywhere; }
+    .profile-name { white-space: normal; overflow-wrap: anywhere;  }
+    .profile-id {  overflow-wrap: anywhere; }
     .profile-logout-btn { min-height: 46px; border-radius: var(--control-radius); }
     .bottom-tab-bar {
       left: var(--layout-gutter);
@@ -1363,7 +1363,7 @@
       border-radius: 28px;
       padding: 5px;
     }
-    .bottom-tab-btn { flex: 1 1 0; min-height: 54px; padding: 7px 0; gap: 4px; border-radius: 23px; line-height: 1.3; }
+    .bottom-tab-btn { flex: 1 1 0; min-height: 54px; padding: 7px 0; gap: 4px; border-radius: 23px;  }
     .bottom-tab-btn > span { max-width: 100%; overflow: hidden; text-overflow: ellipsis; }
     .bottom-tab-icon-wrap { width: 24px; height: 24px; }
     .bottom-tab-indicator { border-radius: 23px; }
@@ -1372,10 +1372,10 @@
       overflow-y: auto;
     }
     .modal-card { width: 100%; max-width: 360px; max-height: 100%; overflow-y: auto; padding: 24px; flex-shrink: 0; }
-    .modal-title { font-size: 1rem; line-height: 1.4; }
-    .modal-select { font-size: 16px; padding: 12px; border: 1px solid var(--line); border-radius: var(--control-radius); background: var(--input-bg); }
+
+    .modal-select {  padding: 12px; border: 1px solid var(--line); border-radius: var(--control-radius); background: var(--input-bg); }
     .city-list { border-top: none; }
-    .city-list-item { min-height: 44px; padding: 12px 10px; line-height: 1.4; }
+    .city-list-item { min-height: 44px; padding: 12px 10px;  }
     .modal-btn, .accent-default-btn { min-height: 44px; border-radius: var(--control-radius); }
     .accent-swatch-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; }
     .accent-swatch { min-width: 0; min-height: 76px; padding: 10px 6px; }
@@ -1383,7 +1383,7 @@
     .login-card { padding: 28px; }
     .login-card > .appearance-toggle { top: 28px; right: 28px; width: 40px; height: 40px; border-radius: var(--control-radius); }
     .login-input, .login-submit { min-height: 48px; border-radius: var(--control-radius); }
-    .login-field-label { line-height: 1.4; }
+
     .login-error { overflow-wrap: anywhere; }
     .umkd-file-close, .umkd-file-action { width: 40px; height: 40px; }
     @media (max-width: 360px) {
@@ -1467,17 +1467,17 @@
         radial-gradient(ellipse at 58% 10%, var(--aurora-pearl), transparent 52%),
         radial-gradient(ellipse at 35% 95%, var(--aurora-blue), transparent 55%);
     }
-    .login-title, .masthead-headline, .notice-title { font-family: var(--font-display); font-weight: 700; letter-spacing: -0.045em; }
-    .login-title { font-size: 2.35rem; line-height: 1.12; margin-bottom: 14px; }
-    .brand-campus { display: inline-block; vertical-align: middle; font-family: var(--font-mono); font-size: 0.6rem; font-weight: 500; letter-spacing: 0.07em; color: var(--ink-soft); border: 1px solid var(--line); border-radius: 8px; padding: 5px 7px; }
+
+    .login-title {   margin-bottom: 14px; }
+    .brand-campus { display: inline-block; vertical-align: middle;     color: var(--ink-soft); border: 1px solid var(--line); border-radius: 8px; padding: 5px 7px; }
     .login-card { border-radius: 28px; background-image: linear-gradient(135deg, rgba(255, 255, 255, 0.1), transparent 45%); }
-    .login-subtitle { font-size: 0.87rem; }
+
     .login-submit { background: linear-gradient(110deg, var(--flame-start), var(--flame-end)); color: var(--flame-ink); box-shadow: 0 6px 22px rgba(255, 154, 158, 0.18); }
-    .masthead-headline { font-size: clamp(1.5rem, 6vw, 1.9rem); line-height: 1.18; }
-    .masthead-eyebrow, .notice-eyebrow { letter-spacing: 0.06em; text-transform: uppercase; font-size: 0.68rem; font-weight: 600; }
-    .section-inner > .masthead-eyebrow { font-size: 0.8rem; }
+
+
+
     .status-bar { margin-bottom: 24px; }
-    .day-btn { font-size: 0.73rem; letter-spacing: 0.01em; }
+
     .day-indicator { background: linear-gradient(110deg, var(--flame-start), var(--flame-end)); box-shadow: 0 3px 12px rgba(255, 154, 158, 0.18); }
     .day-btn.active { color: var(--flame-ink) !important; }
     .day-btn.active.is-today::after { background-color: var(--flame-ink); }
@@ -1497,13 +1497,13 @@
     #scheduleContainer .row-index { position: relative; border-left: 2px solid var(--line); min-width: 58px; padding-left: 12px; }
     #scheduleContainer .is-live { box-shadow: var(--surface-shadow), inset 3px 0 0 var(--accent), inset 0 0 0 1px var(--surface-border); }
     #scheduleContainer .is-live .row-index { border-left-color: var(--accent); }
-    .row-index-main, .row-index-sub { font-family: var(--font-mono); }
-    .row-index-main { font-size: 0.76rem; letter-spacing: -0.02em; }
-    .row-index-sub { font-size: 0.63rem; }
-    .row-title { font-size: 0.94rem; font-weight: 600; }
-    .row-meta { font-size: 0.79rem; }
-    .notice-title { font-size: 1.3rem; line-height: 1.35; }
-    .gpa-value { font-family: var(--font-mono); }
+
+
+
+
+
+
+
     .profile-avatar { background: linear-gradient(110deg, var(--flame-start), var(--flame-end)); color: var(--flame-ink); border-radius: 18px; }
     .bottom-tab-bar { border-radius: 24px; }
     .bottom-tab-btn, .bottom-tab-indicator { border-radius: 18px; }
@@ -1515,7 +1515,7 @@
     @media (max-width: 360px) {
           #scheduleContainer .list-row { gap: 10px; }
       #scheduleContainer .row-index { min-width: 54px; }
-      .login-title { font-size: 2.15rem; }
+
     }
 
     /* Appearance tokens for the procedural background. */

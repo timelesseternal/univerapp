@@ -1,6 +1,6 @@
 // Public app shell only; student data and video ranges bypass this cache.
-const CACHE_NAME = 'univer-shell-v5';
-const SHELL_PATHS = new Set(['/', '/index.html', '/assets/css/app.css', '/assets/js/appearance.js', '/assets/js/app.js', '/assets/js/background.js']);
+const CACHE_NAME = 'univer-shell-v6';
+const SHELL_PATHS = new Set(['/', '/index.html', '/assets/css/app.css', '/assets/css/typography.css', '/assets/js/appearance.js', '/assets/js/app.js', '/assets/js/background.js']);
 
 self.addEventListener('install', () => self.skipWaiting());
 self.addEventListener('activate', event => {
