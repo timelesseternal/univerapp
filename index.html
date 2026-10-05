@@ -2845,7 +2845,14 @@
       return;
     }
 
-    const todayLessons = trueCurrentSchedule[realTodayName] || [];
+    // Когда открыта текущая неделя, плашка считается по ТЕМ ЖЕ данным, что и список
+    // пар ниже (иначе они могут разойтись). На другой неделе берём снимок текущей.
+    const liveSrc = isViewingTrueCurrentWeek()
+      ? { schedule: SCHEDULE, times: LESSON_TIMES }
+      : { schedule: trueCurrentSchedule, times: trueCurrentLessonTimes };
+    const timeOf = (para) => liveSrc.times[para] || LESSON_TIMES[para];
+
+    const todayLessons = liveSrc.schedule[realTodayName] || [];
     if (todayLessons.length === 0) {
       badgeEl.innerHTML = `<span class="live-dot"></span><span>сегодня без пар</span>`;
       badgeEl.classList.remove('pulse-live');
@@ -2859,7 +2866,7 @@
     let nextParaInfo = null;
 
     for (const item of todayLessons) {
-      const t = trueCurrentLessonTimes[item.пара];
+      const t = timeOf(item.пара);
       if (!t) continue;
       const startMins = timeToMins(t.start);
       const endMins = timeToMins(t.end);
@@ -2873,7 +2880,7 @@
     }
 
     if (currentParaNum) {
-      const t = trueCurrentLessonTimes[currentParaNum];
+      const t = timeOf(currentParaNum);
       const endMins = timeToMins(t.end);
       const leftMins = endMins - currentMins;
       badgeEl.innerHTML = `<span class="live-dot"></span><span>идёт пара №${currentParaNum} — ещё ${leftMins} мин</span>`;
