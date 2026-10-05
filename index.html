@@ -25,6 +25,10 @@
       --ink-soft: #8A8A8E;
       --line: #E5E5EA;
       --overlay: rgba(0, 0, 0, 0.4);
+      --glass-bg: rgba(255, 255, 255, 0.72);
+      --glass-border: rgba(0, 0, 0, 0.06);
+      --glass-active: rgba(0, 0, 0, 0.07);
+      --glass-shadow: 0 8px 30px rgba(0, 0, 0, 0.14);
 
       --accent: #3B82F6;
       --accent-text: #FFFFFF;
@@ -55,6 +59,10 @@
       --ink-soft: #8E8E93;
       --line: #38383A;
       --overlay: rgba(0, 0, 0, 0.6);
+      --glass-bg: rgba(44, 44, 46, 0.62);
+      --glass-border: rgba(255, 255, 255, 0.12);
+      --glass-active: rgba(255, 255, 255, 0.14);
+      --glass-shadow: 0 8px 30px rgba(0, 0, 0, 0.5);
 
       --accent: #60A5FA;
       --accent-text: #0F172A;
@@ -89,7 +97,7 @@
       /* env(safe-area-inset-top) и --tg-safe-area-top описывают одно и то же
          (вырез/статус-бар), поэтому берём большее из них, а не сумму. */
       padding-top: calc(max(env(safe-area-inset-top, 0px), var(--tg-safe-area-top)) + var(--tg-content-safe-area-top) + 14px);
-      padding-bottom: calc(env(safe-area-inset-bottom, 20px) + 78px);
+      padding-bottom: calc(env(safe-area-inset-bottom, 0px) + 104px);
       padding-left: 16px;
       padding-right: 16px;
       box-sizing: border-box;
@@ -979,12 +987,30 @@
 
     .bottom-tab-bar {
       position: fixed;
-      left: 0; right: 0; bottom: 0;
+      left: 12px; right: 12px;
+      bottom: calc(max(env(safe-area-inset-bottom, 0px) - 10px, 0px) + 10px);
       display: flex;
-      background: var(--paper-2);
-      border-top: 0.5px solid var(--line);
-      padding: 8px 6px calc(env(safe-area-inset-bottom, 0px) + 6px);
+      background: var(--glass-bg);
+      -webkit-backdrop-filter: blur(24px) saturate(180%);
+      backdrop-filter: blur(24px) saturate(180%);
+      border: 0.5px solid var(--glass-border);
+      border-radius: 34px;
+      box-shadow: var(--glass-shadow);
+      padding: 6px;
       z-index: 500;
+    }
+    .bottom-tab-btn { position: relative; z-index: 2; padding: 6px 2px; border-radius: 26px; }
+    /* Плавающая «таблетка» под активной вкладкой */
+    .bottom-tab-indicator {
+      position: absolute;
+      top: 0; left: 0;
+      width: 0; height: 0;
+      opacity: 0;
+      background: var(--glass-active);
+      border-radius: 26px;
+      z-index: 1;
+      pointer-events: none;
+      transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1), width 0.3s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.15s ease;
     }
     .bottom-tab-btn {
       flex: 1;
@@ -1202,6 +1228,7 @@
 </div>
 
 <nav class="bottom-tab-bar" id="bottomTabBar">
+  <div class="bottom-tab-indicator" id="tabIndicator"></div>
   <button class="bottom-tab-btn active" id="section-schedule" onclick="switchSection('schedule')">
     <div class="bottom-tab-icon-wrap">
       <svg class="bottom-tab-icon icon-outline" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4.5" width="18" height="17" rx="4.5"/><path d="M8 2.5v4M16 2.5v4M3 10.5h18"/></svg>
@@ -2507,8 +2534,27 @@
     });
   }
 
+  function updateTabIndicator() {
+    const active = document.querySelector('.bottom-tab-btn.active');
+    const ind = document.getElementById('tabIndicator');
+    if (!active || !ind) return;
+    ind.style.width = active.offsetWidth + 'px';
+    ind.style.height = active.offsetHeight + 'px';
+    ind.style.transform = `translate(${active.offsetLeft}px, ${active.offsetTop}px)`;
+    ind.style.opacity = '1';
+  }
+
+  function initTabIndicatorNoAnim() {
+    const ind = document.getElementById('tabIndicator');
+    if (!ind) return;
+    ind.style.transition = 'none';
+    updateTabIndicator();
+    requestAnimationFrame(() => requestAnimationFrame(() => { ind.style.transition = ''; }));
+  }
+
   window.addEventListener('resize', () => {
     updateDayIndicator();
+    updateTabIndicator();
   });
 
   let SCHEDULE = {};
@@ -2912,6 +2958,7 @@
     document.querySelectorAll('.bottom-tab-btn').forEach(btn => btn.classList.remove('active'));
     const activeBtn = document.getElementById(`section-${section}`);
     activeBtn.classList.add('active');
+    updateTabIndicator();
 
     // Небольшой "bounce" залитой иконки при активации вкладки (как в TikTok).
     const filledIcon = activeBtn.querySelector('.icon-filled');
@@ -3402,10 +3449,12 @@
     selectDay(selectedDay, null, true);
     loadWeather();
     initIndicatorsNoAnim();
+    initTabIndicatorNoAnim();
 
     if (document.fonts && document.fonts.ready) {
       document.fonts.ready.then(() => {
         updateDayIndicator();
+        updateTabIndicator();
       });
     }
 
