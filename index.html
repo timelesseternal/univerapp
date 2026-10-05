@@ -1350,8 +1350,8 @@
     }
     .live-lesson-badge { white-space: normal; line-height: 1.4; gap: 6px; }
     .live-dot { flex-shrink: 0; }
-    .header-right-block { width: 88px; padding-left: 0; gap: 8px; }
-    .header-right-top { display: grid; grid-template-columns: repeat(2, 40px); gap: 8px; }
+    .header-right-block { width: auto; max-width: 190px; padding-left: 0; gap: 8px; }
+    .header-right-top { display: flex; align-items: center; gap: 8px; }
     .header-right-top .appearance-toggle, .theme-btn {
       width: 40px;
       height: 40px;
@@ -1363,25 +1363,26 @@
     .theme-btn { display: flex; }
     .theme-btn svg { flex-shrink: 0; }
     .today-btn {
-      order: 3;
-      grid-column: 1 / -1;
-      width: 100%;
-      min-height: 34px;
-      padding: 6px;
+      order: 0;
+      width: auto;
+      min-height: 40px;
+      padding: 8px 10px;
       justify-content: center;
       font-size: 0.7rem;
       border-radius: 12px;
     }
     .weather-widget {
       max-width: 100%;
-      min-height: 28px;
-      padding: 5px 8px;
+      min-height: 32px;
+      padding: 6px 10px;
       font-size: 0.68rem;
       line-height: 1.4;
       white-space: normal;
       overflow-wrap: anywhere;
       text-align: right;
-      background: transparent;
+      background: var(--surface-bg);
+      border: 1px solid var(--glass-border);
+      border-radius: 12px;
     }
     .week-stepper { margin-bottom: var(--space-section); border-radius: var(--control-radius); }
     .week-step-btn { width: 40px; height: 40px; border-radius: 11px; }
