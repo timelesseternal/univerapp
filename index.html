@@ -1401,6 +1401,12 @@
   // всё ещё смотрит именно эту неделю.
   const weekScheduleCache = {}; // in-memory: weekKey -> { schedule, lessonTimes, weekInfo }
 
+  function normWeekInfo(w) {
+    if (!w) return w;
+    const n = (v) => { const x = Number(v); return Number.isFinite(x) ? x : v; };
+    return { studyYear: n(w.studyYear), term: n(w.term), week: n(w.week) };
+  }
+
   function weekCacheKey(studyYear, term, week) {
     const sid = (platonusStudent && platonusStudent.studentID) || 'anon';
     return `${sid}-${studyYear}-${term}-${week}`;
@@ -1410,6 +1416,23 @@
     if (!entry || !entry.weekInfo) return;
     const key = weekCacheKey(entry.weekInfo.studyYear, entry.weekInfo.term, entry.weekInfo.week);
     weekScheduleCache[key] = entry;
+
+    // Если это «настоящая текущая» неделя, держим её снимок актуальным.
+    // Иначе список пар показывал одно, а плашка «идёт пара / без пар» — другое.
+    const ew = normWeekInfo(entry.weekInfo);
+    if (trueCurrentWeekInfo
+      && ew.studyYear === trueCurrentWeekInfo.studyYear
+      && ew.term === trueCurrentWeekInfo.term
+      && ew.week === trueCurrentWeekInfo.week) {
+      trueCurrentSchedule = entry.schedule;
+      trueCurrentLessonTimes = entry.lessonTimes;
+      updateStatusBarAndLive();
+    }
+
+    // Совсем пустую неделю на диск не пишем — чтобы случайный пустой ответ не залип.
+    const hasLessons = Object.values(entry.schedule || {}).some(d => Array.isArray(d) && d.length > 0);
+    if (!hasLessons) return;
+
     csSet(`platonus_week_${key}`, JSON.stringify(entry)).catch(() => {
       // не критично — просто не сохранится между визитами, в памяти всё равно есть
     });
@@ -1428,7 +1451,7 @@
   function applyWeekCacheEntry(entry) {
     SCHEDULE = entry.schedule;
     LESSON_TIMES = entry.lessonTimes;
-    browsedWeekInfo = entry.weekInfo;
+    browsedWeekInfo = normWeekInfo(entry.weekInfo);
     liveScheduleWeekInfo = {
       selectedTerm: entry.weekInfo.term,
       selectedStudyYear: entry.weekInfo.studyYear,
@@ -1562,6 +1585,8 @@
       d.setDate(d.getDate() - ((d.getDay() + 6) % 7));
       return d.getTime();
     })();
+    meta.browsedWeekInfo = normWeekInfo(meta.browsedWeekInfo);
+    meta.trueCurrentWeekInfo = normWeekInfo(meta.trueCurrentWeekInfo);
     if (!meta.cachedAt || meta.cachedAt < weekStartMs) {
       meta.browsedWeekInfo = null;
       meta.trueCurrentWeekInfo = null;
@@ -2052,14 +2077,29 @@
       // 2) Расписание — показываем сразу, не дожидаясь оценок и УМКД
       try {
         const schedule = await schedPromise;
-        const entry = buildScheduleEntryFromPlatonus(schedule, false);
+        let entry = buildScheduleEntryFromPlatonus(schedule, false);
+
+        // Без явной недели Platonus может вернуть расписание другой недели
+        // (в selectedWeek бывает заглушка), хотя «текущей» назвал шестую.
+        // Если данные не подтверждают друг друга, перезапрашиваем явно.
+        const w = normWeekInfo(entry.weekInfo);
+        const trusted = Number(schedule.selectedWeek) === w.week
+          && Number(schedule.selectedTerm) === w.term
+          && Number(schedule.selectedStudyYear) === w.studyYear;
+        if (!trusted) {
+          const explicit = await platonusFetch(
+            `/api/schedule?studentID=${platonusStudent.studentID}&year=${w.studyYear}&term=${w.term}&week=${w.week}`
+          );
+          entry = buildScheduleEntryFromPlatonus(explicit, true, w);
+        }
+
+        trueCurrentWeekInfo = { ...normWeekInfo(entry.weekInfo) };
         cacheWeekEntry(entry);
 
         // Это и есть «настоящая текущая» неделя (Platonus сам её выбрал).
         // Запоминаем отдельным снимком, он не затрётся при листании стрелками.
         trueCurrentSchedule = entry.schedule;
         trueCurrentLessonTimes = entry.lessonTimes;
-        trueCurrentWeekInfo = { ...entry.weekInfo };
 
         if (!userNavigatedWeek) {
           applyWeekCacheEntry(entry);
