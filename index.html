@@ -38,7 +38,7 @@
         if (dark) root.setAttribute('data-theme', 'dark');
         else root.removeAttribute('data-theme');
         root.style.colorScheme = mode;
-        const background = dark ? '#0b1115' : '#eff2f3';
+        const background = dark ? '#070809' : '#f0f2f7';
         const themeMeta = document.querySelector('meta[name="theme-color"]');
         if (themeMeta) themeMeta.setAttribute('content', background);
         document.querySelectorAll('.appearance-toggle').forEach(button => {
@@ -1591,8 +1591,7 @@
       .login-title { font-size: 2.15rem; }
     }
 
-    :root { --background-texture: url("./background.png"); }
-    /* Keep background.png beside this HTML file. */
+    /* Appearance tokens for the procedural background. */
     :root {
       --background-tint-rgb: 88, 119, 129;
       --selected-accent: var(--accent-day, #415d67);
@@ -1651,13 +1650,12 @@
     }
     .aurora-backdrop::before {
       inset: -4%;
-      background-image: var(--background-texture);
       background-position: center;
       background-size: cover;
       background-repeat: no-repeat;
       filter: grayscale(1) brightness(var(--texture-brightness));
       opacity: var(--texture-opacity);
-      animation: textureDrift 38s ease-in-out infinite alternate;
+      animation: none;
     }
     .aurora-backdrop::after {
       inset: 0;
@@ -1667,10 +1665,18 @@
       will-change: auto;
     }
     .aurora-grain { display: none; }
-    @keyframes textureDrift {
-      from { transform: translate3d(-1%, -1%, 0) scale(1.01); }
-      to { transform: translate3d(1%, 1%, 0) scale(1.035); }
+    .texture-canvas {
+      position: absolute;
+      inset: 0;
+      width: 100%;
+      height: 100%;
+      pointer-events: none;
+      filter: brightness(var(--texture-brightness));
+      opacity: var(--texture-opacity);
+      display: none;
     }
+    .aurora-backdrop.webgl-ready .texture-canvas { display: block; }
+    .aurora-backdrop.webgl-ready::before { opacity: 0; }
     .login-title { padding-right: 50px; }
     .brand-campus { display: block; width: fit-content; margin-top: 10px; }
     .login-card, #scheduleContainer .list-row {
@@ -1680,6 +1686,41 @@
     @supports not ((mix-blend-mode: color)) {
       .aurora-backdrop::after { opacity: 0.3; }
     }
+
+    /* Procedural gradient inspired by the motion reference. */
+    :root {
+      --background-tint-rgb: 105, 77, 202;
+      --selected-accent: var(--accent-day, #674391);
+      --paper: #f0f2f7;
+      --aurora-base: #f0f2f7;
+      --flame-start: #b19bdc;
+      --flame-end: #dacded;
+      --flame-ink: #332345;
+    }
+    [data-theme="dark"] {
+      --selected-accent: var(--accent-night, #c5b4ed);
+      --paper: #070809;
+      --aurora-base: #070809;
+    }
+    .aurora-backdrop::before {
+      inset: 8% max(11%, calc(50% - 230px));
+      border-radius: 999px;
+      background-image:
+        radial-gradient(ellipse at 75% 75%, rgba(230, 229, 244, 0.24), transparent 65%),
+        linear-gradient(145deg, rgba(var(--background-tint-rgb), 0.05), rgba(var(--background-tint-rgb), 0.58));
+      background-position: center;
+      background-size: auto;
+      filter: none;
+      opacity: 1;
+      animation: none;
+    }
+    .aurora-backdrop::after {
+      background: radial-gradient(ellipse at center, rgba(var(--background-tint-rgb), 0.05), transparent 72%);
+      mix-blend-mode: normal;
+      opacity: 1;
+    }
+    .texture-canvas { filter: none; opacity: 1; }
+    .aurora-backdrop.webgl-ready::after { opacity: 0; }
 
     @media (prefers-reduced-motion: reduce) {
       .aurora-backdrop::before, .aurora-backdrop::after {
@@ -4105,6 +4146,7 @@
     }, 1000);
   });
 </script>
+<script src="./background.js"></script>
 </body>
 </html>
 
