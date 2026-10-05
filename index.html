@@ -1722,6 +1722,32 @@
     .texture-canvas { filter: none; opacity: 1; }
     .aurora-backdrop.webgl-ready::after { opacity: 0; }
 
+    /* The video fills the viewport; the foreground keeps its own contrast. */
+    :root { --video-brightness: 1.15; --video-opacity: 0.48; }
+    [data-theme="dark"] { --video-brightness: 0.7; --video-opacity: 1; }
+    .video-background {
+      position: absolute;
+      inset: 0;
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      object-position: center;
+      display: none;
+      pointer-events: none;
+      filter: grayscale(1) brightness(var(--video-brightness));
+      opacity: var(--video-opacity);
+    }
+    .aurora-backdrop.video-ready .video-background { display: block; }
+    .aurora-backdrop.video-ready::before { opacity: 0; }
+    .aurora-backdrop.video-ready::after {
+      background: linear-gradient(145deg, rgba(var(--background-tint-rgb), 0.74), rgba(var(--background-tint-rgb), 0.55));
+      mix-blend-mode: color;
+      opacity: 1;
+    }
+    @supports not (mix-blend-mode: color) {
+      .aurora-backdrop.video-ready::after { opacity: 0.28; }
+    }
+
     @media (prefers-reduced-motion: reduce) {
       .aurora-backdrop::before, .aurora-backdrop::after {
         animation: none !important;
