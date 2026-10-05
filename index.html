@@ -1107,7 +1107,160 @@
     }
     .profile-logout-btn:active { transform: scale(0.98); opacity: 0.8; }
 
+    /* Aurora: static gradients are rasterized once; only transforms animate. */
+    :root {
+      --paper: #eef1fa;
+      --ink-soft: #596579;
+      --line: rgba(65, 82, 126, 0.16);
+      --aurora-base: #e8edf9;
+      --aurora-blue: rgba(112, 154, 242, 0.64);
+      --aurora-violet: rgba(161, 142, 229, 0.56);
+      --aurora-pearl: rgba(255, 255, 255, 0.92);
+      --surface-bg: rgba(255, 255, 255, 0.64);
+      --surface-border: rgba(255, 255, 255, 0.76);
+      --surface-shadow: 0 8px 28px rgba(49, 64, 116, 0.07), inset 0 1px 0 rgba(255, 255, 255, 0.65);
+      --glass-bg: rgba(255, 255, 255, 0.76);
+      --glass-border: rgba(255, 255, 255, 0.78);
+      --glass-shadow: 0 10px 36px rgba(40, 52, 99, 0.16), inset 0 1px 0 rgba(255, 255, 255, 0.6);
+      --input-bg: rgba(255, 255, 255, 0.62);
+    }
+
+    [data-theme="dark"] {
+      --paper: #0b1024;
+      --ink-soft: #b0bbcf;
+      --line: rgba(187, 201, 234, 0.16);
+      --aurora-base: #0b1024;
+      --aurora-blue: rgba(51, 88, 188, 0.58);
+      --aurora-violet: rgba(112, 74, 175, 0.46);
+      --aurora-pearl: rgba(123, 160, 210, 0.2);
+      --surface-bg: rgba(22, 30, 53, 0.72);
+      --surface-border: rgba(198, 214, 255, 0.14);
+      --surface-shadow: 0 10px 30px rgba(0, 4, 20, 0.2), inset 0 1px 0 rgba(213, 227, 255, 0.07);
+      --glass-bg: rgba(22, 30, 53, 0.82);
+      --glass-border: rgba(198, 214, 255, 0.18);
+      --glass-active: rgba(195, 215, 255, 0.12);
+      --glass-shadow: 0 10px 36px rgba(0, 4, 20, 0.38), inset 0 1px 0 rgba(213, 227, 255, 0.08);
+      --input-bg: rgba(13, 21, 42, 0.62);
+    }
+
+    body { position: relative; isolation: isolate; }
+
+    .aurora-backdrop {
+      position: fixed;
+      inset: 0;
+      z-index: -1;
+      overflow: hidden;
+      pointer-events: none;
+      background: var(--aurora-base);
+      contain: strict;
+    }
+    .aurora-backdrop::before,
+    .aurora-backdrop::after {
+      content: '';
+      position: absolute;
+      inset: -18%;
+      background-repeat: no-repeat;
+      will-change: transform;
+    }
+    .aurora-backdrop::before {
+      background:
+        radial-gradient(ellipse at 18% 22%, var(--aurora-blue), transparent 54%),
+        radial-gradient(ellipse at 88% 38%, var(--aurora-violet), transparent 56%),
+        radial-gradient(ellipse at 40% 95%, var(--aurora-blue), transparent 52%);
+      animation: auroraDrift 32s ease-in-out infinite alternate;
+    }
+    .aurora-backdrop::after {
+      background:
+        radial-gradient(ellipse at 48% 18%, var(--aurora-pearl), transparent 48%),
+        radial-gradient(ellipse at 76% 84%, var(--aurora-violet), transparent 58%);
+      animation: auroraDrift 40s ease-in-out -12s infinite alternate-reverse;
+    }
+    .aurora-grain {
+      position: absolute;
+      inset: 0;
+      z-index: 1;
+      opacity: 0.035;
+      background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='180' height='180'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.8' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Cpath filter='url(%23n)' opacity='.65' d='M0 0h180v180H0z'/%3E%3C/svg%3E");
+    }
+    @keyframes auroraDrift {
+      from { transform: translate3d(-3%, -2%, 0) rotate(-4deg) scale(1); }
+      to { transform: translate3d(4%, 3%, 0) rotate(5deg) scale(1.08); }
+    }
+
+    .list-card, .notice-panel, .gpa-card, .grade-card,
+    .week-stepper, .days-grid, .modal-card, .login-card,
+    .theme-btn, .profile-logout-btn, .umkd-file-close, .umkd-file-action {
+      background: var(--surface-bg);
+      /* Inset outlines preserve the geometry of sliding day/tab indicators. */
+      box-shadow: var(--surface-shadow), inset 0 0 0 1px var(--surface-border);
+      -webkit-backdrop-filter: blur(18px) saturate(130%);
+      backdrop-filter: blur(18px) saturate(130%);
+    }
+    .list-card, .notice-panel, .gpa-card, .grade-card { border-radius: 20px; }
+    .week-stepper, .days-grid { border-radius: 13px; }
+    .modal-card { background: var(--glass-bg); border-radius: 24px; }
+    .modal-overlay { -webkit-backdrop-filter: blur(8px); backdrop-filter: blur(8px); }
+    .bottom-tab-bar { max-width: 500px; margin-inline: auto; }
+
+    .login-overlay {
+      background: var(--aurora-base);
+      isolation: isolate;
+      overflow-y: auto;
+      justify-content: flex-start;
+      padding-top: calc(max(env(safe-area-inset-top, 0px), var(--tg-safe-area-top)) + var(--tg-content-safe-area-top) + 24px);
+      padding-bottom: calc(env(safe-area-inset-bottom, 0px) + 24px);
+    }
+    .login-overlay .aurora-backdrop { position: absolute; }
+    .login-card {
+      flex-shrink: 0;
+      padding: 30px 26px 26px;
+      border-radius: 28px;
+      margin-block: auto;
+    }
+    .login-emblem {
+      display: grid;
+      place-items: center;
+      width: 52px;
+      height: 52px;
+      margin-bottom: 22px;
+      border-radius: 17px;
+      color: var(--accent);
+      background: var(--input-bg);
+      box-shadow: inset 0 0 0 1px var(--surface-border), 0 6px 18px rgba(49, 64, 116, 0.08);
+    }
+    .login-title { font-size: 1.8rem; letter-spacing: -0.04em; margin-bottom: 10px; }
+    .login-subtitle { line-height: 1.55; }
+    .login-input {
+      background: var(--input-bg);
+      box-shadow: inset 0 0 0 1px var(--line);
+      font-size: 16px;
+    }
+    .login-input::placeholder { color: var(--ink-soft); opacity: 0.85; }
+    .login-input:focus { box-shadow: inset 0 0 0 1.5px var(--accent), 0 0 0 3px var(--accent-tint-soft); }
+    .login-submit { box-shadow: 0 6px 18px rgba(var(--accent-rgb), 0.2); }
+    .login-hint { font-size: 0.73rem; line-height: 1.55; }
+    [data-theme="dark"] .login-error,
+    [data-theme="dark"] .profile-logout-btn { color: #fca5a5; }
+    button:focus-visible, [role="button"]:focus-visible {
+      outline: 2px solid var(--accent);
+      outline-offset: 3px;
+    }
+
+    @media (max-width: 360px) {
+      .login-overlay { padding-inline: 16px; }
+      .login-card { padding: 24px 20px; }
+    }
+    @supports not ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
+      .list-card, .notice-panel, .gpa-card, .grade-card,
+      .week-stepper, .days-grid, .modal-card, .login-card,
+      .theme-btn, .profile-logout-btn, .umkd-file-close, .umkd-file-action,
+      .bottom-tab-bar { background: var(--paper-2); }
+    }
     @media (prefers-reduced-motion: reduce) {
+      .aurora-backdrop::before, .aurora-backdrop::after {
+        animation: none !important;
+        will-change: auto;
+      }
       *, *::before, *::after {
         animation-duration: 0.001ms !important;
         animation-iteration-count: 1 !important;
@@ -1118,8 +1271,14 @@
 </head>
 <body>
 
+<div class="aurora-backdrop" aria-hidden="true"><span class="aurora-grain"></span></div>
+
 <div class="login-overlay" id="loginOverlay">
+  <div class="aurora-backdrop" aria-hidden="true"><span class="aurora-grain"></span></div>
   <div class="login-card">
+    <div class="login-emblem" aria-hidden="true">
+      <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="m2 9 10-5 10 5-10 5L2 9Z"/><path d="M6 11v5c3 3 9 3 12 0v-5M22 9v6"/></svg>
+    </div>
     <div class="login-title">Univer KSTU</div>
     <div class="login-subtitle">Войдите с логином и паролем от личного кабинета Platonus — подтянутся ваше расписание, оценки и GPA.</div>
 
@@ -3498,3 +3657,4 @@
 </script>
 </body>
 </html>
+
