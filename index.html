@@ -1386,6 +1386,9 @@
   let liveScheduleWeekInfo = null;
   let liveJournalData = null;
   let liveUmkdData = null;
+  let scheduleLoadFailed = false;  // не удалось загрузить расписание
+  let userNavigatedWeek = false;   // пользователь уже листал недели стрелками
+  let liveLoadInFlight = false;    // идёт загрузка свежих данных
 
   // ==================================================================
   // ============ КЭШ РАСПИСАНИЯ ПО НЕДЕЛЯМ ============
@@ -1399,7 +1402,8 @@
   const weekScheduleCache = {}; // in-memory: weekKey -> { schedule, lessonTimes, weekInfo }
 
   function weekCacheKey(studyYear, term, week) {
-    return `${studyYear}-${term}-${week}`;
+    const sid = (platonusStudent && platonusStudent.studentID) || 'anon';
+    return `${sid}-${studyYear}-${term}-${week}`;
   }
 
   function cacheWeekEntry(entry) {
@@ -1445,7 +1449,7 @@
   // тогда надёжнее defaultSelectedWeek/activeWeekNumber, которые не зависят
   // от того, что было запрошено, и всегда указывают на настоящую текущую
   // учебную неделю.
-  function buildScheduleEntryFromPlatonus(data, hadExplicitOverride) {
+  function buildScheduleEntryFromPlatonus(data, hadExplicitOverride, requested) {
     const lessonHourByNumber = {};
     (data.lessonHours || []).forEach(lh => { lessonHourByNumber[lh.number] = lh; });
 
@@ -1505,11 +1509,22 @@
         : ((data.activeTermNumber !== undefined && data.activeTermNumber !== null) ? data.activeTermNumber : data.selectedTerm);
     }
 
-    const weekInfo = {
-      studyYear: data.selectedStudyYear,
-      term: resolvedTerm,
-      week: resolvedWeek,
+    // Строка "5" + 1 в JS даёт "51", а не 6 — поэтому всё приводим к числам.
+    const toNum = (v) => { const n = Number(v); return Number.isFinite(n) ? n : v; };
+    let weekInfo = {
+      studyYear: toNum(data.selectedStudyYear),
+      term: toNum(resolvedTerm),
+      week: toNum(resolvedWeek),
     };
+    // Если мы сами явно запросили неделю, ключом кэша и подписью недели
+    // служит именно запрошенная, а не то, что вернул Platonus.
+    if (requested) {
+      weekInfo = {
+        studyYear: toNum(requested.studyYear),
+        term: toNum(requested.term),
+        week: toNum(requested.week),
+      };
+    }
 
     return { schedule, lessonTimes, weekInfo };
   }
@@ -1538,6 +1553,19 @@
       try { meta = JSON.parse(metaRaw); } catch (e) { meta = null; }
     }
     if (!meta) return null;
+
+    // Если кэш сохранён до начала этой календарной недели, он мог остаться
+    // от прошлой учебной недели — не показываем его как «текущую».
+    const weekStartMs = (() => {
+      const d = new Date();
+      d.setHours(0, 0, 0, 0);
+      d.setDate(d.getDate() - ((d.getDay() + 6) % 7));
+      return d.getTime();
+    })();
+    if (!meta.cachedAt || meta.cachedAt < weekStartMs) {
+      meta.browsedWeekInfo = null;
+      meta.trueCurrentWeekInfo = null;
+    }
 
     let journal = null;
     if (journalRaw) {
@@ -1703,8 +1731,8 @@
       await csSet('platonus_password', password);
       document.getElementById('passwordInput').value = '';
 
-      await loadLiveStudentData();
       showLoginOverlay(false);
+      loadLiveStudentData(); // грузим в фоне, экран не блокируем
     } catch (err) {
       setLoginError('Ошибка сети. Проверьте подключение и попробуйте снова.');
     } finally {
@@ -1746,6 +1774,10 @@
     trueCurrentSchedule = {};
     trueCurrentLessonTimes = {};
     SCHEDULE = {};
+    liveScheduleWeekInfo = null;
+    userNavigatedWeek = false;
+    scheduleLoadFailed = false;
+    Object.keys(weekScheduleCache).forEach(k => delete weekScheduleCache[k]);
     switchSection('schedule');
     document.getElementById('loginOverlay').style.display = 'flex';
     showLoginOverlay(true);
@@ -1809,8 +1841,8 @@
   const PLT_DAY_NAMES = { 1: 'Понедельник', 2: 'Вторник', 3: 'Среда', 4: 'Четверг', 5: 'Пятница', 6: 'Суббота' };
   const PLT_GROUP_TYPE_LABEL = { 'Л': 'Лекция', 'ЛЗ': 'Лаб. работа', 'СПЗ': 'Семинар', 'П': 'Практика' };
 
-  function transformPlatonusSchedule(data, hadExplicitOverride) {
-    const entry = buildScheduleEntryFromPlatonus(data, hadExplicitOverride);
+  function transformPlatonusSchedule(data, hadExplicitOverride, requested) {
+    const entry = buildScheduleEntryFromPlatonus(data, hadExplicitOverride, requested);
     applyWeekCacheEntry(entry);
     cacheWeekEntry(entry);
   }
@@ -1954,79 +1986,122 @@
     swapContent(container, html, animate);
   }
 
-  async function loadLiveStudentData() {
-    let gpa = null;
+  function renderCurrentSection() {
+    if (currentSection === 'profile') renderProfile(false);
+    else if (currentSection === 'grades') renderGrades(false);
+    else if (currentSection === 'schedule') renderSchedule(false);
+    else if (currentSection === 'umkd') renderUmkdSubjects(false);
+  }
 
-    try {
-      gpa = await platonusFetch('/api/gpa');
-      platonusStudent = gpa;
-      await csSet('platonus_student', JSON.stringify(gpa));
-    } catch (err) {
-      if (err.message !== 'session_expired') {
-        console.error('Failed to load GPA/profile', err);
-      }
-      return; // без GPA дальше идти бессмысленно — нет studentID
-    }
-
-    // Расписание грузим отдельно: ошибка здесь не должна блокировать
-    // оценки и УМКД, которые ни от чего кроме сессии не зависят по логину.
-    try {
-      const schedule = await platonusFetch(`/api/schedule?studentID=${gpa.studentID}`);
-      transformPlatonusSchedule(schedule, false);
-      // Это и есть "настоящая текущая" неделя (Platonus сам её выбрал, мы не
-      // передавали свой week). Запоминаем отдельным снимком — он не будет
-      // затёрт при дальнейшей навигации стрелками ←/→ по другим неделям, и
-      // именно по нему считается "идёт пара сейчас"/кнопка "сегодня".
-      trueCurrentSchedule = SCHEDULE;
-      trueCurrentLessonTimes = LESSON_TIMES;
-      trueCurrentWeekInfo = browsedWeekInfo ? { ...browsedWeekInfo } : null;
-    } catch (err) {
-      liveScheduleWeekInfo = null;
-      console.error('Failed to load/parse schedule', err);
-    }
-
-    if (liveScheduleWeekInfo && liveScheduleWeekInfo.selectedStudyYear && liveScheduleWeekInfo.selectedTerm) {
-      try {
-        liveJournalData = await platonusFetch(
-          `/api/grades?studentID=${gpa.studentID}&year=${liveScheduleWeekInfo.selectedStudyYear}&term=${liveScheduleWeekInfo.selectedTerm}`
-        );
-      } catch (e) {
-        liveJournalData = null;
-      }
-
-      try {
-        liveUmkdData = await platonusFetch(
-          `/api/umkd?year=${liveScheduleWeekInfo.selectedStudyYear}&term=${liveScheduleWeekInfo.selectedTerm}`
-        );
-      } catch (e) {
-        liveUmkdData = null;
-      }
-    } else {
-      // Год/семестр не определились (обычно из-за упавшего расписания выше) —
-      // всё равно пробуем УМКД с текущим годом как запасной вариант,
-      // раз Platonus умеет понимать это и без строгой синхронизации с schedule.
-      const fallbackYear = new Date().getFullYear();
-      try {
-        liveUmkdData = await platonusFetch(`/api/umkd?year=${fallbackYear}&term=1`);
-      } catch (e) {
-        liveUmkdData = null;
-      }
-    }
-
-    detectToday();
+  function retryLiveLoad() {
+    haptic('light');
+    scheduleLoadFailed = false;
+    renderSchedule(false);
     updateStatusBarAndLive();
-    updateWeekStepperUI();
-    if (currentSection === 'profile') {
-      renderProfile(false);
-    } else if (currentSection === 'grades') {
-      renderGrades(false);
-    } else if (currentSection === 'schedule') {
-      renderSchedule(false);
-    } else if (currentSection === 'umkd') {
-      renderUmkdSubjects(false);
-    }
+    loadLiveStudentData();
+  }
 
-    saveCachedStudentData();
+  // Оценки и УМКД не зависят друг от друга — грузим одновременно.
+  // Если запрос не удался, возвращаем null, и старые (кэшированные) данные остаются.
+  function fetchGradesAndUmkd(year, term) {
+    const studentID = platonusStudent && platonusStudent.studentID;
+    return Promise.all([
+      studentID
+        ? platonusFetch(`/api/grades?studentID=${studentID}&year=${year}&term=${term}`).catch(() => null)
+        : Promise.resolve(null),
+      platonusFetch(`/api/umkd?year=${year}&term=${term}`).catch(() => null),
+    ]).then(([journal, umkd]) => ({ journal, umkd }));
+  }
+
+  async function loadLiveStudentData() {
+    if (liveLoadInFlight) return;
+    liveLoadInFlight = true;
+    scheduleLoadFailed = false;
+
+    try {
+      // Если с прошлого раза известны студент и семестр, всё стартует сразу
+      // и параллельно, а не по цепочке «профиль → расписание → оценки → УМКД».
+      const cachedID = platonusStudent && platonusStudent.studentID;
+      const ci = liveScheduleWeekInfo;
+      const cachedKey = (ci && ci.selectedStudyYear && ci.selectedTerm)
+        ? `${ci.selectedStudyYear}-${ci.selectedTerm}` : null;
+      const earlyExtras = (cachedID && cachedKey)
+        ? fetchGradesAndUmkd(ci.selectedStudyYear, ci.selectedTerm) : null;
+
+      const gpaPromise = platonusFetch('/api/gpa');
+      const schedPromise = (cachedID ? Promise.resolve(cachedID) : gpaPromise.then(g => g.studentID))
+        .then(id => platonusFetch(`/api/schedule?studentID=${id}`));
+      schedPromise.catch(() => {}); // чтобы не было «unhandled rejection», если профиль не загрузится
+
+      // 1) Профиль
+      try {
+        const gpa = await gpaPromise;
+        platonusStudent = gpa;
+        csSet('platonus_student', JSON.stringify(gpa));
+        if (currentSection === 'profile') renderProfile(false);
+      } catch (err) {
+        if (err.message !== 'session_expired') console.error('Failed to load GPA/profile', err);
+        if (!browsedWeekInfo) {
+          scheduleLoadFailed = true;
+          updateStatusBarAndLive();
+          renderCurrentSection();
+        }
+        return;
+      }
+
+      // 2) Расписание — показываем сразу, не дожидаясь оценок и УМКД
+      try {
+        const schedule = await schedPromise;
+        const entry = buildScheduleEntryFromPlatonus(schedule, false);
+        cacheWeekEntry(entry);
+
+        // Это и есть «настоящая текущая» неделя (Platonus сам её выбрал).
+        // Запоминаем отдельным снимком, он не затрётся при листании стрелками.
+        trueCurrentSchedule = entry.schedule;
+        trueCurrentLessonTimes = entry.lessonTimes;
+        trueCurrentWeekInfo = { ...entry.weekInfo };
+
+        if (!userNavigatedWeek) {
+          applyWeekCacheEntry(entry);
+        } else {
+          // Пользователь уже ушёл на другую неделю — экран не трогаем.
+          liveScheduleWeekInfo = {
+            selectedTerm: entry.weekInfo.term,
+            selectedStudyYear: entry.weekInfo.studyYear,
+            selectedWeek: entry.weekInfo.week,
+          };
+        }
+      } catch (err) {
+        console.error('Failed to load/parse schedule', err);
+        if (!browsedWeekInfo) scheduleLoadFailed = true;
+      }
+
+      detectToday();
+      updateStatusBarAndLive();
+      updateWeekStepperUI();
+      renderCurrentSection();
+      saveCachedStudentData();
+
+      // 3) Оценки и УМКД
+      const info = liveScheduleWeekInfo;
+      if (info && info.selectedStudyYear && info.selectedTerm) {
+        const key = `${info.selectedStudyYear}-${info.selectedTerm}`;
+        const extras = (earlyExtras && cachedKey === key)
+          ? await earlyExtras
+          : await fetchGradesAndUmkd(info.selectedStudyYear, info.selectedTerm);
+        if (extras.journal) liveJournalData = extras.journal;
+        if (extras.umkd) liveUmkdData = extras.umkd;
+      } else {
+        // Год/семестр не определились — пробуем УМКД с текущим годом как запасной вариант.
+        const u = await platonusFetch(`/api/umkd?year=${new Date().getFullYear()}&term=1`).catch(() => null);
+        if (u) liveUmkdData = u;
+      }
+
+      renderCurrentSection();
+      saveCachedStudentData();
+    } finally {
+      liveLoadInFlight = false;
+    }
   }
 
   const CITY_COORDS = {
@@ -2544,9 +2619,9 @@
 
   const DAY_NAMES_BY_INDEX = ['Воскресенье', 'Понедельник', 'Вторник', 'Среда', 'Четверг', 'Пятница', 'Суббота'];
 
-  function detectToday() {
+  function detectToday(resetSelected = false) {
     realTodayName = DAY_NAMES_BY_INDEX[new Date().getDay()];
-    selectedDay = realTodayName;
+    if (resetSelected) selectedDay = realTodayName;
 
     const shortName = getShortDayName(realTodayName);
     if (shortName) {
@@ -2630,7 +2705,7 @@
       const data = await platonusFetch(
         `/api/schedule?studentID=${platonusStudent.studentID}&year=${studyYear}&term=${term}&week=${week}`
       );
-      const entry = buildScheduleEntryFromPlatonus(data, true);
+      const entry = buildScheduleEntryFromPlatonus(data, true, { studyYear, term, week });
       cacheWeekEntry(entry);
 
       const stillViewingThisWeek = browsedWeekInfo
@@ -2657,10 +2732,11 @@
   // спиннер показываем, только если недели вообще нигде нет в кэше.
   async function stepWeek(delta) {
     if (weekStepBusy || !browsedWeekInfo || !platonusStudent) return;
-    const nextWeekRaw = browsedWeekInfo.week + delta;
+    const nextWeekRaw = Number(browsedWeekInfo.week) + delta;
     if (nextWeekRaw < 1 || nextWeekRaw > MAX_TERM_WEEKS) return;
 
     haptic('light');
+    userNavigatedWeek = true;
     const studyYear = browsedWeekInfo.studyYear;
     const term = browsedWeekInfo.term;
     const key = weekCacheKey(studyYear, term, nextWeekRaw);
@@ -2695,7 +2771,7 @@
       const data = await platonusFetch(
         `/api/schedule?studentID=${platonusStudent.studentID}&year=${studyYear}&term=${term}&week=${nextWeekRaw}`
       );
-      transformPlatonusSchedule(data, true);
+      transformPlatonusSchedule(data, true, { studyYear, term, week: nextWeekRaw });
       detectToday();
       updateStatusBarAndLive();
       renderSchedule();
@@ -2723,6 +2799,12 @@
     // (trueCurrentSchedule), а не по той, что сейчас просматривается
     // стрелками — иначе бейдж наврёт, если пользователь ушёл смотреть
     // другую неделю.
+    if (!trueCurrentWeekInfo && platonusSession) {
+      badgeEl.innerHTML = `<span class="live-dot"></span><span>${scheduleLoadFailed ? 'расписание недоступно' : 'загружаем расписание…'}</span>`;
+      badgeEl.classList.remove('pulse-live');
+      return;
+    }
+
     const todayLessons = trueCurrentSchedule[realTodayName] || [];
     if (todayLessons.length === 0) {
       badgeEl.innerHTML = `<span class="live-dot"></span><span>сегодня без пар</span>`;
@@ -2836,6 +2918,19 @@
 
   function renderSchedule(animate = true) {
     const container = document.getElementById('scheduleContainer');
+
+    // Пока расписание не пришло, не показываем «пар нет» — это было бы неправдой.
+    if (!browsedWeekInfo && platonusSession) {
+      swapContent(container, `
+        <div class="notice-panel">
+          <div class="notice-title">${scheduleLoadFailed ? 'Не удалось загрузить расписание' : 'Загружаем расписание…'}</div>
+          <div class="notice-hint">${scheduleLoadFailed
+            ? '<button class="back-link" onclick="retryLiveLoad()">Повторить</button>'
+            : 'Обычно это занимает несколько секунд.'}</div>
+        </div>
+      `, animate);
+      return;
+    }
 
     // Никакой фильтрации по числителю/знаменателю — SCHEDULE уже содержит
     // ровно то, что Platonus прислал для запрошенной недели.
@@ -3254,7 +3349,7 @@
 
     const savedAccent = localStorage.getItem('user_accent') || 'default';
     applyAccentTheme(savedAccent, false);
-    detectToday();
+    detectToday(true);
     updateStatusBarAndLive();
     updateWeekStepperUI();
     selectDay(selectedDay, null, true);
@@ -3275,7 +3370,7 @@
       const cachedData = await loadCachedStudentData();
       if (cachedData) {
         applyCachedStudentData(cachedData);
-        detectToday();
+        detectToday(true);
         updateStatusBarAndLive();
         selectDay(selectedDay, null, true);
         if (currentSection === 'profile') {
