@@ -1,6 +1,11 @@
 // Public app shell only; student data and video ranges bypass this cache.
-const CACHE_NAME = 'univer-shell-v6';
-const SHELL_PATHS = new Set(['/', '/index.html', '/assets/css/app.css', '/assets/css/typography.css', '/assets/js/appearance.js', '/assets/js/app.js', '/assets/js/background.js']);
+const CACHE_NAME = 'univer-shell-v7';
+const FONT_PATHS = new Set([
+  '/assets/fonts/manrope/cyrillic-ext.woff2',
+  '/assets/fonts/manrope/cyrillic.woff2',
+  '/assets/fonts/manrope/latin.woff2',
+]);
+const SHELL_PATHS = new Set(['/', '/index.html', '/assets/css/app.css', '/assets/css/typography.css', '/assets/js/appearance.js', '/assets/js/app.js', '/assets/js/background.js', ...FONT_PATHS]);
 
 self.addEventListener('install', () => self.skipWaiting());
 self.addEventListener('activate', event => {
@@ -18,6 +23,10 @@ self.addEventListener('fetch', event => {
   // Prefer fresh code; keep the public shell available if the network is down.
   event.respondWith((async () => {
     const cache = await caches.open(CACHE_NAME);
+    if (FONT_PATHS.has(url.pathname)) {
+      const cachedFont = await cache.match(request);
+      if (cachedFont) return cachedFont;
+    }
     try {
       const response = await fetch(request);
       if (response.ok) {
