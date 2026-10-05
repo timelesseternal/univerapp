@@ -1724,18 +1724,20 @@
     .aurora-backdrop.webgl-ready::after { opacity: 0; }
 
     /* The video fills the viewport; the foreground keeps its own contrast. */
-    :root { --video-brightness: 1.15; --video-opacity: 0.48; }
+    :root { --video-brightness: 1.15; --video-opacity: 0.48; --video-blur: 14px; }
     [data-theme="dark"] { --video-brightness: 0.7; --video-opacity: 1; }
     .video-background {
       position: absolute;
-      inset: 0;
-      width: 100%;
-      height: 100%;
+      /* Overscan keeps the blurred edges outside the visible viewport. */
+      top: calc(0px - var(--video-blur) * 3);
+      left: calc(0px - var(--video-blur) * 3);
+      width: calc(100% + var(--video-blur) * 6);
+      height: calc(100% + var(--video-blur) * 6);
       object-fit: cover;
       object-position: center;
       display: none;
       pointer-events: none;
-      filter: grayscale(1) brightness(var(--video-brightness));
+      filter: grayscale(1) brightness(var(--video-brightness)) blur(var(--video-blur));
       opacity: var(--video-opacity);
     }
     .aurora-backdrop.video-ready .video-background { display: block; }
