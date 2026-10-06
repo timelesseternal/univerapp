@@ -7,7 +7,10 @@
   const state = { profile: null, conversation: null, messages: new Map(), drafts: new Map(),
     epoch: 0, visible: false, sessionWork: null, timer: null, searchTimer: null,
     searchVersion: 0, refreshing: false, sending: false, hasOlder: false,
-    history: new Map(), pending: new Map(), inboxAt: 0 };
+    history: new Map(), pending: new Map(), inboxAt: 0, readThrough: new Map() };
+  const telegramApp = window.Telegram?.WebApp;
+  const bootstrap = () => request('session', { method:'POST',headers:{'x-session':platonusSession},
+    ...(telegramApp?.initData ? { body:{initData:telegramApp.initData} } : {}) });
   const labels = {
     chat_not_configured: 'Чат пока не подключён. Администратор приложения скоро включит переписки.',
     chat_setup_required: 'Чат пока не подключён. Администратор приложения скоро включит переписки.',
@@ -71,13 +74,13 @@
       if (!platonusSession) throw new Error('session_expired');
       let data;
       try {
-        data = await request('session', { method: 'POST', headers: { 'x-session': platonusSession } });
+        data = await bootstrap();
       } catch (error) {
         if (stale(epoch) || generation !== authGeneration) throw new Error('session_changed');
         if (error.message !== 'session_expired') throw error;
         if (!await silentRelogin()) { logout(); throw error; }
         if (stale(epoch) || generation !== authGeneration) throw new Error('session_changed');
-        data = await request('session', { method: 'POST', headers: { 'x-session': platonusSession } });
+        data = await bootstrap();
       }
       if (stale(epoch) || generation !== authGeneration) throw new Error('session_changed');
       state.profile = data.profile;
@@ -170,6 +173,15 @@
     rememberHistory();
     if (changed || initial || older) drawMessages({ scroll: initial ? 'bottom' : older ? 'older' : 'keep' });
     if (params.after && data.hasMore) await refreshMessages();
+    if (state.visible && !document.hidden && state.conversation?.id===id) {
+      const through = orderedMessages().at(-1)?.id;
+      if (through && state.readThrough.get(id)!==through) {
+        // Acknowledge after visible rendering, without delaying the message refresh.
+        request('read', { method:'POST',body:{conversationID:id,throughID:through} }).then(() => {
+          if (!stale(epoch)) state.readThrough.set(id,through);
+        }).catch(() => {});
+      }
+    }
   }
   function scheduleRefresh(elapsed = 0) {
     clearTimeout(state.timer);
@@ -353,6 +365,7 @@
     state.drafts.clear();
     state.history.clear();
     state.pending.clear();
+    state.readThrough.clear();
     state.inboxAt = 0;
     state.sending = state.refreshing = false;
     root.classList.remove('chat-in-thread');
@@ -376,6 +389,19 @@
     catch { /* The route clears the cookie even if its database is unavailable. */ }
   }
   window.univerChat = {
+    onLogin() {
+      const epoch = state.epoch;
+      const start = telegramApp?.initDataUnsafe?.start_param || new URLSearchParams(window.location?.search || '').get('tgWebAppStartParam');
+      const match = /^chat_([a-f0-9-]{36})$/i.exec(start || '');
+      if (!telegramApp?.initData && !match) return;
+      ensureSession().then(async () => {
+        if (stale(epoch) || !match) return;
+        const data = await request('conversation',{params:{conversationID:match[1]}});
+        if (stale(epoch)) return;
+        switchSection('chat');
+        openConversation(data.conversation);
+      }).catch(() => {});
+    },
     onSection(section) {
       state.visible = section === 'chat';
       clearTimeout(state.timer);

@@ -1,4 +1,6 @@
 import { ChatError, checkOrigin, configuration, currentUser, database, readToken, rpc, setCookie, startSession, tokenHash, uuid } from './_lib/chat.js';
+import { waitUntil } from '@vercel/functions';
+import { linkTelegram, processNotifications } from './_lib/telegram.js';
 
 export default async function handler(req, res) {
   res.setHeader('Cache-Control', 'no-store, private');
@@ -23,12 +25,29 @@ export default async function handler(req, res) {
     }
     configuration();
     if (action === 'session' && req.method === 'POST') {
-      res.status(200).json(await startSession(req, res));
+      const data = await startSession(req, res);
+      if (req.body?.initData) {
+        try { data.telegramLinked = await linkTelegram(data.profile.id, req.body.initData); }
+        catch { data.telegramLinked = false; }
+      }
+      res.status(200).json(data);
+      waitUntil(processNotifications(data.profile.id,'delete'));
       return;
     }
     const userID = await currentUser(req);
-    if (action === 'inbox' && req.method === 'GET') {
+    if (action === 'telegram' && req.method === 'POST') {
+      res.status(200).json({ linked: await linkTelegram(userID,req.body?.initData) });
+    } else if (action === 'conversation' && req.method === 'GET') {
+      res.status(200).json({ conversation: await rpc('chat_get_conversation', { p_user_id:userID,p_conversation_id:uuid(req.query.conversationID) }) });
+    } else if (action === 'read' && req.method === 'POST') {
+      const through = req.body?.throughID;
+      if (typeof through!=='string' || !/^[1-9]\d{0,18}$/.test(through) || BigInt(through)>9223372036854775807n) throw new ChatError(400,'invalid_chat_request');
+      await rpc('chat_mark_read', { p_user_id:userID,p_conversation_id:uuid(req.body?.conversationID),p_through_id:through });
+      res.status(200).json({ ok:true });
+      waitUntil(processNotifications(userID,'delete'));
+    } else if (action === 'inbox' && req.method === 'GET') {
       res.status(200).json({ conversations: await rpc('chat_inbox', { p_user_id: userID }) });
+      waitUntil(processNotifications(userID,'send'));
     } else if (action === 'users' && req.method === 'GET') {
       const query = typeof req.query.q === 'string' ? req.query.q.trim() : '';
       if (query.length < 2 || query.length > 60) throw new ChatError(400, 'chat_search_length');
@@ -45,6 +64,7 @@ export default async function handler(req, res) {
       res.status(200).json(await rpc('chat_read_messages', {
         p_user_id: userID, p_conversation_id: uuid(req.query.conversationID), p_before: before || null, p_after: after || null,
       }));
+      waitUntil(processNotifications(userID,'delete'));
     } else if (action === 'messages' && req.method === 'POST') {
       const text = typeof req.body?.text === 'string' ? req.body.text.trim() : '';
       if (!text || text.length > 2000) throw new ChatError(400, 'chat_message_length');
@@ -52,6 +72,7 @@ export default async function handler(req, res) {
         p_user_id: userID, p_conversation_id: uuid(req.body?.conversationID),
         p_body: text, p_client_id: uuid(req.body?.clientID),
       }) });
+      waitUntil(processNotifications(userID,'send'));
     } else throw new ChatError(404, 'chat_action_not_found');
   } catch (error) {
     if (error instanceof ChatError) res.status(error.status).json({ error: error.code });

@@ -715,6 +715,7 @@
     .login-overlay.hidden { opacity: 0; pointer-events: none; }
     .login-screen .app-wrapper, .login-screen .bottom-tab-bar { display: none; }
     .profile-toolbar { display: flex; align-items: center; justify-content: space-between; gap: 16px; margin-bottom: 16px; }
+    .profile-study-info { display: flex; flex-wrap: wrap; gap: 6px 14px; margin-top: 8px; color: var(--ink-soft); font-size: 13px; line-height: 1.5; overflow-wrap: anywhere; }
     .profile-menu { position: relative; }
     .profile-menu summary { display: grid; place-items: center; width: 44px; height: 44px; border: 1px solid var(--line); border-radius: 14px; color: var(--ink); background: var(--paper-2); cursor: pointer; list-style: none; }
     .profile-menu summary svg { width: 22px; height: 22px; }

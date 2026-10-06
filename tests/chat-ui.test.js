@@ -68,6 +68,7 @@ test('reopening a thread displays memory history before a slow response, logout 
   let reads = 0;
   const ui = setup(async (url, options) => {
     if (options.method === 'DELETE') return reply({});
+    if (url.includes('action=read')) return reply({ok:true});
     if (url.includes('action=session')) return reply({ profile, conversations: [conversation] });
     if (url.includes('action=inbox')) return reply({ conversations: [conversation] });
     if (++reads === 1) return reply({ messages: [message], hasMore: false });
@@ -88,6 +89,7 @@ test('reopening a thread displays memory history before a slow response, logout 
 test('slow message polling does not block an inbox refresh', async () => {
   let finishRead, reads = 0, inboxRequests = 0;
   const ui = setup(async (url) => {
+    if (url.includes('action=read')) return reply({ok:true});
     if (url.includes('action=session')) return reply({ profile, conversations: [conversation] });
     if (url.includes('action=inbox')) { inboxRequests++; return reply({ conversations: [conversation] }); }
     if (++reads === 1) return reply({ messages: [message], hasMore: false });
@@ -168,4 +170,22 @@ test('logout clears private UI and revokes a late bootstrap cookie before reuse'
   assert.deepEqual(calls, ['POST', 'DELETE']);
   assert.equal(ui.elements.get('chatInbox').children.length, 0);
   assert.equal(ui.timers.size, 0);
+});
+
+test('a background history response is not acknowledged until the thread is visible', async () => {
+  let finishRead; let readAcks=0, historyRequests=0;
+  const ui=setup(async(url)=>{
+    if(url.includes('action=session'))return reply({profile,conversations:[conversation]});
+    if(url.includes('action=read')){readAcks++;return reply({ok:true});}
+    if(url.includes('action=inbox'))return reply({conversations:[conversation]});
+    if(++historyRequests===1)return new Promise(resolve=>{finishRead=resolve;});
+    return reply({messages:[],hasMore:false});
+  });
+  ui.api.onSection('chat');await settle();
+  ui.elements.get('chatInbox').children[0].listeners.click();await settle();
+  ui.api.onSection('profile');
+  finishRead(reply({messages:[message],hasMore:false}));await settle();
+  assert.equal(readAcks,0);
+  ui.api.onSection('chat');await settle();
+  assert.equal(readAcks,1);
 });

@@ -552,6 +552,7 @@ if ('serviceWorker' in navigator) {
 
       showLoginOverlay(false);
       loadLiveStudentData(); // грузим в фоне, экран не блокируем
+      window.univerChat?.onLogin?.();
     } catch (err) {
       if (generation === authGeneration) setLoginError('Ошибка сети. Проверьте подключение и попробуйте снова.');
     } finally {
@@ -789,6 +790,27 @@ if ('serviceWorker' in navigator) {
     `;
   }
 
+  function escapeHtml(value) {
+    return String(value).replace(/[&<>"']/g, character => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[character]));
+  }
+  function studentGroup(student) {
+    const candidates = [student.studentGroupName, student.groupName, student.academicGroupName,
+      student.studyGroupName, student.group, student.studentGroup, student.studyGroup, student.academicGroup,
+      student.studentInfo?.groupName, student.student?.groupName];
+    for (const candidate of candidates) {
+      const name = typeof candidate === 'object' && candidate ? candidate.name || candidate.groupName : candidate;
+      if (typeof name === 'string' && name.trim()) return name.trim().slice(0,120);
+    }
+    return null;
+  }
+  function studentCourse(student) {
+    for (const value of [student.courseNumber, student.course, student.studyCourse, student.yearOfStudy,
+      student.studentInfo?.course, student.student?.course]) {
+      const course = Number(value);
+      if (Number.isInteger(course) && course>=1 && course<=8) return course;
+    }
+    return null;
+  }
   function renderProfile(animate = true) {
     const container = document.getElementById('profileContainer');
     if (!platonusStudent) {
@@ -814,7 +836,6 @@ if ('serviceWorker' in navigator) {
             <svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4 6h16M4 12h16M4 18h16"/></svg>
           </summary>
           <nav class="profile-menu-items" aria-label="Учебные разделы">
-            <button type="button" onclick="switchSection('grades')"><span>Оценки</span><span aria-hidden="true">›</span></button>
             <button type="button" onclick="switchSection('umkd')"><span>УМКД</span><span aria-hidden="true">›</span></button>
             <button type="button" onclick="switchSection('exams')"><span>Экзамены</span><span aria-hidden="true">›</span></button>
           </nav>
@@ -823,8 +844,9 @@ if ('serviceWorker' in navigator) {
       <div class="profile-header">
         <div class="profile-avatar">${initials || '?'}</div>
         <div class="profile-header-info">
-          <div class="profile-name">${s.studentName || 'Студент'}</div>
+          <div class="profile-name">${escapeHtml(s.studentName || 'Студент')}</div>
           <div class="profile-id">ID: ${s.studentID ?? '—'}</div>
+          <div class="profile-study-info"><span>Группа: ${escapeHtml(studentGroup(s) || '—')}</span><span>Курс: ${studentCourse(s) || '—'}</span></div>
         </div>
       </div>
 
@@ -2393,6 +2415,7 @@ if ('serviceWorker' in navigator) {
       // Свежие данные всё равно грузим в фоне и тихо обновляем экран,
       // когда придёт ответ (см. конец loadLiveStudentData).
       loadLiveStudentData();
+      window.univerChat?.onLogin?.();
     } else {
       showLoginOverlay(true);
     }
