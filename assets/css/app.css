@@ -1183,7 +1183,7 @@
     .bottom-tab-bar { max-width: 500px; margin-inline: auto; }
 
     .login-overlay {
-      background: var(--aurora-base);
+      background: transparent;
       isolation: isolate;
       overflow-y: auto;
       justify-content: flex-start;
@@ -1650,23 +1650,25 @@
     .aurora-backdrop.webgl-ready::after { opacity: 0; }
 
     /* The video fills the viewport; the foreground keeps its own contrast. */
-    :root { --video-brightness: 1.15; --video-opacity: 0.48; --video-blur: 14px; }
+    :root { --video-brightness: 1.15; --video-opacity: 0.48; }
     [data-theme="dark"] { --video-brightness: 0.7; --video-opacity: 1; }
     .video-background {
       position: absolute;
-      /* Overscan keeps the blurred edges outside the visible viewport. */
-      top: calc(0px - var(--video-blur) * 3);
-      left: calc(0px - var(--video-blur) * 3);
-      width: calc(100% + var(--video-blur) * 6);
-      height: calc(100% + var(--video-blur) * 6);
+      inset: 0;
+      width: 100%;
+      height: 100%;
       object-fit: cover;
       object-position: center;
-      display: none;
+      display: block;
       pointer-events: none;
-      filter: grayscale(1) brightness(var(--video-brightness)) blur(var(--video-blur));
-      opacity: var(--video-opacity);
+      filter: grayscale(1) brightness(var(--video-brightness));
+      opacity: 0;
+      transform: translateZ(0);
+      backface-visibility: hidden;
+      transition: opacity 0.8s ease;
     }
-    .aurora-backdrop.video-ready .video-background { display: block; }
+    .aurora-backdrop.video-ready .video-background { opacity: var(--video-opacity); }
+    .aurora-backdrop::before { transition: opacity 0.8s ease; }
     .aurora-backdrop.video-ready::before { opacity: 0; }
     .aurora-backdrop.video-ready::after {
       background: linear-gradient(145deg, rgba(var(--background-tint-rgb), 0.74), rgba(var(--background-tint-rgb), 0.55));
@@ -1675,6 +1677,25 @@
     }
     @supports not (mix-blend-mode: color) {
       .aurora-backdrop.video-ready::after { opacity: 0.28; }
+    }
+
+    /* Avoid repeatedly blurring a changing video under every glass surface. */
+    :root { --motion-surface: rgba(255, 255, 255, 0.86); }
+    [data-theme="dark"] { --motion-surface: rgba(21, 23, 28, 0.9); }
+    .has-animated-background .week-stepper,
+    .has-animated-background .days-grid,
+    .has-animated-background .login-card,
+    .has-animated-background .modal-card,
+    .has-animated-background .theme-btn,
+    .has-animated-background .profile-logout-btn,
+    .has-animated-background .bottom-tab-bar,
+    .has-animated-background .notice-panel,
+    .has-animated-background .grade-card,
+    .has-animated-background .gpa-card,
+    .has-animated-background #scheduleContainer .list-row {
+      -webkit-backdrop-filter: none;
+      backdrop-filter: none;
+      background-color: var(--motion-surface);
     }
 
     /* A quiet, call-like halo around the lesson that is happening now.
