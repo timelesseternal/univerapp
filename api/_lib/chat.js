@@ -84,7 +84,9 @@ export async function startSession(req, res) {
   const profile = await rpc('chat_bootstrap', { p_student_id: studentID, p_display_name: name,
     p_token_hash: tokenHash(token), p_previous_hash: oldToken ? tokenHash(oldToken) : null });
   setCookie(req, res, token);
-  return { profile };
+  // Return the first inbox in the bootstrap response, avoiding another browser round trip.
+  const conversations = await rpc('chat_inbox', { p_user_id: profile.id });
+  return { profile, conversations };
 }
 export function uuid(value) {
   if (typeof value !== 'string' || !/^[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}$/i.test(value)) throw new ChatError(400, 'invalid_chat_request');

@@ -6,7 +6,8 @@
   const byID = id => document.getElementById(id);
   const state = { profile: null, conversation: null, messages: new Map(), drafts: new Map(),
     epoch: 0, visible: false, sessionWork: null, timer: null, searchTimer: null,
-    searchVersion: 0, refreshing: false, sending: false, hasOlder: false };
+    searchVersion: 0, refreshing: false, sending: false, hasOlder: false,
+    history: new Map(), pending: new Map(), inboxAt: 0 };
   const labels = {
     chat_not_configured: 'Чат пока не подключён. Администратор приложения скоро включит переписки.',
     chat_setup_required: 'Чат пока не подключён. Администратор приложения скоро включит переписки.',
@@ -80,6 +81,10 @@
       }
       if (stale(epoch) || generation !== authGeneration) throw new Error('session_changed');
       state.profile = data.profile;
+      if (Array.isArray(data.conversations)) {
+        drawInbox(data.conversations);
+        state.inboxAt = Date.now();
+      }
       return data.profile;
     })();
     state.sessionWork = work;
@@ -108,6 +113,14 @@
     }
   }
   function orderedMessages() { return [...state.messages.values()].sort((a, b) => BigInt(a.id) < BigInt(b.id) ? -1 : BigInt(a.id) > BigInt(b.id) ? 1 : 0); }
+  function rememberHistory() {
+    if (!state.conversation) return;
+    const messages = orderedMessages();
+    const id = state.conversation.id;
+    state.history.delete(id);
+    state.history.set(id, { messages: messages.slice(-200), hasOlder: state.hasOlder || messages.length > 200 });
+    if (state.history.size > 10) state.history.delete(state.history.keys().next().value);
+  }
   function drawMessages({ scroll = 'keep' } = {}) {
     const list = byID('chatMessages');
     const previousHeight = list.scrollHeight;
@@ -126,7 +139,14 @@
       article.append(time);
       list.append(article);
     }
-    if (!state.messages.size) list.append(node('p', 'chat-empty', 'Это начало вашей переписки. Поздоровайтесь!'));
+    const pending = [...state.pending.values()].filter(message => message.conversationID === state.conversation?.id);
+    for (const message of pending) {
+      const article = node('article', 'chat-message chat-message-own');
+      article.append(node('p', 'chat-message-text', message.text));
+      article.append(node('span', 'chat-message-time', message.failed ? 'Не отправлено · попробуйте ещё раз' : 'Отправляем…'));
+      list.append(article);
+    }
+    if (!state.messages.size && !pending.length) list.append(node('p', 'chat-empty', 'Это начало вашей переписки. Поздоровайтесь!'));
     byID('chatOlder').hidden = !state.hasOlder;
     if (scroll === 'bottom' || (scroll === 'keep' && nearBottom)) list.scrollTop = list.scrollHeight;
     else if (scroll === 'older') list.scrollTop = previousTop + list.scrollHeight - previousHeight;
@@ -142,34 +162,47 @@
     const data = await request('messages', { params });
     if (stale(epoch) || state.conversation?.id !== id) return;
     if (!params.after) state.hasOlder = data.hasMore;
-    const changed = data.messages.some(message => !state.messages.has(message.id));
-    for (const message of data.messages) state.messages.set(message.id, message);
+    let changed = data.messages.some(message => !state.messages.has(message.id));
+    for (const message of data.messages) {
+      state.messages.set(message.id, message);
+      if (message.senderID === state.profile.id && state.pending.delete(message.clientID)) changed = true;
+    }
+    rememberHistory();
     if (changed || initial || older) drawMessages({ scroll: initial ? 'bottom' : older ? 'older' : 'keep' });
     if (params.after && data.hasMore) await refreshMessages();
   }
-  function scheduleRefresh() {
+  function scheduleRefresh(elapsed = 0) {
     clearTimeout(state.timer);
     if (!state.visible || document.hidden || !platonusSession) return;
-    state.timer = setTimeout(refresh, state.conversation ? 2500 : 8000);
+    state.timer = setTimeout(refresh, Math.max(250, (state.conversation ? 2500 : 8000) - elapsed));
   }
   async function refresh() {
     if (!state.visible || document.hidden || state.refreshing || !platonusSession) return;
     const epoch = state.epoch;
+    const started = Date.now();
     state.refreshing = true;
     let retry = true;
     try {
       await ensureSession();
       if (stale(epoch)) return;
-      await refreshMessages();
-      const data = await request('inbox');
+      const work = [refreshMessages()];
+      if (!state.inboxAt || Date.now() - state.inboxAt >= 8000) {
+        work.push(request('inbox').then(data => {
+          if (stale(epoch)) return;
+          drawInbox(data.conversations || []);
+          state.inboxAt = Date.now();
+        }));
+      }
+      const results = await Promise.allSettled(work);
       if (stale(epoch)) return;
-      drawInbox(data.conversations || []);
+      const failure = results.find(result => result.status === 'rejected');
+      if (failure) throw failure.reason;
       status();
     } catch (error) {
       if (!stale(epoch)) showError(error);
       retry = !['chat_not_configured', 'chat_setup_required', 'session_expired'].includes(error.message);
     } finally {
-      if (!stale(epoch)) { state.refreshing = false; if (retry) scheduleRefresh(); }
+      if (!stale(epoch)) { state.refreshing = false; if (retry) scheduleRefresh(Date.now() - started); }
     }
   }
   async function search() {
@@ -216,9 +249,11 @@
   }
   async function openConversation(conversation) {
     saveDraft();
+    rememberHistory();
     state.conversation = conversation;
-    state.messages.clear();
-    state.hasOlder = false;
+    const cached = state.history.get(conversation.id);
+    state.messages = new Map((cached?.messages || []).map(message => [message.id, message]));
+    state.hasOlder = cached?.hasOlder || false;
     root.classList.add('chat-in-thread');
     byID('chatInboxView').hidden = true;
     byID('chatThread').hidden = false;
@@ -226,23 +261,26 @@
     byID('chatPeerAvatar').textContent = initials(conversation.peer.name);
     byID('chatText').value = state.drafts.get(conversation.id)?.text || '';
     resizeComposer();
-    byID('chatMessages').replaceChildren(node('p', 'chat-empty', 'Загружаем переписку…'));
+    if (cached) drawMessages({ scroll: 'bottom' });
+    else byID('chatMessages').replaceChildren(node('p', 'chat-empty', 'Загружаем переписку…'));
     const epoch = state.epoch;
     try {
       await ensureSession();
       if (stale(epoch) || state.conversation?.id !== conversation.id) return;
-      await refreshMessages({ initial: true });
+      await refreshMessages({ initial: !cached });
       if (!stale(epoch)) { status(); scheduleRefresh(); }
     } catch (error) { if (!stale(epoch)) showError(error); }
   }
   function closeConversation() {
     saveDraft();
+    rememberHistory();
     state.conversation = null;
     state.messages.clear();
     root.classList.remove('chat-in-thread');
     byID('chatThread').hidden = true;
     byID('chatInboxView').hidden = false;
     status();
+    state.inboxAt = 0;
     refresh();
   }
   function resizeComposer() {
@@ -260,6 +298,8 @@
     const previous = state.drafts.get(id);
     const clientID = previous?.text?.trim() === text && previous.clientID ? previous.clientID : crypto.randomUUID();
     state.drafts.set(id, { text: byID('chatText').value, clientID });
+    state.pending.set(clientID, { conversationID: id, text, failed: false });
+    drawMessages({ scroll: 'bottom' });
     state.sending = true;
     byID('chatSend').disabled = true;
     byID('chatText').disabled = true;
@@ -269,14 +309,28 @@
       if (stale(epoch)) return;
       const data = await request('messages', { method: 'POST', body: { conversationID: id, text, clientID } });
       if (stale(epoch)) return;
+      state.pending.delete(clientID);
       state.drafts.delete(id);
+      const cached = state.history.get(id);
+      if (cached && state.conversation?.id !== id) {
+        cached.messages = [...cached.messages.filter(message => message.id !== data.message.id), data.message]
+          .sort((a, b) => BigInt(a.id) < BigInt(b.id) ? -1 : 1).slice(-200);
+      }
       if (state.conversation?.id === id) {
         state.messages.set(data.message.id, data.message);
+        rememberHistory();
         byID('chatText').value = '';
         drawMessages({ scroll: 'bottom' });
         status();
       }
-    } catch (error) { if (!stale(epoch)) showError(error); }
+    } catch (error) {
+      if (!stale(epoch)) {
+        const pending = state.pending.get(clientID);
+        if (pending) pending.failed = true;
+        if (state.conversation?.id === id) drawMessages();
+        showError(error);
+      }
+    }
     finally {
       if (!stale(epoch)) {
         state.sending = false;
@@ -297,6 +351,9 @@
     state.conversation = null;
     state.messages.clear();
     state.drafts.clear();
+    state.history.clear();
+    state.pending.clear();
+    state.inboxAt = 0;
     state.sending = state.refreshing = false;
     root.classList.remove('chat-in-thread');
     byID('chatInboxView').hidden = false;

@@ -39,6 +39,7 @@ test('chat identity comes from Platonus, ignoring browser-supplied identity', as
       assert.equal(options.headers.Sid, 'sid');
       return reply({ studentID: 91, studentName: 'Айгерім Студент' });
     }
+    if (url.endsWith('/rpc/chat_inbox')) return reply([]);
     assert.ok(url.endsWith('/rpc/chat_bootstrap'));
     bootstrap = JSON.parse(options.body);
     return reply({ id: user, name: 'Айгерім Студент' });
@@ -46,6 +47,7 @@ test('chat identity comes from Platonus, ignoring browser-supplied identity', as
   const session = Buffer.from(JSON.stringify({ sid: 'sid', token: 'token', cookie: 'cookie' })).toString('base64');
   const res = await call({ method: 'POST', action: 'session', headers: { 'x-session': session, 'x-forwarded-proto': 'https' }, body: { studentID: 999, name: 'Подмена' } });
   assert.equal(res.code, 200);
+  assert.deepEqual(res.body.conversations, []);
   assert.equal(bootstrap.p_student_id, 91);
   assert.equal(bootstrap.p_display_name, 'Айгерім Студент');
   assert.ok(res.headers['Set-Cookie'].includes('HttpOnly; SameSite=Strict'));
