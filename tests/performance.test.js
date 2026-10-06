@@ -107,6 +107,36 @@ test('cached studentID lets schedule render while GPA remains pending', async ()
   assert.ok(renders > 0);
   assert.equal(ctx.liveLoadInFlight, false);
 });
+test('ready grades refresh before the schedule and ignore late data after logout', async () => {
+  let completeExtras, completeSchedule, renders = 0;
+  const ctx = vm.createContext({
+    liveLoadInFlight: false, scheduleLoadFailed: false, authGeneration: 0, ensureAuthGeneration() {},
+    platonusStudent: { studentID: 7 }, liveScheduleWeekInfo: { selectedStudyYear: 2026, selectedTerm: 1 },
+    currentSection: 'grades', userNavigatedWeek: false, browsedWeekInfo: null,
+    liveJournalData: null, liveUmkdData: null,
+    fetchGradesAndUmkd: () => new Promise(resolve => { completeExtras = resolve; }),
+    platonusFetch: path => path === '/api/gpa' ? new Promise(() => {})
+      : new Promise(resolve => { completeSchedule = resolve; }),
+    buildScheduleEntryFromPlatonus: () => ({ weekInfo: { studyYear: 2026, term: 1, week: 6 }, schedule: {}, lessonTimes: {} }),
+    normWeekInfo: x => x, cacheWeekEntry() {}, applyWeekCacheEntry() {},
+    detectToday() {}, updateStatusBarAndLive() {}, updateWeekStepperUI() {},
+    renderCurrentSection() { renders++; }, saveCachedStudentData() {}, csSet() {}, console,
+  });
+  vm.runInContext(app.slice(app.indexOf('  async function loadLiveStudentData()'), app.indexOf('  const CITY_COORDS')), ctx);
+  const loading = ctx.loadLiveStudentData();
+  for (let n = 0; n < 5; n++) await Promise.resolve();
+  completeExtras({ journal: { subjects: ['fresh'] }, umkd: { subjects: [] } });
+  for (let n = 0; n < 5; n++) await Promise.resolve();
+  assert.equal(ctx.liveJournalData.subjects[0], 'fresh');
+  assert.equal(renders, 1);
+  ctx.authGeneration++;
+  ctx.liveJournalData = null;
+  completeSchedule({ selectedWeek: 6, selectedTerm: 1, selectedStudyYear: 2026 });
+  await loading;
+  assert.equal(ctx.liveJournalData, null);
+  assert.equal(renders, 1);
+});
+
 test('all inline and standalone JavaScript parses', () => {
   for (const match of html.matchAll(/<script(?:\s[^>]*)?>([\s\S]*?)<\/script>/g)) new vm.Script(match[1]);
   for (const name of ['appearance.js', 'app.js', 'chat.js', 'background.js', 'sw.js']) new vm.Script(fs.readFileSync(new URL(`../assets/js/${name}`, import.meta.url), 'utf8'));

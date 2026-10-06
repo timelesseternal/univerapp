@@ -1,5 +1,5 @@
 // Public app shell only; student data and video ranges bypass this cache.
-const CACHE_NAME = 'univer-shell-v13';
+const CACHE_NAME = 'univer-shell-v14';
 const FONT_PATHS = new Set([
   '/assets/fonts/manrope/cyrillic-ext.woff2',
   '/assets/fonts/manrope/cyrillic.woff2',
@@ -20,7 +20,27 @@ self.addEventListener('fetch', event => {
   if (request.method !== 'GET' || url.origin !== self.location.origin
     || !SHELL_PATHS.has(url.pathname) || url.search || request.headers.has('range')) return;
 
-  // Prefer fresh code; keep the public shell available if the network is down.
+  // A navigation checks for new releases; warmed assets display immediately.
+  // Cache namespaces change with releases so an old release cannot fill this cache.
+  if (!FONT_PATHS.has(url.pathname) && url.pathname !== '/' && url.pathname !== '/index.html') {
+    const update = (async () => {
+      const response = await fetch(request);
+      if (response.ok) {
+        const cache = await caches.open(CACHE_NAME);
+        await cache.put(request, response.clone());
+      }
+      return response;
+    })();
+    event.waitUntil(update.catch(() => {}));
+    event.respondWith((async () => {
+      const cache = await caches.open(CACHE_NAME);
+      const cached = await cache.match(request);
+      return cached || await update;
+    })());
+    return;
+  }
+
+  // Prefer fresh HTML; keep the public shell available if the network is down.
   event.respondWith((async () => {
     const cache = await caches.open(CACHE_NAME);
     if (FONT_PATHS.has(url.pathname)) {

@@ -894,6 +894,16 @@ if ('serviceWorker' in navigator) {
         ? `${ci.selectedStudyYear}-${ci.selectedTerm}` : null;
       const earlyExtras = (cachedID && cachedKey)
         ? fetchGradesAndUmkd(ci.selectedStudyYear, ci.selectedTerm) : null;
+      // Cached semester data can refresh grades/UMKD before a slow schedule returns.
+      if (earlyExtras) earlyExtras.then(extras => {
+        if (generation !== authGeneration) return;
+        const info = liveScheduleWeekInfo;
+        if (!info || `${info.selectedStudyYear}-${info.selectedTerm}` !== cachedKey) return;
+        if (extras.journal) liveJournalData = extras.journal;
+        if (extras.umkd) liveUmkdData = extras.umkd;
+        if (currentSection === 'grades' || currentSection === 'umkd') renderCurrentSection();
+        saveCachedStudentData();
+      }).catch(() => {});
 
       const gpaPromise = platonusFetch('/api/gpa').then(gpa => {
         ensureAuthGeneration(generation);
@@ -929,7 +939,7 @@ if ('serviceWorker' in navigator) {
           && Number(schedule.selectedStudyYear) === w.studyYear;
         if (!trusted) {
           const explicit = await platonusFetch(
-            `/api/schedule?studentID=${platonusStudent.studentID}&year=${w.studyYear}&term=${w.term}&week=${w.week}`
+            `/api/schedule?studentID=${cachedID || platonusStudent.studentID}&year=${w.studyYear}&term=${w.term}&week=${w.week}`
           );
           if (generation !== authGeneration) return;
           entry = buildScheduleEntryFromPlatonus(explicit, true, w);
