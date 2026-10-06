@@ -1668,6 +1668,17 @@
       transition: opacity 0.8s ease;
     }
     .aurora-backdrop.video-ready .video-background { opacity: var(--video-opacity); }
+    .video-background-frame {
+      position: absolute;
+      inset: 0;
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      object-position: center;
+      pointer-events: none;
+      transform: translateZ(0);
+      backface-visibility: hidden;
+    }
     .aurora-backdrop::before { transition: opacity 0.8s ease; }
     .aurora-backdrop.video-ready::before { opacity: 0; }
     .aurora-backdrop.video-ready::after {
