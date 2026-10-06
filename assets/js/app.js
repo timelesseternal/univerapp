@@ -803,10 +803,23 @@ if ('serviceWorker' in navigator) {
     }
 
     const s = platonusStudent;
+    const gpaExpanded = document.getElementById('profileGpaDetails')?.open || false;
     const initials = (s.studentName || '').split(' ').filter(Boolean).slice(0, 2).map(w => w[0]).join('').toUpperCase();
 
     const html = `
-      <span class="masthead-eyebrow" style="margin-bottom:10px; display:block;">Профиль</span>
+      <div class="profile-toolbar">
+        <span class="masthead-eyebrow">Профиль</span>
+        <details class="profile-menu">
+          <summary aria-label="Меню профиля" title="Меню профиля">
+            <svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4 6h16M4 12h16M4 18h16"/></svg>
+          </summary>
+          <nav class="profile-menu-items" aria-label="Учебные разделы">
+            <button type="button" onclick="switchSection('grades')"><span>Оценки</span><span aria-hidden="true">›</span></button>
+            <button type="button" onclick="switchSection('umkd')"><span>УМКД</span><span aria-hidden="true">›</span></button>
+            <button type="button" onclick="switchSection('exams')"><span>Экзамены</span><span aria-hidden="true">›</span></button>
+          </nav>
+        </details>
+      </div>
       <div class="profile-header">
         <div class="profile-avatar">${initials || '?'}</div>
         <div class="profile-header-info">
@@ -815,12 +828,17 @@ if ('serviceWorker' in navigator) {
         </div>
       </div>
 
-      <div class="gpa-card">
-        <div class="gpa-row"><span class="gpa-label">Академический GPA</span><span class="gpa-value accent">${s.academicGpa ?? '—'}</span></div>
+      <details class="gpa-card profile-gpa" id="profileGpaDetails" ${gpaExpanded ? 'open' : ''}>
+        <summary class="gpa-row" aria-label="Академический GPA: раскрыть остальные показатели">
+          <span class="gpa-label">Академический GPA</span>
+          <span class="profile-gpa-value"><span class="gpa-value accent">${s.academicGpa ?? '—'}</span><span class="profile-gpa-arrow" aria-hidden="true">›</span></span>
+        </summary>
+        <div class="profile-gpa-extra">
         <div class="gpa-row"><span class="gpa-label">Научный GPA</span><span class="gpa-value">${s.scientificGpa ?? '—'}</span></div>
         <div class="gpa-row"><span class="gpa-label">Социальный GPA</span><span class="gpa-value">${s.socialGpa ?? '—'}</span></div>
         <div class="gpa-row"><span class="gpa-label">Интегральный GPA</span><span class="gpa-value">${s.integralGpa ?? '—'}</span></div>
-      </div>
+        </div>
+      </details>
 
       <button class="profile-logout-btn" onclick="confirmLogout()">Выйти из аккаунта</button>
     `;
@@ -1812,9 +1830,6 @@ if ('serviceWorker' in navigator) {
     selectDay(realTodayName, null, true);
   }
 
-  let lastStudySection = 'grades';
-  function switchStudySection() { switchSection(lastStudySection); }
-
   function switchSection(section) {
     if (section === currentSection) return;
     haptic('light');
@@ -1822,15 +1837,9 @@ if ('serviceWorker' in navigator) {
     if (window.univerChat) window.univerChat.onSection(section);
 
     document.querySelectorAll('.bottom-tab-btn').forEach(btn => btn.classList.remove('active'));
-    const studying = ['grades', 'umkd', 'exams'].includes(section);
-    if (studying) lastStudySection = section;
-    const activeBtn = document.getElementById(`section-${studying ? 'grades' : section}`);
+    const profileChild = ['umkd', 'exams'].includes(section);
+    const activeBtn = document.getElementById(`section-${profileChild ? 'profile' : section}`);
     activeBtn.classList.add('active');
-    document.querySelectorAll('[data-study-section]').forEach(button => {
-      const active = button.dataset.studySection === section;
-      button.classList.toggle('active', active);
-      button.setAttribute('aria-pressed', String(active));
-    });
     updateTabIndicator();
 
     // Небольшой "bounce" залитой иконки при активации вкладки (как в TikTok).
