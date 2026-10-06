@@ -1677,7 +1677,74 @@
       .aurora-backdrop.video-ready::after { opacity: 0.28; }
     }
 
+    /* A quiet, call-like halo around the lesson that is happening now.
+       Only its decorative layers move; the card and text remain still. */
+    #scheduleContainer .list-row.is-live {
+      isolation: isolate;
+      overflow: visible;
+      box-shadow: var(--surface-shadow), inset 0 0 0 1px var(--surface-border);
+    }
+    .lesson-live-aura, .lesson-live-orbit {
+      position: absolute;
+      pointer-events: none;
+      border-radius: 23px;
+    }
+    .lesson-live-aura {
+      inset: -3px;
+      border: 1px solid var(--accent);
+      box-shadow: 0 0 12px 2px var(--accent), 0 0 28px var(--accent);
+      opacity: 0.24;
+      animation: lessonAuraBreathe 3.6s ease-in-out infinite;
+      z-index: -1;
+    }
+    .lesson-live-orbit {
+      inset: -2px;
+      padding: 2px;
+      border: 2px solid var(--accent);
+      overflow: hidden;
+    }
+    @supports ((mask-composite: exclude) or (-webkit-mask-composite: xor)) {
+      .lesson-live-orbit {
+        border: none;
+        -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+        mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+        -webkit-mask-composite: xor;
+        mask-composite: exclude;
+      }
+      .lesson-live-orbit::before {
+        content: "";
+        position: absolute;
+        left: 50%;
+        top: 50%;
+        width: 200%;
+        aspect-ratio: 1;
+        background: conic-gradient(
+          from 0deg,
+          transparent 0deg,
+          var(--accent) 55deg,
+          var(--accent) 85deg,
+          transparent 150deg,
+          transparent 180deg,
+          var(--accent) 235deg,
+          var(--accent) 265deg,
+          transparent 330deg
+        );
+        animation: lessonOrbitTurn 7s linear infinite;
+      }
+    }
+    @keyframes lessonOrbitTurn {
+      from { transform: translate(-50%, -50%) rotate(0deg); }
+      to { transform: translate(-50%, -50%) rotate(360deg); }
+    }
+    @keyframes lessonAuraBreathe {
+      0%, 100% { opacity: 0.16; transform: scale(1); }
+      50% { opacity: 0.32; transform: scale(1.008, 1.025); }
+    }
     @media (prefers-reduced-motion: reduce) {
+      .lesson-live-aura, .lesson-live-orbit::before {
+        animation: none !important;
+      }
+      .lesson-live-orbit::before { transform: translate(-50%, -50%); }
       .aurora-backdrop::before, .aurora-backdrop::after {
         animation: none !important;
         will-change: auto;

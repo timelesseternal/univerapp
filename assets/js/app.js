@@ -1874,6 +1874,7 @@ if ('serviceWorker' in navigator) {
 
       rowsHtml += `
         <div class="${rowClass}"${rowStyle}>
+          ${isActive ? '<span class="lesson-live-aura" aria-hidden="true"></span><span class="lesson-live-orbit" aria-hidden="true"></span>' : ''}
           <div class="row-index">
             <span class="row-index-main">${startTime}</span>
             <span class="row-index-sub">${endTime}</span>
