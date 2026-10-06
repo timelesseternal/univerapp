@@ -713,6 +713,7 @@
       transition: opacity 0.25s ease;
     }
     .login-overlay.hidden { opacity: 0; pointer-events: none; }
+    .login-screen .app-wrapper, .login-screen .bottom-tab-bar { display: none; }
     .login-card { max-width: 380px; margin: 0 auto; width: 100%; }
     .login-title {
 

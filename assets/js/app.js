@@ -151,6 +151,11 @@ if ('serviceWorker' in navigator) {
   let scheduleLoadFailed = false;  // не удалось загрузить расписание
   let userNavigatedWeek = false;   // пользователь уже листал недели стрелками
   let liveLoadInFlight = false;    // идёт загрузка свежих данных
+  let authGeneration = 0;
+  let authStorageWork = Promise.resolve();
+  function ensureAuthGeneration(generation) {
+    if (generation !== authGeneration) throw new Error('session_changed');
+  }
 
   // ==================================================================
   // ============ КЭШ РАСПИСАНИЯ ПО НЕДЕЛЯМ ============
@@ -410,6 +415,8 @@ if ('serviceWorker' in navigator) {
   }
 
   async function saveCachedStudentData() {
+    if (!platonusSession) return;
+    const generation = authGeneration;
     // Разбито на несколько маленьких ключей вместо одного большого блока:
     // у Telegram CloudStorage жёсткий лимит в 4096 символов на значение,
     // а расписание+журнал+УМКД+дубликат "истинной текущей" недели в одном
@@ -429,11 +436,13 @@ if ('serviceWorker' in navigator) {
     } catch (e) {
       // не критично — просто не закэшируется в этот раз, попробуем в следующий
     }
+    if (generation !== authGeneration) return;
     try {
       await csSet(JOURNAL_CACHE_KEY, JSON.stringify(liveJournalData ?? null));
     } catch (e) {
       // не критично
     }
+    if (generation !== authGeneration) return;
     try {
       await csSet(UMKD_CACHE_KEY, JSON.stringify(liveUmkdData ?? null));
     } catch (e) {
@@ -441,13 +450,26 @@ if ('serviceWorker' in navigator) {
     }
   }
 
+  let loginHideTimer = null;
   function showLoginOverlay(show) {
     const el = document.getElementById('loginOverlay');
+    clearTimeout(loginHideTimer);
+    loginHideTimer = null;
+    document.body.classList.toggle('login-screen', show);
+    el.setAttribute('aria-hidden', String(!show));
     if (show) {
+      el.style.display = 'flex';
       el.classList.remove('hidden');
     } else {
       el.classList.add('hidden');
-      setTimeout(() => { el.style.display = 'none'; }, 260);
+      loginHideTimer = setTimeout(() => {
+        if (el.classList.contains('hidden')) el.style.display = 'none';
+        loginHideTimer = null;
+      }, 260);
+      requestAnimationFrame(() => {
+        initIndicatorsNoAnim();
+        initTabIndicatorNoAnim();
+      });
     }
   }
 
@@ -481,6 +503,9 @@ if ('serviceWorker' in navigator) {
     const login = document.getElementById('loginInput').value.trim();
     const password = document.getElementById('passwordInput').value;
     const btn = document.getElementById('loginSubmitBtn');
+    if (btn.disabled) return;
+    const generation = authGeneration;
+    let loginCompleted = false;
     setLoginError(null);
 
     if (!login || !password) {
@@ -492,12 +517,15 @@ if ('serviceWorker' in navigator) {
     btn.textContent = 'Входим…';
 
     try {
+      await authStorageWork;
+      if (generation !== authGeneration) return;
       const resp = await fetch(`${API_BASE}/api/login`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ login, password }),
       });
       const data = await resp.json();
+      if (generation !== authGeneration) return;
 
       if (!resp.ok || !data.ok) {
         if (data.error === 'invalid_credentials') {
@@ -512,8 +540,10 @@ if ('serviceWorker' in navigator) {
         return;
       }
 
+      authGeneration++;
+      loginCompleted = true;
       platonusSession = data.session;
-      void Promise.all([
+      authStorageWork = Promise.all([
         csSet('platonus_session', platonusSession),
         csSet('platonus_login', login),
         csSet('platonus_password', password),
@@ -523,10 +553,12 @@ if ('serviceWorker' in navigator) {
       showLoginOverlay(false);
       loadLiveStudentData(); // грузим в фоне, экран не блокируем
     } catch (err) {
-      setLoginError('Ошибка сети. Проверьте подключение и попробуйте снова.');
+      if (generation === authGeneration) setLoginError('Ошибка сети. Проверьте подключение и попробуйте снова.');
     } finally {
-      btn.disabled = false;
-      btn.textContent = 'Войти';
+      if (generation === authGeneration || (loginCompleted && generation + 1 === authGeneration)) {
+        btn.disabled = false;
+        btn.textContent = 'Войти';
+      }
     }
   }
 
@@ -547,13 +579,16 @@ if ('serviceWorker' in navigator) {
 
   function logout() {
     haptic('medium');
-    csRemove('platonus_session');
-    csRemove('platonus_student');
-    csRemove('platonus_login');
-    csRemove('platonus_password');
-    csRemove(META_CACHE_KEY);
-    csRemove(JOURNAL_CACHE_KEY);
-    csRemove(UMKD_CACHE_KEY);
+    authGeneration++;
+    reloginInFlight = null;
+    const keys = ['platonus_session', 'platonus_student', 'platonus_login', 'platonus_password',
+      META_CACHE_KEY, JOURNAL_CACHE_KEY, UMKD_CACHE_KEY];
+    // Clear display data immediately; finish earlier credential writes before deletion.
+    keys.forEach(key => {
+      lsSafe(() => localStorage.removeItem(localCacheKey(key)));
+      if (!useCloudStorage()) lsSafe(() => localStorage.removeItem(key));
+    });
+    authStorageWork = authStorageWork.catch(() => {}).then(() => Promise.all(keys.map(csRemove)));
     platonusSession = null;
     platonusStudent = null;
     liveJournalData = null;
@@ -563,12 +598,28 @@ if ('serviceWorker' in navigator) {
     trueCurrentSchedule = {};
     trueCurrentLessonTimes = {};
     SCHEDULE = {};
+    LESSON_TIMES = {};
     liveScheduleWeekInfo = null;
     userNavigatedWeek = false;
     scheduleLoadFailed = false;
+    liveLoadInFlight = false;
+    weekStepBusy = false;
+    selectedUmkdSubject = null;
+    lastRenderedScreenKey = '';
+    document.getElementById('cityModal').classList.remove('active');
+    document.getElementById('accentModal').classList.remove('active');
+    closeUmkdFile();
+    document.querySelectorAll('.content-hidden').forEach(el => el.classList.remove('content-hidden'));
+    document.getElementById('passwordInput').value = '';
+    document.getElementById('passwordInput').type = 'password';
+    document.getElementById('passwordToggleBtn').classList.remove('visible');
+    document.getElementById('passwordToggleBtn').setAttribute('aria-label', 'Показать пароль');
+    document.getElementById('passwordEyeIcon').innerHTML = EYE_ICON_OPEN;
+    document.getElementById('loginSubmitBtn').disabled = false;
+    document.getElementById('loginSubmitBtn').textContent = 'Войти';
+    setLoginError(null);
     Object.keys(weekScheduleCache).forEach(k => delete weekScheduleCache[k]);
     switchSection('schedule');
-    document.getElementById('loginOverlay').style.display = 'flex';
     showLoginOverlay(true);
     updateWeekStepperUI();
   }
@@ -576,12 +627,19 @@ if ('serviceWorker' in navigator) {
   let reloginInFlight = null;
   function silentRelogin() {
     if (!reloginInFlight) {
-      reloginInFlight = performSilentRelogin().finally(() => { reloginInFlight = null; });
+      const request = performSilentRelogin().finally(() => {
+        if (reloginInFlight === request) reloginInFlight = null;
+      });
+      reloginInFlight = request;
     }
     return reloginInFlight;
   }
   async function performSilentRelogin() {
+    const generation = authGeneration;
+    await authStorageWork;
+    if (generation !== authGeneration) return false;
     const credentials = await csGetMany(['platonus_login', 'platonus_password']);
+    if (generation !== authGeneration) return false;
     const login = credentials.platonus_login;
     const password = credentials.platonus_password;
     if (!login || !password) return false;
@@ -593,10 +651,11 @@ if ('serviceWorker' in navigator) {
         body: JSON.stringify({ login, password }),
       });
       const data = await resp.json();
+      if (generation !== authGeneration) return false;
       if (!resp.ok || !data.ok) return false;
 
       platonusSession = data.session;
-      void csSet('platonus_session', platonusSession);
+      authStorageWork = csSet('platonus_session', platonusSession);
       return true;
     } catch (e) {
       return false;
@@ -605,13 +664,17 @@ if ('serviceWorker' in navigator) {
 
   async function platonusFetch(path) {
     if (!platonusSession) throw new Error('no_session');
+    const generation = authGeneration;
+    const requestSession = platonusSession;
     let resp = await fetch(`${API_BASE}${path}`, {
-      headers: { 'x-session': platonusSession },
+      headers: { 'x-session': requestSession },
       cache: 'no-store',
     });
 
+    ensureAuthGeneration(generation);
     if (resp.status === 401) {
-      const relogged = await silentRelogin();
+      const relogged = platonusSession !== requestSession || await silentRelogin();
+      ensureAuthGeneration(generation);
       if (relogged) {
         resp = await fetch(`${API_BASE}${path}`, {
           headers: { 'x-session': platonusSession },
@@ -622,6 +685,7 @@ if ('serviceWorker' in navigator) {
         throw new Error('session_expired');
       }
     }
+    ensureAuthGeneration(generation);
     if (!resp.ok) {
       let detail = '';
       try {
@@ -632,7 +696,9 @@ if ('serviceWorker' in navigator) {
       }
       throw new Error(detail ? `request_failed: ${detail}` : 'request_failed');
     }
-    return resp.json();
+    const data = await resp.json();
+    ensureAuthGeneration(generation);
+    return data;
   }
 
   const PLT_DAY_NAMES = { 1: 'Понедельник', 2: 'Вторник', 3: 'Среда', 4: 'Четверг', 5: 'Пятница', 6: 'Суббота' };
@@ -812,6 +878,7 @@ if ('serviceWorker' in navigator) {
 
   async function loadLiveStudentData() {
     if (liveLoadInFlight) return;
+    const generation = authGeneration;
     liveLoadInFlight = true;
     scheduleLoadFailed = false;
 
@@ -826,23 +893,28 @@ if ('serviceWorker' in navigator) {
         ? fetchGradesAndUmkd(ci.selectedStudyYear, ci.selectedTerm) : null;
 
       const gpaPromise = platonusFetch('/api/gpa').then(gpa => {
+        ensureAuthGeneration(generation);
         platonusStudent = gpa;
         csSet('platonus_student', JSON.stringify(gpa));
         if (currentSection === 'profile') renderProfile(false);
         return gpa;
       });
       const schedPromise = (cachedID ? Promise.resolve(cachedID) : gpaPromise.then(g => g.studentID))
-        .then(id => platonusFetch(`/api/schedule?studentID=${id}`));
+        .then(id => {
+          ensureAuthGeneration(generation);
+          return platonusFetch(`/api/schedule?studentID=${id}`);
+        });
       schedPromise.catch(() => {}); // чтобы не было «unhandled rejection», если профиль не загрузится
 
       // A slow profile refresh must not delay the schedule when studentID is cached.
       gpaPromise.catch(err => {
-        if (err.message !== 'session_expired') console.error('Failed to load GPA/profile', err);
+        if (generation === authGeneration && err.message !== 'session_expired') console.error('Failed to load GPA/profile', err);
       });
 
       // 2) Расписание — показываем сразу, не дожидаясь оценок и УМКД
       try {
         const schedule = await schedPromise;
+        if (generation !== authGeneration) return;
         let entry = buildScheduleEntryFromPlatonus(schedule, false);
 
         // Без явной недели Platonus может вернуть расписание другой недели
@@ -856,6 +928,7 @@ if ('serviceWorker' in navigator) {
           const explicit = await platonusFetch(
             `/api/schedule?studentID=${platonusStudent.studentID}&year=${w.studyYear}&term=${w.term}&week=${w.week}`
           );
+          if (generation !== authGeneration) return;
           entry = buildScheduleEntryFromPlatonus(explicit, true, w);
         }
 
@@ -878,6 +951,7 @@ if ('serviceWorker' in navigator) {
           };
         }
       } catch (err) {
+        if (generation !== authGeneration) return;
         console.error('Failed to load/parse schedule', err);
         if (!browsedWeekInfo) scheduleLoadFailed = true;
       }
@@ -895,18 +969,20 @@ if ('serviceWorker' in navigator) {
         const extras = (earlyExtras && cachedKey === key)
           ? await earlyExtras
           : await fetchGradesAndUmkd(info.selectedStudyYear, info.selectedTerm);
+        if (generation !== authGeneration) return;
         if (extras.journal) liveJournalData = extras.journal;
         if (extras.umkd) liveUmkdData = extras.umkd;
       } else {
         // Год/семестр не определились — пробуем УМКД с текущим годом как запасной вариант.
         const u = await platonusFetch(`/api/umkd?year=${new Date().getFullYear()}&term=1`).catch(() => null);
+        if (generation !== authGeneration) return;
         if (u) liveUmkdData = u;
       }
 
       renderCurrentSection();
       saveCachedStudentData();
     } finally {
-      liveLoadInFlight = false;
+      if (generation === authGeneration) liveLoadInFlight = false;
     }
   }
 
@@ -1260,6 +1336,7 @@ if ('serviceWorker' in navigator) {
   }
 
   function swapContent(container, html, animate = true, onInserted) {
+    const generation = authGeneration;
     if (!animate) {
       container.innerHTML = html;
       if (onInserted) onInserted();
@@ -1267,6 +1344,7 @@ if ('serviceWorker' in navigator) {
     }
     container.classList.add('content-hidden');
     setTimeout(() => {
+      if (generation !== authGeneration) return;
       container.innerHTML = html;
       requestAnimationFrame(() => container.classList.remove('content-hidden'));
       if (onInserted) onInserted();
@@ -1551,10 +1629,12 @@ if ('serviceWorker' in navigator) {
   // данными; если он уже успел уйти на другую неделю — просто обновляет кэш
   // про запас и ничего на экране не трогает.
   async function refreshWeekInBackground(studyYear, term, week) {
+    const generation = authGeneration;
     try {
       const data = await platonusFetch(
         `/api/schedule?studentID=${platonusStudent.studentID}&year=${studyYear}&term=${term}&week=${week}`
       );
+      if (generation !== authGeneration) return;
       const entry = buildScheduleEntryFromPlatonus(data, true, { studyYear, term, week });
       cacheWeekEntry(entry);
 
@@ -1582,6 +1662,7 @@ if ('serviceWorker' in navigator) {
   // спиннер показываем, только если недели вообще нигде нет в кэше.
   async function stepWeek(delta) {
     if (weekStepBusy || !browsedWeekInfo || !platonusStudent) return;
+    const generation = authGeneration;
     const nextWeekRaw = Number(browsedWeekInfo.week) + delta;
     if (nextWeekRaw < 1 || nextWeekRaw > MAX_TERM_WEEKS) return;
 
@@ -1603,6 +1684,7 @@ if ('serviceWorker' in navigator) {
     }
 
     const persisted = await loadPersistedWeekEntry(key);
+    if (generation !== authGeneration) return;
     if (persisted) {
       weekScheduleCache[key] = persisted;
       applyWeekCacheEntry(persisted);
@@ -1621,6 +1703,7 @@ if ('serviceWorker' in navigator) {
       const data = await platonusFetch(
         `/api/schedule?studentID=${platonusStudent.studentID}&year=${studyYear}&term=${term}&week=${nextWeekRaw}`
       );
+      if (generation !== authGeneration) return;
       transformPlatonusSchedule(data, true, { studyYear, term, week: nextWeekRaw });
       detectToday();
       updateStatusBarAndLive();
@@ -1629,8 +1712,10 @@ if ('serviceWorker' in navigator) {
     } catch (err) {
       console.error('Failed to load week', err);
     } finally {
-      weekStepBusy = false;
-      updateWeekStepperUI();
+      if (generation === authGeneration) {
+        weekStepBusy = false;
+        updateWeekStepperUI();
+      }
     }
   }
 
@@ -2102,6 +2187,7 @@ if ('serviceWorker' in navigator) {
   async function openUmkdFile(fileTypeID, umkdid) {
     haptic('light');
     if (!platonusSession) return;
+    const generation = authGeneration;
 
     const overlay = document.getElementById('umkdFileOverlay');
     const frame = document.getElementById('umkdFileFrame');
@@ -2118,21 +2204,25 @@ if ('serviceWorker' in navigator) {
 
     try {
       await ensurePdfJsLoaded();
+      ensureAuthGeneration(generation);
       const resp = await fetch(
         `${API_BASE}/api/umkd-file?fileTypeID=${encodeURIComponent(fileTypeID)}&umkdid=${encodeURIComponent(umkdid)}`,
         { headers: { 'x-session': platonusSession } }
       );
       if (!resp.ok) throw new Error('bad_status_' + resp.status);
       const arrayBuffer = await resp.arrayBuffer();
+      ensureAuthGeneration(generation);
 
       // pdf.js забирает буфер себе, поэтому для «Поделиться» храним копию
       currentUmkdPdf = { buffer: arrayBuffer.slice(0), fileName: buildUmkdFileName(fileTypeID) };
       shareBtn.style.display = 'flex';
 
       const pdf = await window.pdfjsLib.getDocument({ data: arrayBuffer }).promise;
+      ensureAuthGeneration(generation);
       frame.innerHTML = '';
       for (let pageNum = 1; pageNum <= pdf.numPages; pageNum++) {
         const page = await pdf.getPage(pageNum);
+        ensureAuthGeneration(generation);
         const viewport = page.getViewport({ scale: 1.6 });
         const canvas = document.createElement('canvas');
         canvas.className = 'umkd-pdf-page';
@@ -2142,6 +2232,7 @@ if ('serviceWorker' in navigator) {
         await page.render({ canvasContext: canvas.getContext('2d'), viewport }).promise;
       }
     } catch (err) {
+      if (generation !== authGeneration) return;
       frame.innerHTML = '<div class="umkd-file-status">Не удалось загрузить документ. Попробуйте ещё раз.</div>';
     }
   }
@@ -2202,6 +2293,7 @@ if ('serviceWorker' in navigator) {
   ];
 
   document.addEventListener('DOMContentLoaded', async () => {
+    const generation = authGeneration;
     const savedPromise = csGetMany(['platonus_session', 'platonus_student']);
 
     const savedAccent = lsSafe(() => localStorage.getItem('user_accent'), null) || 'default';
@@ -2223,7 +2315,20 @@ if ('serviceWorker' in navigator) {
       document.fonts.addEventListener('loadingdone', alignIndicators);
     }
 
+    const refreshLiveUI = () => {
+      if (document.hidden || !platonusSession) return;
+      detectToday();
+      updateStatusBarAndLive();
+      if (currentSection === 'schedule' && isViewingTrueCurrentWeek() && selectedDay === realTodayName && dayHasClasses(realTodayName)) {
+        renderSchedule(false);
+      }
+    };
+    setInterval(refreshLiveUI, 15000);
+    document.addEventListener('visibilitychange', refreshLiveUI);
+    window.dispatchEvent(new Event('univer-ready'));
+
     const saved = await savedPromise;
+    if (generation !== authGeneration) return;
     platonusSession = saved.platonus_session || null;
     try { platonusStudent = JSON.parse(saved.platonus_student || 'null'); }
     catch (e) { platonusStudent = null; }
@@ -2234,6 +2339,7 @@ if ('serviceWorker' in navigator) {
 
       // Сразу показываем то, что есть в кэше — без ожидания сети.
       const cachedData = await loadCachedStudentData();
+      if (generation !== authGeneration) return;
       if (cachedData) {
         applyCachedStudentData(cachedData);
         detectToday(true);
@@ -2257,15 +2363,5 @@ if ('serviceWorker' in navigator) {
       showLoginOverlay(true);
     }
 
-    const refreshLiveUI = () => {
-      if (document.hidden) return;
-      detectToday();
-      updateStatusBarAndLive();
-      if (currentSection === 'schedule' && isViewingTrueCurrentWeek() && selectedDay === realTodayName && dayHasClasses(realTodayName)) {
-        renderSchedule(false);
-      }
-    };
-    setInterval(refreshLiveUI, 15000);
-    document.addEventListener('visibilitychange', refreshLiveUI);
-    window.dispatchEvent(new Event('univer-ready'));
+
   });

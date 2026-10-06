@@ -79,7 +79,7 @@ test('a silent CloudStorage callback cannot hang startup', async () => {
 test('parallel expired requests share one relogin', async () => {
   let logins = 0;
   const ctx = vm.createContext({
-    API_BASE: '', platonusSession: 'old',
+    API_BASE: '', platonusSession: 'old', authGeneration: 0, authStorageWork: Promise.resolve(),
     csGetMany: async () => ({ platonus_login: 'user', platonus_password: 'password' }),
     csSet: async () => {},
     fetch: async () => { logins++; return { ok: true, json: async () => ({ ok: true, session: 'new' }) }; },
@@ -91,7 +91,7 @@ test('parallel expired requests share one relogin', async () => {
 test('cached studentID lets schedule render while GPA remains pending', async () => {
   let renders = 0;
   const ctx = vm.createContext({
-    liveLoadInFlight: false, scheduleLoadFailed: false,
+    liveLoadInFlight: false, scheduleLoadFailed: false, authGeneration: 0, ensureAuthGeneration() {},
     platonusStudent: { studentID: 7 }, liveScheduleWeekInfo: { selectedStudyYear: 2026, selectedTerm: 1 },
     currentSection: 'schedule', userNavigatedWeek: false, browsedWeekInfo: null,
     fetchGradesAndUmkd: async () => ({}),
