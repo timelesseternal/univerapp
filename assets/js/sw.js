@@ -1,11 +1,11 @@
 // Public app shell only; student data and video ranges bypass this cache.
-const CACHE_NAME = 'univer-shell-v18';
+const CACHE_NAME = 'univer-shell-v19';
 const FONT_PATHS = new Set([
   '/assets/fonts/manrope/cyrillic-ext.woff2',
   '/assets/fonts/manrope/cyrillic.woff2',
   '/assets/fonts/manrope/latin.woff2',
 ]);
-const SHELL_PATHS = new Set(['/', '/index.html', '/assets/css/app.css', '/assets/css/typography.css', '/assets/css/chat.css', '/assets/js/appearance.js', '/assets/js/app.js', '/assets/js/chat.js', '/assets/js/background.js', ...FONT_PATHS]);
+const SHELL_PATHS = new Set(['/', '/index.html', '/assets/css/app.css', '/assets/css/typography.css', '/assets/css/chat.css', '/assets/css/motion.css', '/assets/js/appearance.js', '/assets/js/app.js', '/assets/js/chat.js', '/assets/js/background.js', ...FONT_PATHS]);
 
 self.addEventListener('install', () => self.skipWaiting());
 self.addEventListener('activate', event => {

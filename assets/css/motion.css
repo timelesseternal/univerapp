@@ -1,0 +1,49 @@
+/* One motion rhythm. Background loops and live progress keep their own clocks. */
+:root {
+  --motion-fast: 140ms;
+  --motion-normal: 220ms;
+  --motion-ease: cubic-bezier(.22, 1, .36, 1);
+}
+@keyframes interfaceEnter {
+  from { opacity: .35; transform: translateY(6px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+.app-section { animation: interfaceEnter var(--motion-normal) var(--motion-ease); }
+.chat-thread:not([hidden]), .profile-menu[open] .profile-menu-items,
+.profile-gpa[open] .profile-gpa-extra { animation: interfaceEnter var(--motion-normal) var(--motion-ease); }
+/* Content owns the transition: refreshed rows must never replay staggered fades. */
+.row-enter, .bottom-tab-icon.icon-filled.pop { animation: none !important; }
+#scheduleContainer, .section-inner { transition: none; }
+button, .day-btn, .theme-btn, .profile-menu summary, .profile-gpa summary,
+.chat-person, .umkd-subject-row {
+  transition-duration: var(--motion-fast);
+  transition-timing-function: var(--motion-ease);
+}
+.chat-person, .chat-send, .chat-back, .profile-back,
+.profile-menu summary, .profile-menu-items button {
+  transition-property: transform, background-color, color, opacity;
+}
+.chat-person:active, .chat-send:active:not(:disabled), .chat-back:active,
+.profile-menu summary:active, .profile-menu-items button:active { transform: scale(.98); }
+.bottom-tab-btn:active { transform: scale(.97); }
+.bottom-tab-icon { transition: opacity var(--motion-fast) var(--motion-ease); }
+.bottom-tab-icon.icon-outline, .bottom-tab-icon.icon-filled,
+.bottom-tab-btn.active .icon-outline, .bottom-tab-btn.active .icon-filled { transform: none; }
+.bottom-tab-indicator, .day-indicator {
+  transition-duration: var(--motion-normal);
+  transition-timing-function: var(--motion-ease);
+}
+.modal-overlay, .modal-card, .umkd-file-overlay, .profile-gpa-arrow,
+.login-overlay, .login-error {
+  transition-duration: var(--motion-normal);
+  transition-timing-function: var(--motion-ease);
+}
+.modal-card { transform: translateY(6px); }
+.modal-overlay.active .modal-card { transform: translateY(0); }
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation: none !important;
+    transition-duration: 0s !important;
+    scroll-behavior: auto !important;
+  }
+}

@@ -1388,20 +1388,22 @@ if ('serviceWorker' in navigator) {
     }
   }
 
+  const contentAnimations = new WeakMap();
   function swapContent(container, html, animate = true, onInserted) {
-    const generation = authGeneration;
-    if (!animate) {
-      container.innerHTML = html;
-      if (onInserted) onInserted();
-      return;
+    // Commit synchronously: an old transition can never overwrite newer data.
+    contentAnimations.get(container)?.cancel();
+    contentAnimations.delete(container);
+    container.classList.remove('content-hidden');
+    container.innerHTML = html;
+    if (onInserted) onInserted();
+    const reduced = window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
+    if (animate && !document.hidden && !reduced && container.animate) {
+      const transition = container.animate([
+        { opacity: 0.35, transform: 'translateY(6px)' },
+        { opacity: 1, transform: 'translateY(0)' },
+      ], { duration: 220, easing: 'cubic-bezier(.22,1,.36,1)' });
+      contentAnimations.set(container, transition);
     }
-    container.classList.add('content-hidden');
-    setTimeout(() => {
-      if (generation !== authGeneration) return;
-      container.innerHTML = html;
-      requestAnimationFrame(() => container.classList.remove('content-hidden'));
-      if (onInserted) onInserted();
-    }, 140);
   }
 
   function updateDayIndicator() {
@@ -1864,16 +1866,6 @@ if ('serviceWorker' in navigator) {
     activeBtn.classList.add('active');
     updateTabIndicator();
 
-    // Небольшой "bounce" залитой иконки при активации вкладки (как в TikTok).
-    const filledIcon = activeBtn.querySelector('.icon-filled');
-    if (filledIcon) {
-      filledIcon.classList.remove('pop');
-      // Форсируем reflow, чтобы анимация перезапустилась даже если класс
-      // уже был на этом элементе (быстрые повторные переключения).
-      void filledIcon.offsetWidth;
-      filledIcon.classList.add('pop');
-    }
-
     document.getElementById('sectionSchedule').style.display = section === 'schedule' ? 'block' : 'none';
     document.getElementById('sectionUmkd').style.display = section === 'umkd' ? 'block' : 'none';
     document.getElementById('sectionExams').style.display = section === 'exams' ? 'block' : 'none';
@@ -1886,13 +1878,13 @@ if ('serviceWorker' in navigator) {
       updateStatusBarAndLive();
       requestAnimationFrame(() => requestAnimationFrame(updateDayIndicator));
     } else if (section === 'umkd') {
-      renderUmkdSubjects();
+      renderUmkdSubjects(false);
     } else if (section === 'exams') {
-      renderExams();
+      renderExams(false);
     } else if (section === 'grades') {
-      renderGrades();
+      renderGrades(false);
     } else if (section === 'profile') {
-      renderProfile();
+      renderProfile(false);
     }
   }
 

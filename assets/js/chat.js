@@ -153,7 +153,12 @@
     state.history.set(id, { messages: messages.slice(-200), hasOlder: state.hasOlder || messages.length > 200 });
     if (state.history.size > 10) state.history.delete(state.history.keys().next().value);
   }
-  function drawMessages({ scroll = 'keep' } = {}) {
+  function animateMessage(element) {
+    if (!state.visible || document.hidden || !element.animate || window.matchMedia?.('(prefers-reduced-motion: reduce)').matches) return;
+    element.animate([{opacity:.35,transform:'translateY(6px)'},{opacity:1,transform:'translateY(0)'}],
+      {duration:220,easing:'cubic-bezier(.22,1,.36,1)'});
+  }
+  function drawMessages({ scroll = 'keep', newIDs = new Set(), pendingID } = {}) {
     const list = byID('chatMessages');
     const previousHeight = list.scrollHeight;
     const previousTop = list.scrollTop;
@@ -170,6 +175,7 @@
       time.dateTime = message.createdAt;
       article.append(time);
       list.append(article);
+      if (newIDs.has(message.id)) animateMessage(article);
     }
     const pending = [...state.pending.values()].filter(message => message.conversationID === state.conversation?.id);
     for (const message of pending) {
@@ -177,6 +183,7 @@
       article.append(node('p', 'chat-message-text', message.text));
       article.append(node('span', 'chat-message-time', message.failed ? 'Не отправлено · попробуйте ещё раз' : 'Отправляем…'));
       list.append(article);
+      if (pendingID === message.clientID) animateMessage(article);
     }
     if (!state.messages.size && !pending.length) list.append(node('p', 'chat-empty', 'Это начало вашей переписки. Поздоровайтесь!'));
     byID('chatOlder').hidden = !state.hasOlder;
@@ -194,13 +201,15 @@
     const data = await request('messages', { params });
     if (stale(epoch) || state.conversation?.id !== id) return;
     if (!params.after) state.hasOlder = data.hasMore;
-    let changed = data.messages.some(message => !state.messages.has(message.id));
+    const newIDs = new Set(data.messages.filter(message => !state.messages.has(message.id)).map(message => message.id));
+    let changed = newIDs.size > 0;
     for (const message of data.messages) {
       state.messages.set(message.id, message);
       if (message.senderID === state.profile.id && state.pending.delete(message.clientID)) changed = true;
     }
     rememberHistory();
-    if (changed || initial || older) drawMessages({ scroll: initial ? 'bottom' : older ? 'older' : 'keep' });
+    if (changed || initial || older) drawMessages({ scroll: initial ? 'bottom' : older ? 'older' : 'keep',
+      newIDs: initial || older ? new Set() : newIDs });
     if (params.after && data.hasMore) await refreshMessages();
     if (state.visible && !document.hidden && state.conversation?.id===id) {
       const through = orderedMessages().at(-1)?.id;
@@ -339,8 +348,8 @@
     const previous = state.drafts.get(id);
     const clientID = previous?.text?.trim() === text && previous.clientID ? previous.clientID : crypto.randomUUID();
     state.drafts.set(id, { text: byID('chatText').value, clientID });
-    state.pending.set(clientID, { conversationID: id, text, failed: false });
-    drawMessages({ scroll: 'bottom' });
+    state.pending.set(clientID, { conversationID: id, clientID, text, failed: false });
+    drawMessages({ scroll: 'bottom', pendingID:clientID });
     state.sending = true;
     byID('chatSend').disabled = true;
     byID('chatText').disabled = true;
