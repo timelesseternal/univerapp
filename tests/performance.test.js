@@ -109,7 +109,7 @@ test('cached studentID lets schedule render while GPA remains pending', async ()
 });
 test('all inline and standalone JavaScript parses', () => {
   for (const match of html.matchAll(/<script(?:\s[^>]*)?>([\s\S]*?)<\/script>/g)) new vm.Script(match[1]);
-  for (const name of ['appearance.js', 'app.js', 'background.js', 'sw.js']) new vm.Script(fs.readFileSync(new URL(`../assets/js/${name}`, import.meta.url), 'utf8'));
+  for (const name of ['appearance.js', 'app.js', 'chat.js', 'background.js', 'sw.js']) new vm.Script(fs.readFileSync(new URL(`../assets/js/${name}`, import.meta.url), 'utf8'));
 });
 
 test('the page references existing local assets in the expected script order', () => {

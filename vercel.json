@@ -2,6 +2,9 @@
   "regions": [
     "fra1"
   ],
+  "functions": {
+    "api/chat.js": { "maxDuration": 30 }
+  },
   "headers": [
     {
       "source": "/assets/js/sw.js",

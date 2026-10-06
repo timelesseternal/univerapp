@@ -24,7 +24,7 @@ function setup() {
     querySelectorAll: () => [],
   };
   const ctx = vm.createContext({
-    document, localStorage: { removeItem() {} },
+    document, window: {}, localStorage: { removeItem() {} },
     lsSafe: fn => fn(), localCacheKey: key => key, useCloudStorage: () => false,
     csRemove: async key => { removed.push(key); }, csSet: async () => {},
     csGetMany: async () => ({ platonus_login: 'user', platonus_password: 'password' }),

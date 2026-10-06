@@ -588,7 +588,10 @@ if ('serviceWorker' in navigator) {
       lsSafe(() => localStorage.removeItem(localCacheKey(key)));
       if (!useCloudStorage()) lsSafe(() => localStorage.removeItem(key));
     });
-    authStorageWork = authStorageWork.catch(() => {}).then(() => Promise.all(keys.map(csRemove)));
+    const chatLogout = window.univerChat ? window.univerChat.logout() : Promise.resolve();
+    authStorageWork = Promise.all([
+      authStorageWork.catch(() => {}).then(() => Promise.all(keys.map(csRemove))), chatLogout,
+    ]);
     platonusSession = null;
     platonusStudent = null;
     liveJournalData = null;
@@ -1803,6 +1806,7 @@ if ('serviceWorker' in navigator) {
     if (section === currentSection) return;
     haptic('light');
     currentSection = section;
+    if (window.univerChat) window.univerChat.onSection(section);
 
     document.querySelectorAll('.bottom-tab-btn').forEach(btn => btn.classList.remove('active'));
     const activeBtn = document.getElementById(`section-${section}`);
@@ -1824,6 +1828,7 @@ if ('serviceWorker' in navigator) {
     document.getElementById('sectionExams').style.display = section === 'exams' ? 'block' : 'none';
     document.getElementById('sectionGrades').style.display = section === 'grades' ? 'block' : 'none';
     document.getElementById('sectionProfile').style.display = section === 'profile' ? 'block' : 'none';
+    document.getElementById('sectionChat').style.display = section === 'chat' ? 'block' : 'none';
 
     if (section === 'schedule') {
       renderSchedule(false);

@@ -20,6 +20,7 @@
 
   <link rel="stylesheet" href="./assets/css/app.css">
   <link rel="stylesheet" href="./assets/css/typography.css">
+  <link rel="stylesheet" href="./assets/css/chat.css">
 </head>
 <body class="login-screen">
 
@@ -141,18 +142,50 @@
     <div class="app-section" id="sectionExams" style="display:none;"><div class="section-inner" id="examsContainer"></div></div>
     <div class="app-section" id="sectionGrades" style="display:none;"><div class="section-inner" id="gradesContainer"></div></div>
     <div class="app-section" id="sectionProfile" style="display:none;"><div class="section-inner" id="profileContainer"></div></div>
+    <section class="app-section chat-section" id="sectionChat" style="display:none;" aria-label="Личные сообщения">
+      <header class="chat-page-header">
+        <span class="masthead-eyebrow">На связи</span>
+        <h1 class="masthead-headline">Чаты</h1>
+        <p class="chat-description">Личные переписки со студентами Univer.</p>
+      </header>
+      <div id="chatStatus" class="chat-status" role="status" aria-live="polite" hidden></div>
+      <div id="chatInboxView">
+        <label class="chat-search-label" for="chatSearch">Найти студента</label>
+        <input id="chatSearch" class="chat-search" type="search" maxlength="60" autocomplete="off" placeholder="Имя или фамилия">
+        <p class="chat-search-hint">В поиске — пользователи, которые уже открыли чат.</p>
+        <div id="chatResults" class="chat-list" hidden></div>
+        <div id="chatInbox" class="chat-list"></div>
+      </div>
+      <div id="chatThread" class="chat-thread" hidden>
+        <header class="chat-thread-header">
+          <button id="chatBack" type="button" class="chat-back" aria-label="Вернуться к списку чатов">‹</button>
+          <span id="chatPeerAvatar" class="chat-avatar" aria-hidden="true"></span>
+          <div class="chat-peer-info"><h2 id="chatPeerName" class="chat-peer-name"></h2><span class="chat-peer-caption">Личная переписка</span></div>
+        </header>
+        <button id="chatOlder" class="chat-older" type="button" hidden>Предыдущие сообщения</button>
+        <div id="chatMessages" class="chat-messages" role="log" aria-label="История сообщений" tabindex="0"></div>
+        <form id="chatComposer" class="chat-composer">
+          <label class="chat-sr-only" for="chatText">Сообщение</label>
+          <textarea id="chatText" rows="1" maxlength="2000" placeholder="Сообщение…"></textarea>
+          <button id="chatSend" class="chat-send" type="submit" aria-label="Отправить сообщение" disabled>
+            <svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 19V5m-6 6 6-6 6 6"/></svg>
+          </button>
+        </form>
+        <p class="chat-update-note">Сообщения обновляются автоматически.</p>
+      </div>
+    </section>
 
   </div>
 </div>
 
 <nav class="bottom-tab-bar" id="bottomTabBar">
   <div class="bottom-tab-indicator" id="tabIndicator"></div>
-  <button class="bottom-tab-btn active" id="section-schedule" onclick="switchSection('schedule')">
+  <button class="bottom-tab-btn active" id="section-schedule" onclick="switchSection('schedule')" aria-label="Расписание">
     <div class="bottom-tab-icon-wrap">
       <svg class="bottom-tab-icon icon-outline" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4.5" width="18" height="17" rx="4.5"/><path d="M8 2.5v4M16 2.5v4M3 10.5h18"/></svg>
       <svg class="bottom-tab-icon icon-filled" viewBox="0 0 24 24" fill="currentColor"><rect x="3" y="4.5" width="18" height="17" rx="4.5"/><rect x="7" y="2" width="2.2" height="5" rx="1.1"/><rect x="14.8" y="2" width="2.2" height="5" rx="1.1"/><path d="M3 10.5h18" stroke="var(--paper-2)" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" fill="none"/></svg>
     </div>
-    <span>Расписание</span>
+    <span>Пары</span>
   </button>
   <button class="bottom-tab-btn" id="section-umkd" onclick="switchSection('umkd')">
     <div class="bottom-tab-icon-wrap">
@@ -168,10 +201,17 @@
     </div>
     <span>Оценки</span>
   </button>
+  <button class="bottom-tab-btn" id="section-chat" onclick="switchSection('chat')">
+    <div class="bottom-tab-icon-wrap">
+      <svg class="bottom-tab-icon icon-outline" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 11.5a8.5 8.5 0 0 1-8.5 8.5H4l-1 1V11.5a8.5 8.5 0 0 1 17 0Z"/><path d="M7 10h9M7 14h6"/></svg>
+      <svg class="bottom-tab-icon icon-filled" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2a10 10 0 0 0-10 10v10l4-2h6A9 9 0 0 0 12 2Z"/><path d="M7 10h9M7 14h6" stroke="var(--paper-2)" stroke-width="2" stroke-linecap="round"/></svg>
+    </div>
+    <span>Чаты</span>
+  </button>
   <button class="bottom-tab-btn" id="section-exams" onclick="switchSection('exams')">
     <div class="bottom-tab-icon-wrap">
       <svg class="bottom-tab-icon icon-outline" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="5"/><path d="M8 12.5l2.8 2.8L16.5 9"/></svg>
-      <svg class="bottom-tab-icon icon-filled" viewBox="0 0 24 24" fill="currentColor"><rect x="3" y="3" width="18" height="18" rx="5"/><path d="M8 12.5l2.8 2.8L16.5 9" stroke="var(--paper-2)" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" fill="none"/></svg>
+      <svg class="bottom-tab-icon icon-filled" viewBox="0 0 24 24" fill="currentColor"><rect x="3" y="3" width="18" height="18" rx="5"/><path d="M8 12.5l2.8 2.8L16.5 9" stroke="var(--paper-2)" stroke-width="2.2" stroke-linecap="round" fill="none"/></svg>
     </div>
     <span>Экзамены</span>
   </button>
@@ -185,6 +225,7 @@
 </nav>
 
 <script defer src="./assets/js/app.js"></script>
+<script defer src="./assets/js/chat.js"></script>
 <script defer src="./assets/js/background.js"></script>
 </body>
 </html>
