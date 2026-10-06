@@ -155,8 +155,8 @@
   }
   function animateMessage(element) {
     if (!state.visible || document.hidden || !element.animate || window.matchMedia?.('(prefers-reduced-motion: reduce)').matches) return;
-    element.animate([{opacity:.35,transform:'translateY(6px)'},{opacity:1,transform:'translateY(0)'}],
-      {duration:220,easing:'cubic-bezier(.22,1,.36,1)'});
+    element.animate([{opacity:0,transform:'translateY(14px)'},{opacity:1,transform:'translateY(0)'}],
+      {duration:420,easing:'cubic-bezier(.16,1,.3,1)'});
   }
   function drawMessages({ scroll = 'keep', newIDs = new Set(), pendingID } = {}) {
     const list = byID('chatMessages');

@@ -1,16 +1,21 @@
 /* One motion rhythm. Background loops and live progress keep their own clocks. */
 :root {
-  --motion-fast: 140ms;
-  --motion-normal: 220ms;
-  --motion-ease: cubic-bezier(.22, 1, .36, 1);
+  --motion-fast: 200ms;
+  --motion-normal: 420ms;
+  --motion-ease: cubic-bezier(.16, 1, .3, 1);
 }
 @keyframes interfaceEnter {
-  from { opacity: .35; transform: translateY(6px); }
+  from { opacity: 0; transform: translateY(16px); }
   to { opacity: 1; transform: translateY(0); }
 }
 .app-section { animation: interfaceEnter var(--motion-normal) var(--motion-ease); }
+@keyframes panelEnter {
+  from { opacity: 0; transform: translateY(10px) scale(.97); }
+  to { opacity: 1; transform: translateY(0) scale(1); }
+}
 .chat-thread:not([hidden]), .profile-menu[open] .profile-menu-items,
 .profile-gpa[open] .profile-gpa-extra { animation: interfaceEnter var(--motion-normal) var(--motion-ease); }
+.profile-menu[open] .profile-menu-items { animation-name: panelEnter; transform-origin: top right; }
 /* Content owns the transition: refreshed rows must never replay staggered fades. */
 .row-enter, .bottom-tab-icon.icon-filled.pop { animation: none !important; }
 #scheduleContainer, .section-inner { transition: none; }
@@ -38,8 +43,8 @@ button, .day-btn, .theme-btn, .profile-menu summary, .profile-gpa summary,
   transition-duration: var(--motion-normal);
   transition-timing-function: var(--motion-ease);
 }
-.modal-card { transform: translateY(6px); }
-.modal-overlay.active .modal-card { transform: translateY(0); }
+.modal-card { transform: translateY(18px) scale(.96); }
+.modal-overlay.active .modal-card { transform: translateY(0) scale(1); }
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after {
     animation: none !important;

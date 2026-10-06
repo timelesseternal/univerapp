@@ -1399,9 +1399,9 @@ if ('serviceWorker' in navigator) {
     const reduced = window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
     if (animate && !document.hidden && !reduced && container.animate) {
       const transition = container.animate([
-        { opacity: 0.35, transform: 'translateY(6px)' },
+        { opacity: 0, transform: 'translateY(14px)' },
         { opacity: 1, transform: 'translateY(0)' },
-      ], { duration: 220, easing: 'cubic-bezier(.22,1,.36,1)' });
+      ], { duration: 420, easing: 'cubic-bezier(.16,1,.3,1)' });
       contentAnimations.set(container, transition);
     }
   }
