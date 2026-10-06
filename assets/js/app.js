@@ -484,8 +484,8 @@ if ('serviceWorker' in navigator) {
     el.classList.add('visible');
   }
 
-  const EYE_ICON_OPEN = '<path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/>';
-  const EYE_ICON_CLOSED = '<path d="M17.94 17.94A10.94 10.94 0 0 1 12 20c-7 0-11-8-11-8a18.5 18.5 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"/><path d="M1 1l22 22"/>';
+  const EYE_ICON_OPEN = '<path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7-10-7-10-7Z"/><circle cx="12" cy="12" r="3"/>';
+  const EYE_ICON_CLOSED = '<path d="m3 3 18 18M9.5 5.3A11 11 0 0 1 12 5c6.5 0 10 7 10 7a17 17 0 0 1-3 3.7M6 6.5A20 20 0 0 0 2 12s3.5 7 10 7a12 12 0 0 0 5-1.1M10 10a3 3 0 0 0 4 4"/>';
 
   function togglePasswordVisibility() {
     haptic('light');
@@ -836,8 +836,8 @@ if ('serviceWorker' in navigator) {
             <svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4 6h16M4 12h16M4 18h16"/></svg>
           </summary>
           <nav class="profile-menu-items" aria-label="Учебные разделы">
-            <button type="button" onclick="switchSection('umkd')"><span>УМКД</span><span aria-hidden="true">›</span></button>
-            <button type="button" onclick="switchSection('exams')"><span>Экзамены</span><span aria-hidden="true">›</span></button>
+            <button type="button" onclick="switchSection('umkd')"><span>УМКД</span><svg aria-hidden="true" class="action-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m10 6 6 6-6 6"/></svg></button>
+            <button type="button" onclick="switchSection('exams')"><span>Экзамены</span><svg aria-hidden="true" class="action-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m10 6 6 6-6 6"/></svg></button>
           </nav>
         </details>
       </div>
@@ -853,7 +853,7 @@ if ('serviceWorker' in navigator) {
       <details class="gpa-card profile-gpa" id="profileGpaDetails" ${gpaExpanded ? 'open' : ''}>
         <summary class="gpa-row" aria-label="Академический GPA: раскрыть остальные показатели">
           <span class="gpa-label">Академический GPA</span>
-          <span class="profile-gpa-value"><span class="gpa-value accent">${s.academicGpa ?? '—'}</span><span class="profile-gpa-arrow" aria-hidden="true">›</span></span>
+          <span class="profile-gpa-value"><span class="gpa-value accent">${s.academicGpa ?? '—'}</span><svg aria-hidden="true" class="action-icon profile-gpa-arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m10 6 6 6-6 6"/></svg></span>
         </summary>
         <div class="profile-gpa-extra">
         <div class="gpa-row"><span class="gpa-label">Научный GPA</span><span class="gpa-value">${s.scientificGpa ?? '—'}</span></div>
@@ -2055,7 +2055,7 @@ if ('serviceWorker' in navigator) {
       itemsHtml += `
         <div class="umkd-subject-row row-enter" style="animation-delay:${Math.min(index, 8) * 0.04}s;" onclick="selectUmkdSubject(${index})">
           <span>${rec.subjectName}</span>
-          <span class="umkd-arrow">›</span>
+          <svg aria-hidden="true" class="action-icon umkd-arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m10 6 6 6-6 6"/></svg>
         </div>
       `;
     });
@@ -2103,7 +2103,7 @@ if ('serviceWorker' in navigator) {
     }
 
     swapContent(container, `
-      <button class="back-link" onclick="renderUmkdSubjects()">‹ Назад к дисциплинам</button>
+      <button class="back-link" onclick="renderUmkdSubjects()"><svg aria-hidden="true" class="action-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m14 6-6 6 6 6"/></svg><span>Назад к дисциплинам</span></button>
       <span class="masthead-eyebrow" style="margin-bottom:10px; display:block;">УМКД</span>
       <div class="notice-title" style="margin-bottom:6px;">${rec.subjectName}</div>
       <div class="row-meta" style="margin-bottom:12px;">${rec.tutorName || ''}</div>

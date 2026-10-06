@@ -1036,6 +1036,13 @@
       height: 26px;
       flex-shrink: 0;
     }
+    .message-badge { position: absolute; top: -6px; right: -11px; z-index: 3; display: flex; align-items: center; justify-content: center; min-width: 19px; height: 19px; padding: 0 5px; border: 2px solid var(--paper-2); border-radius: 999px; background: #e53945; color: #fff; font: 700 10px/1 Manrope, sans-serif; font-variant-numeric: tabular-nums; pointer-events: none; }
+    .message-badge[hidden] { display: none; }
+    .action-icon { display: block; width: 20px; height: 20px; flex-shrink: 0; margin: auto; }
+    .profile-back, .back-link { display: inline-flex; align-items: center; gap: 6px; }
+    .profile-menu-items .action-icon, .profile-gpa-value .action-icon, .profile-back .action-icon, .back-link .action-icon { margin: 0; }
+    svg[viewBox="0 0 24 24"] { stroke-linecap: round; stroke-linejoin: round; }
+    .theme-btn svg, .appearance-toggle svg, .password-toggle svg, .profile-menu summary svg { width: 20px; height: 20px; }
     .bottom-tab-icon {
       position: absolute;
       inset: 0;

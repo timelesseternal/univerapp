@@ -7,7 +7,8 @@
   const state = { profile: null, conversation: null, messages: new Map(), drafts: new Map(),
     epoch: 0, visible: false, sessionWork: null, timer: null, searchTimer: null,
     searchVersion: 0, refreshing: false, sending: false, hasOlder: false,
-    history: new Map(), pending: new Map(), inboxAt: 0, readThrough: new Map() };
+    history: new Map(), pending: new Map(), inboxAt: 0, readThrough: new Map(),
+    monitoring: false, badgeTimer: null, badgeBusy: false };
   const telegramApp = window.Telegram?.WebApp;
   const bootstrap = () => request('session', { method:'POST',headers:{'x-session':platonusSession},
     ...(telegramApp?.initData ? { body:{initData:telegramApp.initData} } : {}) });
@@ -95,6 +96,7 @@
     finally { if (state.sessionWork === work) state.sessionWork = null; }
   }
   function drawInbox(conversations) {
+    updateBadge(conversations.reduce((total, conversation) => total + Math.max(0, Number(conversation.unread) || 0), 0));
     const list = byID('chatInbox');
     list.replaceChildren();
     if (!conversations.length) {
@@ -114,6 +116,33 @@
       button.addEventListener('click', () => openConversation(conversation));
       list.append(button);
     }
+  }
+  function updateBadge(count) {
+    const badge = byID('messageBadge');
+    if (!badge) return;
+    badge.hidden = count === 0;
+    badge.textContent = count > 99 ? '99+' : String(count);
+    byID('section-chat')?.setAttribute('aria-label', count ? `Сообщения, непрочитанных: ${count}` : 'Сообщения');
+  }
+  function scheduleBadge() {
+    clearTimeout(state.badgeTimer);
+    if (state.monitoring && !document.hidden && platonusSession) state.badgeTimer = setTimeout(refreshBadge, 8000);
+  }
+  async function refreshBadge(force = false) {
+    if (!state.monitoring || document.hidden || !platonusSession || state.badgeBusy) return;
+    if (state.visible && !force) { scheduleBadge(); return; }
+    const epoch = state.epoch;
+    state.badgeBusy = true;
+    try {
+      await ensureSession();
+      if (stale(epoch)) return;
+      const data = await request('inbox');
+      if (!stale(epoch)) { drawInbox(data.conversations || []); state.inboxAt = Date.now(); }
+    } catch (error) {
+      if (!stale(epoch) && ['chat_not_configured','chat_setup_required'].includes(error.message)) state.monitoring = false;
+      /* Badge polling must not interrupt other screens or erase a known count. */
+    }
+    finally { if (!stale(epoch)) { state.badgeBusy = false; scheduleBadge(); } }
   }
   function orderedMessages() { return [...state.messages.values()].sort((a, b) => BigInt(a.id) < BigInt(b.id) ? -1 : BigInt(a.id) > BigInt(b.id) ? 1 : 0); }
   function rememberHistory() {
@@ -178,7 +207,7 @@
       if (through && state.readThrough.get(id)!==through) {
         // Acknowledge after visible rendering, without delaying the message refresh.
         request('read', { method:'POST',body:{conversationID:id,throughID:through} }).then(() => {
-          if (!stale(epoch)) state.readThrough.set(id,through);
+          if (!stale(epoch)) { state.readThrough.set(id,through); refreshBadge(true); }
         }).catch(() => {});
       }
     }
@@ -358,6 +387,9 @@
     state.searchVersion++;
     clearTimeout(state.timer);
     clearTimeout(state.searchTimer);
+    clearTimeout(state.badgeTimer);
+    state.monitoring = state.badgeBusy = false;
+    updateBadge(0);
     state.visible = false;
     state.profile = null;
     state.conversation = null;
@@ -393,14 +425,20 @@
       const epoch = state.epoch;
       const start = telegramApp?.initDataUnsafe?.start_param || new URLSearchParams(window.location?.search || '').get('tgWebAppStartParam');
       const match = /^chat_([a-f0-9-]{36})$/i.exec(start || '');
-      if (!telegramApp?.initData && !match) return;
+      state.monitoring = true;
       ensureSession().then(async () => {
-        if (stale(epoch) || !match) return;
+        if (stale(epoch)) return;
+        scheduleBadge();
+        if (!match) return;
         const data = await request('conversation',{params:{conversationID:match[1]}});
         if (stale(epoch)) return;
         switchSection('chat');
         openConversation(data.conversation);
-      }).catch(() => {});
+      }).catch(error => {
+        if (stale(epoch)) return;
+        if (['chat_not_configured','chat_setup_required'].includes(error.message)) state.monitoring = false;
+        scheduleBadge();
+      });
     },
     onSection(section) {
       state.visible = section === 'chat';
@@ -432,6 +470,8 @@
   });
   document.addEventListener('visibilitychange', () => {
     clearTimeout(state.timer);
+    clearTimeout(state.badgeTimer);
     if (!document.hidden && state.visible) refresh();
+    else if (!document.hidden) refreshBadge();
   });
 })();

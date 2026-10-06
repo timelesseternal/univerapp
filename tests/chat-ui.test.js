@@ -15,9 +15,9 @@ class Element {
 }
 function setup(fetch) {
   const elements = new Map();
-  const document = { hidden: false, createElement: () => new Element(),
+  const document = { hidden: false, listeners: {}, createElement: () => new Element(),
     getElementById(id) { if (!elements.has(id)) elements.set(id, new Element()); return elements.get(id); },
-    addEventListener() {} };
+    addEventListener(type, fn) { this.listeners[type] = fn; } };
   const timers = new Map(); let timerID = 0;
   const context = { document, window: {}, fetch, URLSearchParams, AbortSignal,
     authGeneration: 1, platonusSession: 'verified-session', crypto: { randomUUID: () => 'retry-id' },
@@ -188,4 +188,35 @@ test('a background history response is not acknowledged until the thread is visi
   assert.equal(readAcks,0);
   ui.api.onSection('chat');await settle();
   assert.equal(readAcks,1);
+});
+
+test('unread badge updates on the home screen and late counts cannot survive logout', async () => {
+  let finishInbox;
+  const ui=setup(async(url,options)=>{
+    if(options.method==='DELETE')return reply({});
+    if(url.includes('action=session'))return reply({profile,conversations:[{...conversation,unread:3},{...conversation,id:'second',unread:2}]});
+    return new Promise(resolve=>{finishInbox=resolve;});
+  });
+  ui.api.onLogin();await settle();
+  assert.equal(ui.elements.get('messageBadge').textContent,'5');
+  assert.equal(ui.elements.get('messageBadge').hidden,false);
+  const timer=[...ui.timers.values()].find(timer=>timer.delay===8000);
+  timer.fn();await settle();
+  await ui.api.logout();
+  finishInbox(reply({conversations:[{...conversation,unread:99}]}));await settle();
+  assert.equal(ui.elements.get('messageBadge').hidden,true);
+  assert.equal(ui.timers.size,0);
+});
+test('badge polling pauses while hidden and hides the badge when the unread count becomes zero',async()=>{
+  let calls=0;
+  const ui=setup(async(url)=>{
+    calls++;
+    return reply(url.includes('action=session')?{profile,conversations:[{...conversation,unread:105}]}:{conversations:[]});
+  });
+  ui.api.onLogin();await settle();
+  assert.equal(ui.elements.get('messageBadge').textContent,'99+');
+  ui.context.document.hidden=true;ui.context.document.listeners.visibilitychange();
+  assert.equal(ui.timers.size,0);assert.equal(calls,1);
+  ui.context.document.hidden=false;ui.context.document.listeners.visibilitychange();await settle();
+  assert.equal(calls,2);assert.equal(ui.elements.get('messageBadge').hidden,true);
 });
