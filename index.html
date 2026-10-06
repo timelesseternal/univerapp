@@ -138,9 +138,9 @@
       <div id="scheduleContainer"></div>
     </div>
 
-    <div class="app-section" id="sectionUmkd" style="display:none;"><div class="section-inner" id="umkdContainer"></div></div>
-    <div class="app-section" id="sectionExams" style="display:none;"><div class="section-inner" id="examsContainer"></div></div>
-    <div class="app-section" id="sectionGrades" style="display:none;"><div class="section-inner" id="gradesContainer"></div></div>
+    <div class="app-section" id="sectionUmkd" style="display:none;"><nav class="study-tabs" aria-label="Разделы учёбы"><button type="button" class="study-tab" data-study-section="grades" aria-pressed="false" onclick="switchSection('grades')">Оценки</button><button type="button" class="study-tab active" data-study-section="umkd" aria-pressed="true" onclick="switchSection('umkd')">УМКД</button><button type="button" class="study-tab" data-study-section="exams" aria-pressed="false" onclick="switchSection('exams')">Экзамены</button></nav><div class="section-inner" id="umkdContainer"></div></div>
+    <div class="app-section" id="sectionExams" style="display:none;"><nav class="study-tabs" aria-label="Разделы учёбы"><button type="button" class="study-tab" data-study-section="grades" aria-pressed="false" onclick="switchSection('grades')">Оценки</button><button type="button" class="study-tab" data-study-section="umkd" aria-pressed="false" onclick="switchSection('umkd')">УМКД</button><button type="button" class="study-tab active" data-study-section="exams" aria-pressed="true" onclick="switchSection('exams')">Экзамены</button></nav><div class="section-inner" id="examsContainer"></div></div>
+    <div class="app-section" id="sectionGrades" style="display:none;"><nav class="study-tabs" aria-label="Разделы учёбы"><button type="button" class="study-tab active" data-study-section="grades" aria-pressed="true" onclick="switchSection('grades')">Оценки</button><button type="button" class="study-tab" data-study-section="umkd" aria-pressed="false" onclick="switchSection('umkd')">УМКД</button><button type="button" class="study-tab" data-study-section="exams" aria-pressed="false" onclick="switchSection('exams')">Экзамены</button></nav><div class="section-inner" id="gradesContainer"></div></div>
     <div class="app-section" id="sectionProfile" style="display:none;"><div class="section-inner" id="profileContainer"></div></div>
     <section class="app-section chat-section" id="sectionChat" style="display:none;" aria-label="Личные сообщения">
       <header class="chat-page-header">
@@ -187,19 +187,12 @@
     </div>
     <span>Пары</span>
   </button>
-  <button class="bottom-tab-btn" id="section-umkd" onclick="switchSection('umkd')">
-    <div class="bottom-tab-icon-wrap">
-      <svg class="bottom-tab-icon icon-outline" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 19V5.5A3.5 3.5 0 0 1 8.5 2H19v16H8.5A3.5 3.5 0 0 0 5 21.5"/><path d="M5 19a3 3 0 0 0 3 3h11v-4"/></svg>
-      <svg class="bottom-tab-icon icon-filled" viewBox="0 0 24 24" fill="currentColor"><path d="M5 19V5.5A3.5 3.5 0 0 1 8.5 2H19v16H8.5A3.5 3.5 0 0 0 5 21.5z"/><path d="M5 19.5A2.5 2.5 0 0 0 7.5 22H19v-3H7.5A2.5 2.5 0 0 0 5 19.5z"/><path d="M9 7h6" stroke="var(--paper-2)" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" fill="none"/></svg>
-    </div>
-    <span>УМКД</span>
-  </button>
-  <button class="bottom-tab-btn" id="section-grades" onclick="switchSection('grades')">
+  <button class="bottom-tab-btn" id="section-grades" onclick="switchStudySection()">
     <div class="bottom-tab-icon-wrap">
       <svg class="bottom-tab-icon icon-outline" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="12" width="4.5" height="8.5" rx="1.8"/><rect x="9.75" y="3.5" width="4.5" height="17" rx="1.8"/><rect x="15.5" y="8.5" width="4.5" height="12" rx="1.8"/></svg>
       <svg class="bottom-tab-icon icon-filled" viewBox="0 0 24 24" fill="currentColor"><rect x="3.5" y="11.5" width="5.5" height="9.5" rx="2.2"/><rect x="9.25" y="3" width="5.5" height="18" rx="2.2"/><rect x="15" y="8" width="5.5" height="13" rx="2.2"/></svg>
     </div>
-    <span>Оценки</span>
+    <span>Учёба</span>
   </button>
   <button class="bottom-tab-btn" id="section-chat" onclick="switchSection('chat')">
     <div class="bottom-tab-icon-wrap">
@@ -207,13 +200,6 @@
       <svg class="bottom-tab-icon icon-filled" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2a10 10 0 0 0-10 10v10l4-2h6A9 9 0 0 0 12 2Z"/><path d="M7 10h9M7 14h6" stroke="var(--paper-2)" stroke-width="2" stroke-linecap="round"/></svg>
     </div>
     <span>Чаты</span>
-  </button>
-  <button class="bottom-tab-btn" id="section-exams" onclick="switchSection('exams')">
-    <div class="bottom-tab-icon-wrap">
-      <svg class="bottom-tab-icon icon-outline" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="5"/><path d="M8 12.5l2.8 2.8L16.5 9"/></svg>
-      <svg class="bottom-tab-icon icon-filled" viewBox="0 0 24 24" fill="currentColor"><rect x="3" y="3" width="18" height="18" rx="5"/><path d="M8 12.5l2.8 2.8L16.5 9" stroke="var(--paper-2)" stroke-width="2.2" stroke-linecap="round" fill="none"/></svg>
-    </div>
-    <span>Экзамены</span>
   </button>
   <button class="bottom-tab-btn" id="section-profile" onclick="switchSection('profile')">
     <div class="bottom-tab-icon-wrap">

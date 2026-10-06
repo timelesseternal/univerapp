@@ -1812,6 +1812,9 @@ if ('serviceWorker' in navigator) {
     selectDay(realTodayName, null, true);
   }
 
+  let lastStudySection = 'grades';
+  function switchStudySection() { switchSection(lastStudySection); }
+
   function switchSection(section) {
     if (section === currentSection) return;
     haptic('light');
@@ -1819,8 +1822,15 @@ if ('serviceWorker' in navigator) {
     if (window.univerChat) window.univerChat.onSection(section);
 
     document.querySelectorAll('.bottom-tab-btn').forEach(btn => btn.classList.remove('active'));
-    const activeBtn = document.getElementById(`section-${section}`);
+    const studying = ['grades', 'umkd', 'exams'].includes(section);
+    if (studying) lastStudySection = section;
+    const activeBtn = document.getElementById(`section-${studying ? 'grades' : section}`);
     activeBtn.classList.add('active');
+    document.querySelectorAll('[data-study-section]').forEach(button => {
+      const active = button.dataset.studySection === section;
+      button.classList.toggle('active', active);
+      button.setAttribute('aria-pressed', String(active));
+    });
     updateTabIndicator();
 
     // Небольшой "bounce" залитой иконки при активации вкладки (как в TikTok).

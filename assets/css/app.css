@@ -714,6 +714,10 @@
     }
     .login-overlay.hidden { opacity: 0; pointer-events: none; }
     .login-screen .app-wrapper, .login-screen .bottom-tab-bar { display: none; }
+    .study-tabs { display: flex; gap: 5px; padding: 5px; margin-bottom: 22px; border: 1px solid var(--line); border-radius: 18px; background: var(--paper-2); }
+    .study-tab { flex: 1; min-width: 0; min-height: 44px; padding: 10px 4px; border: 0; border-radius: 13px; background: transparent; color: var(--ink-soft); font: inherit; font-size: 13px; font-weight: 650; cursor: pointer; }
+    .study-tab.active { color: var(--accent); background: var(--highlight-bg); }
+    .study-tab:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
     .login-card { max-width: 380px; margin: 0 auto; width: 100%; }
     .login-title {
 
