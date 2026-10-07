@@ -723,6 +723,9 @@
     .profile-menu-items button { display: flex; justify-content: space-between; align-items: center; width: 100%; min-height: 48px; padding: 12px; border: 0; border-radius: 12px; font: inherit; text-align: left; color: var(--ink); background: transparent; cursor: pointer; }
     .profile-menu-items button:hover, .profile-menu-items button:focus-visible { background: var(--highlight-bg); }
     .profile-gpa summary { cursor: pointer; list-style: none; }
+    .profile-section-link { width: 100%; border: 0; background: transparent; color: var(--ink); font: inherit; text-align: left; cursor: pointer; }
+    .profile-section-link .action-icon { margin: 0; flex-shrink: 0; }
+    .profile-section-link:focus-visible { outline: 2px solid var(--accent); outline-offset: 4px; border-radius: 6px; }
     .profile-gpa summary::-webkit-details-marker, .profile-menu summary::-webkit-details-marker { display: none; }
     .profile-gpa-value { display: flex; align-items: center; gap: 14px; }
     .profile-gpa-arrow { display: inline-block; font-size: 26px; line-height: 1; color: var(--ink-soft); transition: transform .18s ease; }
@@ -1835,7 +1838,7 @@
 .profile-back { margin-bottom: 6px; }
 .profile-menu-items { padding: 4px; }
 .header-right-top { gap: 6px; }
-.today-btn { width: auto; min-height: 32px; height: 32px; padding: 5px 9px; border-radius: 10px; font-size: 12px; line-height: 1; white-space: nowrap; }
+.today-btn { width: auto; min-height: 40px; height: 40px; padding: 5px 9px; border-radius: 10px; font-size: 12px; line-height: 1; white-space: nowrap; }
 /* Lesson titles stay on one line; overflow is replaced with an ellipsis. */
 #scheduleContainer .row-top { flex-wrap: nowrap; align-items: flex-start; }
 #scheduleContainer .row-title {

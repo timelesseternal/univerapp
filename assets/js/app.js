@@ -833,15 +833,6 @@ if ('serviceWorker' in navigator) {
     const html = `
       <div class="profile-toolbar">
         <span class="masthead-eyebrow">Профиль</span>
-        <details class="profile-menu">
-          <summary aria-label="Меню профиля" title="Меню профиля">
-            <svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4 6h16M4 12h16M4 18h16"/></svg>
-          </summary>
-          <nav class="profile-menu-items" aria-label="Учебные разделы">
-            <button type="button" onclick="switchSection('umkd')"><span>УМКД</span><svg aria-hidden="true" class="action-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m10 6 6 6-6 6"/></svg></button>
-            <button type="button" onclick="switchSection('exams')"><span>Экзамены</span><svg aria-hidden="true" class="action-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m10 6 6 6-6 6"/></svg></button>
-          </nav>
-        </details>
       </div>
       <div class="profile-header">
         <div class="profile-avatar">${initials || '?'}</div>
@@ -863,6 +854,11 @@ if ('serviceWorker' in navigator) {
         <div class="gpa-row"><span class="gpa-label">Интегральный GPA</span><span class="gpa-value">${s.integralGpa ?? '—'}</span></div>
         </div>
       </details>
+
+      <nav aria-label="Учебные разделы">
+        <div class="gpa-card"><button type="button" class="gpa-row profile-section-link" onclick="switchSection('umkd')"><span class="gpa-label">УМКД</span><svg aria-hidden="true" class="action-icon profile-gpa-arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m10 6 6 6-6 6"/></svg></button></div>
+        <div class="gpa-card"><button type="button" class="gpa-row profile-section-link" onclick="switchSection('exams')"><span class="gpa-label">Экзамены</span><svg aria-hidden="true" class="action-icon profile-gpa-arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m10 6 6 6-6 6"/></svg></button></div>
+      </nav>
 
       <button class="profile-logout-btn" onclick="confirmLogout()">Выйти из аккаунта</button>
     `;
