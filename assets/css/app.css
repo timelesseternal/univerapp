@@ -1836,3 +1836,19 @@
 .profile-menu-items { padding: 4px; }
 .header-right-top { gap: 6px; }
 .today-btn { width: auto; min-height: 32px; height: 32px; padding: 5px 9px; border-radius: 10px; font-size: 12px; line-height: 1; white-space: nowrap; }
+/* Reserve two title lines so long lesson names cannot stretch the cards. */
+#scheduleContainer .row-top { flex-wrap: nowrap; align-items: flex-start; }
+#scheduleContainer .row-title {
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  line-clamp: 2;
+  flex: 1 1 0;
+  min-width: 0;
+  line-height: 1.4;
+  min-height: 2.8em;
+  max-height: 2.8em;
+  overflow: hidden;
+  overflow-wrap: anywhere;
+}
+#scheduleContainer .live-tag { flex-shrink: 0; }

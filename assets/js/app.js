@@ -2057,7 +2057,7 @@ if ('serviceWorker' in navigator) {
           </div>
           <div class="row-body">
             <div class="row-top">
-              <span class="row-title">${item.sub}</span>
+              <span class="row-title" title="${escapeHtml(item.sub)}">${escapeHtml(item.sub)}</span>
               ${isActive ? '<span class="live-tag"><span class="live-dot pulse-live-tag"></span>сейчас</span>' : ''}
             </div>
             <div class="row-meta">${item.teacher}</div>
