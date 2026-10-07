@@ -1835,3 +1835,4 @@
 .profile-back { margin-bottom: 6px; }
 .profile-menu-items { padding: 4px; }
 .header-right-top { gap: 6px; }
+.today-btn { width: auto; min-height: 32px; height: 32px; padding: 5px 9px; border-radius: 10px; font-size: 12px; line-height: 1; white-space: nowrap; }
