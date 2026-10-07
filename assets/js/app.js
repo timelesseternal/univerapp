@@ -2068,6 +2068,7 @@ if ('serviceWorker' in navigator) {
   }
 
   function renderUmkdSubjects(animate = true) {
+    document.querySelector("#sectionUmkd > .profile-back").style.display = "inline-flex";
     const container = document.getElementById('umkdContainer');
 
     if (!liveUmkdData || !Array.isArray(liveUmkdData.records) || liveUmkdData.records.length === 0) {
@@ -2119,6 +2120,7 @@ if ('serviceWorker' in navigator) {
       return;
     }
 
+    document.querySelector("#sectionUmkd > .profile-back").style.display = 'none';
     currentUmkdSubjectName = rec.subjectName || '';
 
     let bodyHtml;
@@ -2134,7 +2136,7 @@ if ('serviceWorker' in navigator) {
     }
 
     swapContent(container, `
-      <button class="back-link" onclick="renderUmkdSubjects()"><svg aria-hidden="true" class="action-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m14 6-6 6 6 6"/></svg><span>Назад к дисциплинам</span></button>
+      <button type="button" class="back-link navigation-back" onclick="renderUmkdSubjects()"><svg aria-hidden="true" class="action-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m14 6-6 6 6 6"/></svg><span>Назад</span></button>
       <span class="masthead-eyebrow" style="margin-bottom:10px; display:block;">УМКД</span>
       <div class="notice-title" style="margin-bottom:6px;">${rec.subjectName}</div>
       <div class="row-meta" style="margin-bottom:12px;">${rec.tutorName || ''}</div>

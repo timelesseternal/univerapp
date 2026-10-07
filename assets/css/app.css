@@ -1835,7 +1835,16 @@
 .gpa-row { gap: 10px; padding-block: 9px; }
 .profile-toolbar { margin-bottom: 10px; }
 .profile-header { gap: 10px; margin-bottom: 14px; }
-.profile-back { margin-bottom: 6px; }
+.profile-back, .navigation-back {
+  display: inline-flex; align-items: center; justify-content: center; gap: 6px;
+  width: auto; min-height: 40px; height: auto; padding: 9px 14px;
+  margin-bottom: 10px; border: 1px solid var(--glass-border); border-radius: 12px;
+  background: var(--surface-bg); color: var(--ink); font: inherit; font-weight: 700;
+  box-shadow: var(--surface-shadow); cursor: pointer;
+}
+.profile-back:hover, .navigation-back:hover { background: var(--glass-active); }
+.profile-back:active, .navigation-back:active { transform: scale(.96); }
+.umkd-file-close.navigation-back { order: -1; margin-right: auto; margin-bottom: 0; }
 .profile-menu-items { padding: 4px; }
 .header-right-top { gap: 6px; }
 .today-btn { width: auto; min-height: 40px; height: 40px; padding: 5px 9px; border-radius: 10px; font-size: 12px; line-height: 1; white-space: nowrap; }

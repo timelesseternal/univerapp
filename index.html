@@ -12,6 +12,7 @@
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 
   <link rel="preload" href="./assets/fonts/manrope/cyrillic.woff2" as="font" type="font/woff2" crossorigin>
+  <link rel="preload" href="./assets/fonts/manrope/cyrillic-ext.woff2" as="font" type="font/woff2" crossorigin>
   <link rel="preload" href="./assets/fonts/manrope/latin.woff2" as="font" type="font/woff2" crossorigin>
 
   <script src="https://telegram.org/js/telegram-web-app.js"></script>
@@ -90,7 +91,7 @@
 <div class="umkd-file-overlay" id="umkdFileOverlay">
   <div class="umkd-file-topbar">
     <button class="umkd-file-action" id="umkdShareBtn" onclick="shareUmkdFile()" aria-label="Поделиться"></button>
-    <button class="umkd-file-close" onclick="closeUmkdFile()" aria-label="Закрыть"><svg aria-hidden="true" class="action-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="m6 6 12 12M18 6 6 18"/></svg></button>
+    <button type="button" class="umkd-file-close navigation-back" onclick="closeUmkdFile()" aria-label="Назад"><svg aria-hidden="true" class="action-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m14 6-6 6 6 6"/></svg><span>Назад</span></button>
   </div>
   <div class="umkd-file-frame" id="umkdFileFrame"></div>
 </div>
@@ -139,8 +140,8 @@
       <div id="scheduleContainer"></div>
     </div>
 
-    <div class="app-section" id="sectionUmkd" style="display:none;"><button type="button" class="profile-back" onclick="switchSection('profile')"><svg aria-hidden="true" class="action-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m14 6-6 6 6 6"/></svg><span>Профиль</span></button><div class="section-inner" id="umkdContainer"></div></div>
-    <div class="app-section" id="sectionExams" style="display:none;"><button type="button" class="profile-back" onclick="switchSection('profile')"><svg aria-hidden="true" class="action-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m14 6-6 6 6 6"/></svg><span>Профиль</span></button><div class="section-inner" id="examsContainer"></div></div>
+    <div class="app-section" id="sectionUmkd" style="display:none;"><button type="button" class="profile-back" onclick="switchSection('profile')"><svg aria-hidden="true" class="action-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m14 6-6 6 6 6"/></svg><span>Назад</span></button><div class="section-inner" id="umkdContainer"></div></div>
+    <div class="app-section" id="sectionExams" style="display:none;"><button type="button" class="profile-back" onclick="switchSection('profile')"><svg aria-hidden="true" class="action-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m14 6-6 6 6 6"/></svg><span>Назад</span></button><div class="section-inner" id="examsContainer"></div></div>
     <div class="app-section" id="sectionGrades" style="display:none;"><div class="section-inner" id="gradesContainer"></div></div>
     <div class="app-section" id="sectionProfile" style="display:none;"><div class="section-inner" id="profileContainer"></div></div>
     <section class="app-section chat-section" id="sectionChat" style="display:none;" aria-label="Личные сообщения">
