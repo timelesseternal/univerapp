@@ -1655,8 +1655,8 @@
       --aurora-base: #070809;
     }
     .aurora-backdrop::before {
-      inset: 8% max(11%, calc(50% - 230px));
-      border-radius: 999px;
+      inset: 0;
+      border-radius: 0;
       background-image:
         radial-gradient(ellipse at 75% 75%, rgba(230, 229, 244, 0.24), transparent 65%),
         linear-gradient(145deg, rgba(var(--background-tint-rgb), 0.05), rgba(var(--background-tint-rgb), 0.58));
