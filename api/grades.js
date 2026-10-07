@@ -19,13 +19,21 @@ export default async function handler(req, res) {
   try {
     const r = await fetch(
       `https://platonus.kstu.kz/journal/${encodeURIComponent(year)}/${encodeURIComponent(term)}/${encodeURIComponent(studentID)}`,
-      { headers: buildPlatonusHeaders(session) }
+      { headers: buildPlatonusHeaders(session), signal: AbortSignal.timeout(12000) }
     );
     if (r.status === 401 || r.status === 403) {
       res.status(401).json({ error: 'session_expired' });
       return;
     }
+    if (!r.ok) {
+      res.status(502).json({ error: 'platonus_unreachable' });
+      return;
+    }
     const data = await r.json();
+    if (!Array.isArray(data)) {
+      res.status(502).json({ error: 'invalid_journal' });
+      return;
+    }
     res.status(200).json(data);
   } catch (err) {
     res.status(502).json({ error: 'platonus_unreachable' });

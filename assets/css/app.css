@@ -1716,8 +1716,8 @@
     }
 
     /* Avoid repeatedly blurring a changing video under every glass surface. */
-    :root { --motion-surface: rgba(255, 255, 255, 0.86); }
-    [data-theme="dark"] { --motion-surface: rgba(21, 23, 28, 0.9); }
+    :root { --motion-surface: rgba(255, 255, 255, 0.78); }
+    [data-theme="dark"] { --motion-surface: rgba(21, 23, 28, 0.82); }
     .has-animated-background .week-stepper,
     .has-animated-background .days-grid,
     .has-animated-background .login-card,
@@ -1812,3 +1812,26 @@
         transition-duration: 0.001ms !important;
       }
     }
+
+/* Compact spacing and slightly clearer glass; text remains fully opaque. */
+:root { --card-padding: 14px; --space-section: 10px; --surface-bg: rgba(250,253,253,.7); }
+[data-theme="dark"] { --surface-bg: rgba(19,28,34,.67); }
+@media (max-width: 360px) { :root { --card-padding: 12px; } }
+.masthead { margin-bottom: 14px; }
+.status-bar { margin-bottom: 14px; gap: 12px; }
+.days-grid { margin-bottom: 12px; }
+#scheduleContainer .list-row { margin-bottom: 8px; }
+.grade-card, .gpa-card, .notice-panel { margin-bottom: 10px; }
+.grade-card:not(:last-child) { margin-bottom: 8px; }
+#scheduleContainer .list-row:last-child { margin-bottom: 0; }
+.list-row { gap: 10px; }
+.notice-panel { padding: 16px var(--card-padding); }
+.grade-tutor { margin-bottom: 10px; }
+.grade-body { gap: 10px; }
+.grade-metrics-grid { gap: 8px 6px; }
+.gpa-row { gap: 10px; padding-block: 9px; }
+.profile-toolbar { margin-bottom: 10px; }
+.profile-header { gap: 10px; margin-bottom: 14px; }
+.profile-back { margin-bottom: 6px; }
+.profile-menu-items { padding: 4px; }
+.header-right-top { gap: 6px; }

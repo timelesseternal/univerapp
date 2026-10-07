@@ -92,3 +92,18 @@
   .chat-message { max-width: 92%; }
   .chat-peer-name { font-size: var(--text-md); }
 }
+
+/* Match the compact rhythm of academic screens. */
+.chat-page-header { margin-bottom: 16px; }
+.chat-status { padding: 12px 14px; margin-bottom: 10px; gap: 8px; }
+.chat-search-label { margin-bottom: 6px; }
+.chat-search-hint { margin: 6px 0 12px; }
+.chat-list { gap: 6px; }
+.chat-person { gap: 10px; padding: 12px; }
+.chat-thread-header { gap: 8px; padding-bottom: 8px; }
+.chat-messages { gap: 6px; padding-block: 12px; }
+.chat-date { margin: 6px 0; }
+.chat-composer { padding-top: 8px; gap: 6px; }
+@supports (background: color-mix(in srgb, white 80%, transparent)) {
+  .chat-person, .chat-status, .chat-message:not(.chat-message-own) { background: color-mix(in srgb, var(--paper-2) 82%, transparent); }
+}

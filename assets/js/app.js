@@ -147,6 +147,7 @@ if ('serviceWorker' in navigator) {
   let platonusStudent = null;   // заполняется асинхронно в DOMContentLoaded из CloudStorage
   let liveScheduleWeekInfo = null;
   let liveJournalData = null;
+  let gradesLoadFailed = false;
   let liveUmkdData = null;
   let scheduleLoadFailed = false;  // не удалось загрузить расписание
   let userNavigatedWeek = false;   // пользователь уже листал недели стрелками
@@ -596,6 +597,7 @@ if ('serviceWorker' in navigator) {
     platonusSession = null;
     platonusStudent = null;
     liveJournalData = null;
+    gradesLoadFailed = false;
     liveUmkdData = null;
     browsedWeekInfo = null;
     trueCurrentWeekInfo = null;
@@ -753,14 +755,14 @@ if ('serviceWorker' in navigator) {
   // (Ср.тек./РК/Рейтинг/Экз. и т.п.) — компактно, без кода группы в
   // названии, чтобы не мешал глазу.
   function buildGradeCardHtml(subj, index) {
-    const cleanTitle = (subj.subjectName || '').replace(/\s*\([^)]*\)\s*$/, '').trim() || subj.subjectName || '';
+    const cleanTitle = String(subj.subjectName || '').replace(/\s*\([^)]*\)\s*$/, '').trim();
     const percent = Math.max(0, Math.min(100, parseFloat(subj.centerMark) || 0));
     const ringColor = subj.color || 'var(--accent)';
     const r = 22;
     const circumference = 2 * Math.PI * r;
     const dash = (percent / 100) * circumference;
 
-    const metrics = (subj.exams || []).filter(e => e && e.name);
+    const metrics = (Array.isArray(subj.exams) ? subj.exams : []).filter(e => e && typeof e.name === 'string');
     const { slots, extras } = orderGradeMetrics(metrics);
 
     const metricHtml = (e) => e
@@ -883,8 +885,14 @@ if ('serviceWorker' in navigator) {
 
     let html = `<span class="masthead-eyebrow" style="margin-bottom:10px; display:block;">Оценки</span>`;
 
-    if (liveJournalData && Array.isArray(liveJournalData)) {
-      html += liveJournalData.map((subj, index) => buildGradeCardHtml(subj, index)).join('');
+    const subjects = Array.isArray(liveJournalData) ? liveJournalData.filter(subj => subj && typeof subj === 'object') : null;
+    if (subjects?.length) {
+      if (gradesLoadFailed) html += '<div class="notice-panel"><div class="notice-hint">Не удалось обновить оценки. Показаны сохранённые данные.</div><button class="back-link" onclick="retryGrades()">Повторить</button></div>';
+      html += subjects.map((subj, index) => buildGradeCardHtml(subj, index)).join('');
+    } else if (gradesLoadFailed) {
+      html += '<div class="notice-panel"><div class="notice-title">Не удалось загрузить оценки</div><div class="notice-hint">Проверьте интернет или повторите попытку позже.</div><button class="back-link" onclick="retryGrades()">Повторить</button></div>';
+    } else if (subjects) {
+      html += '<div class="notice-panel"><div class="notice-title">Оценок пока нет</div><div class="notice-hint">Platonus вернул пустой журнал за выбранный семестр.</div><button class="back-link" onclick="retryGrades()">Обновить</button></div>';
     } else {
       html += '<div class="notice-panel"><div class="notice-hint">Оценки по предметам загружаются…</div></div>';
     }
@@ -909,14 +917,48 @@ if ('serviceWorker' in navigator) {
 
   // Оценки и УМКД не зависят друг от друга — грузим одновременно.
   // Если запрос не удался, возвращаем null, и старые (кэшированные) данные остаются.
-  function fetchGradesAndUmkd(year, term) {
+  let journalRequest = null;
+  function fetchJournal(year, term) {
     const studentID = platonusStudent && platonusStudent.studentID;
+    const generation = authGeneration;
+    const key = `${generation}-${studentID}-${year}-${term}`;
+    if (journalRequest?.key === key) return journalRequest.work;
+    const journalWork = studentID ? platonusFetch(`/api/grades?studentID=${studentID}&year=${year}&term=${term}`)
+      .then(journal => {
+        if (!Array.isArray(journal)) throw new Error('invalid_journal');
+        if (generation === authGeneration) {
+          liveJournalData = journal;
+          gradesLoadFailed = false;
+          if (currentSection === 'grades') renderGrades(false);
+          saveCachedStudentData();
+        }
+        return journal;
+      }).catch(() => {
+        if (generation === authGeneration) {
+          gradesLoadFailed = true;
+          if (currentSection === 'grades') renderGrades(false);
+        }
+        return null;
+      }) : Promise.resolve(null);
+    const pending = { key, work: journalWork };
+    journalRequest = pending;
+    journalWork.finally(() => { if (journalRequest === pending) journalRequest = null; });
+    return journalWork;
+  }
+  function fetchGradesAndUmkd(year, term) {
     return Promise.all([
-      studentID
-        ? platonusFetch(`/api/grades?studentID=${studentID}&year=${year}&term=${term}`).catch(() => null)
-        : Promise.resolve(null),
+      fetchJournal(year, term),
       platonusFetch(`/api/umkd?year=${year}&term=${term}`).catch(() => null),
     ]).then(([journal, umkd]) => ({ journal, umkd }));
+  }
+  function retryGrades() {
+    gradesLoadFailed = false;
+    renderGrades(false);
+    const info = liveScheduleWeekInfo;
+    if (platonusStudent?.studentID && info?.selectedStudyYear && info?.selectedTerm) {
+      fetchJournal(info.selectedStudyYear, info.selectedTerm);
+    } else if (!liveLoadInFlight) loadLiveStudentData();
+    else { gradesLoadFailed = true; renderGrades(false); }
   }
 
   async function loadLiveStudentData() {
@@ -1027,6 +1069,7 @@ if ('serviceWorker' in navigator) {
         if (extras.umkd) liveUmkdData = extras.umkd;
       } else {
         // Год/семестр не определились — пробуем УМКД с текущим годом как запасной вариант.
+        gradesLoadFailed = true;
         const u = await platonusFetch(`/api/umkd?year=${new Date().getFullYear()}&term=1`).catch(() => null);
         if (generation !== authGeneration) return;
         if (u) liveUmkdData = u;
