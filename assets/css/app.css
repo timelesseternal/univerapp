@@ -1836,7 +1836,7 @@
 .profile-menu-items { padding: 4px; }
 .header-right-top { gap: 6px; }
 .today-btn { width: auto; min-height: 32px; height: 32px; padding: 5px 9px; border-radius: 10px; font-size: 12px; line-height: 1; white-space: nowrap; }
-/* Reserve two title lines so long lesson names cannot stretch the cards. */
+/* Clamp long names without reserving an empty line below short ones. */
 #scheduleContainer .row-top { flex-wrap: nowrap; align-items: flex-start; }
 #scheduleContainer .row-title {
   display: -webkit-box;
@@ -1846,9 +1846,41 @@
   flex: 1 1 0;
   min-width: 0;
   line-height: 1.4;
-  min-height: 2.8em;
+  min-height: 0;
   max-height: 2.8em;
   overflow: hidden;
   overflow-wrap: anywhere;
 }
 #scheduleContainer .live-tag { flex-shrink: 0; }
+
+/* Light appearance: neutral glass, clear typography and restrained depth. */
+:root:not([data-theme="dark"]) {
+  --paper: #f3f4f6;
+  --paper-2: #ffffff;
+  --aurora-base: #f3f4f6;
+  --ink: #202832;
+  --ink-soft: #596471;
+  --line: rgba(42,54,70,.13);
+  --surface-bg: rgba(255,255,255,.74);
+  --motion-surface: rgba(255,255,255,.78);
+  --surface-border: rgba(42,54,70,.1);
+  --surface-shadow: 0 4px 16px rgba(32,46,64,.055), inset 0 1px 0 rgba(255,255,255,.9);
+  --glass-bg: rgba(255,255,255,.88);
+  --glass-border: rgba(42,54,70,.11);
+  --glass-active: rgba(var(--accent-rgb),.09);
+  --glass-shadow: 0 6px 22px rgba(32,46,64,.09);
+  --input-bg: rgba(255,255,255,.82);
+  --overlay: rgba(28,39,55,.28);
+  --video-opacity: .34;
+  --video-brightness: 1.2;
+}
+:root:not([data-theme="dark"]) .aurora-backdrop::before {
+  background-image: radial-gradient(ellipse at 75% 75%, rgba(255,255,255,.46), transparent 65%), linear-gradient(145deg, rgba(var(--background-tint-rgb),.025), rgba(var(--background-tint-rgb),.28));
+}
+:root:not([data-theme="dark"]) .aurora-backdrop.video-ready::after { opacity: .18; }
+:root:not([data-theme="dark"]) .login-input,
+:root:not([data-theme="dark"]) .chat-search,
+:root:not([data-theme="dark"]) .chat-composer textarea { border-color: var(--line); background: var(--input-bg); }
+:root:not([data-theme="dark"]) .profile-menu-items { box-shadow: 0 8px 24px rgba(32,46,64,.1); }
+:root:not([data-theme="dark"]) .bottom-tab-indicator { box-shadow: inset 0 1px 0 rgba(255,255,255,.8); }
+:root:not([data-theme="dark"]) .chat-message-own { box-shadow: inset 0 0 0 1px rgba(var(--accent-rgb),.09); }

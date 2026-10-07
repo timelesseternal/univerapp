@@ -179,3 +179,5 @@ button, input, select, textarea {
   .grade-metrics-grid { gap: 12px 6px; }
   .header-right-block { max-width: 148px; }
 }
+
+:root:not([data-theme="dark"]) { --text-secondary: #596471; }
