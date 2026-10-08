@@ -863,6 +863,7 @@ if ('serviceWorker' in navigator) {
 
       <nav aria-label="Учебные разделы">
         <div class="gpa-card"><button type="button" class="gpa-row profile-section-link" onclick="switchSection('umkd')"><span class="gpa-label">УМКД</span><svg aria-hidden="true" class="action-icon profile-gpa-arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m10 6 6 6-6 6"/></svg></button></div>
+        <div class="gpa-card"><button type="button" class="gpa-row profile-section-link" onclick="switchSection('exams')"><span class="gpa-label">Экзамены</span><svg aria-hidden="true" class="action-icon profile-gpa-arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m10 6 6 6-6 6"/></svg></button></div>
       </nav>
 
       <button class="profile-logout-btn" onclick="confirmLogout()">Выйти из аккаунта</button>
