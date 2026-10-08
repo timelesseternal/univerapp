@@ -827,6 +827,11 @@ if ('serviceWorker' in navigator) {
     }
 
     const s = platonusStudent;
+    const academicGpa = s.academicGpa == null || String(s.academicGpa).trim() === ''
+      ? NaN : Number(String(s.academicGpa).trim().replace(',', '.'));
+    const hasAcademicGpa = Number.isFinite(academicGpa) && academicGpa >= 0;
+    const gpaProgress = hasAcademicGpa ? Math.min(academicGpa / 4, 1) * 100 : 0;
+    const gpaText = hasAcademicGpa ? academicGpa.toFixed(2).replace('.', ',') : '—';
     const gpaExpanded = document.getElementById('profileGpaDetails')?.open || false;
     const initials = (s.studentName || '').split(' ').filter(Boolean).slice(0, 2).map(w => w[0]).join('').toUpperCase();
 
@@ -834,8 +839,9 @@ if ('serviceWorker' in navigator) {
       <div class="profile-toolbar">
         <span class="masthead-eyebrow">Профиль</span>
       </div>
-      <div class="profile-header">
-        <div class="profile-avatar">${initials || '?'}</div>
+      <div class="profile-header profile-hero">
+        <span class="profile-greeting">Рады видеть тебя</span>
+        <div class="profile-avatar">${escapeHtml(initials || '?')}</div>
         <div class="profile-header-info">
           <div class="profile-name">${escapeHtml(s.studentName || 'Студент')}</div>
           <div class="profile-id">ID: ${s.studentID ?? '—'}</div>
@@ -843,10 +849,16 @@ if ('serviceWorker' in navigator) {
         </div>
       </div>
 
+      <nav class="profile-quick-actions" aria-label="Быстрые действия">
+        <button type="button" onclick="switchSection('chat')"><svg aria-hidden="true" viewBox="0 0 24 24"><path d="M21 11.5a8.4 8.4 0 0 1-9 8.5 10 10 0 0 1-4-.8L3 21l1.8-5a8.3 8.3 0 0 1-.8-4.5 8.5 8.5 0 0 1 17 0Z"/></svg><span>Сообщения</span></button>
+        <button type="button" onclick="switchSection('schedule')"><svg aria-hidden="true" viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="16" rx="3"/><path d="M7 3v4m10-4v4M3 11h18"/></svg><span>Расписание</span></button>
+        <button type="button" onclick="switchSection('grades')"><svg aria-hidden="true" viewBox="0 0 24 24"><rect x="4" y="13" width="4" height="8" rx="1"/><rect x="10" y="8" width="4" height="13" rx="1"/><rect x="16" y="3" width="4" height="18" rx="1"/></svg><span>Оценки</span></button>
+      </nav>
+
       <details class="gpa-card profile-gpa" id="profileGpaDetails" ${gpaExpanded ? 'open' : ''}>
-        <summary class="gpa-row" aria-label="Академический GPA: раскрыть остальные показатели">
-          <span class="gpa-label">Академический GPA</span>
-          <span class="profile-gpa-value"><span class="gpa-value accent">${s.academicGpa ?? '—'}</span><svg aria-hidden="true" class="action-icon profile-gpa-arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m10 6 6 6-6 6"/></svg></span>
+        <summary class="gpa-ring-summary" aria-label="Академический GPA ${gpaText} из 4: раскрыть остальные показатели">
+          <span class="gpa-ring-copy"><span class="gpa-label">Академический GPA</span><span class="gpa-ring-hint">${hasAcademicGpa ? 'Шкала от 0 до 4,0' : 'Показатель пока недоступен'}</span><span class="gpa-ring-more">Все показатели <svg aria-hidden="true" class="action-icon profile-gpa-arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m10 6 6 6-6 6"/></svg></span></span>
+          <span class="gpa-ring" aria-hidden="true"><svg viewBox="0 0 120 120"><defs><linearGradient id="gpaRingGradient" x1="0" y1="0" x2="1" y2="1"><stop offset="0%" stop-color="var(--accent)"/><stop offset="100%" stop-color="var(--ink-soft)"/></linearGradient></defs><circle class="gpa-ring-track" cx="60" cy="60" r="51"/><circle class="gpa-ring-progress" cx="60" cy="60" r="51" pathLength="100" stroke-dasharray="${gpaProgress} 100"/></svg><span class="gpa-ring-number">${gpaText}<small>из 4,0</small></span></span>
         </summary>
         <div class="profile-gpa-extra">
         <div class="gpa-row"><span class="gpa-label">Научный GPA</span><span class="gpa-value">${s.scientificGpa ?? '—'}</span></div>
@@ -1210,7 +1222,20 @@ if ('serviceWorker' in navigator) {
     }
   }
 
+  let weatherRequest = 0;
+  function smartWeatherHtml(city, current, loading = false) {
+    const available = current && Number.isFinite(current.temperature_2m);
+    const code = current?.weather_code;
+    const temp = available ? Math.round(current.temperature_2m) : null;
+    const metric = value => Number.isFinite(value) ? Math.round(value) : '—';
+    return `<span class="weather-location">${escapeHtml(city)} <span aria-hidden="true">⌄</span></span>
+      <span class="weather-orb" aria-hidden="true">${available ? weatherEmoji(code) : '☁'}</span>
+      <span class="weather-temperature">${temp === null ? '—' : temp > 0 ? '+' + temp : temp}°</span>
+      <span class="weather-caption">${available ? weatherDescription(code) : loading ? 'Загружаем погоду…' : 'Погода недоступна · выбери город'}</span>
+      <span class="weather-metrics"><span><small>Ощущается</small><strong>${metric(current?.apparent_temperature)}°</strong></span><span><small>Влажность</small><strong>${metric(current?.relative_humidity_2m)}%</strong></span><span><small>Ветер</small><strong>${metric(current?.wind_speed_10m)} <small>км/ч</small></strong></span></span>`;
+  }
   async function loadWeather(isRetry) {
+    const request = ++weatherRequest;
     const weatherEl = document.getElementById('weatherWidget');
     let savedCity = localStorage.getItem('user_city');
     if (!savedCity || !CITY_COORDS[savedCity]) {
@@ -1218,19 +1243,20 @@ if ('serviceWorker' in navigator) {
       localStorage.setItem('user_city', savedCity);
     }
 
-    if (!isRetry) weatherEl.innerHTML = savedCity + ' · …';
+    if (!isRetry) weatherEl.innerHTML = smartWeatherHtml(savedCity, null, true);
     const location = CITY_COORDS[savedCity];
 
     try {
-      const data = await fetchWeather(location);
-      const temp = Math.round(data.current.temperature_2m);
-      weatherEl.innerHTML = `${savedCity} · ${temp > 0 ? '+' + temp : temp}°`;
+      const data = await fetchDayWeatherDetails(location);
+      if (request !== weatherRequest) return;
+      weatherEl.innerHTML = smartWeatherHtml(savedCity, data.current);
     } catch (e) {
+      if (request !== weatherRequest) return;
       if (!isRetry) {
-        setTimeout(() => loadWeather(true), 4000);
-        weatherEl.innerHTML = savedCity + ' · …';
+        setTimeout(() => { if (request === weatherRequest) loadWeather(true); }, 4000);
+        weatherEl.innerHTML = smartWeatherHtml(savedCity, null);
       } else {
-        weatherEl.innerHTML = savedCity + ' · —°';
+        weatherEl.innerHTML = smartWeatherHtml(savedCity, null);
       }
     }
   }

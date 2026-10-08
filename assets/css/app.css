@@ -1895,3 +1895,51 @@
 :root:not([data-theme="dark"]) .profile-menu-items { box-shadow: 0 8px 24px rgba(32,46,64,.1); }
 :root:not([data-theme="dark"]) .bottom-tab-indicator { box-shadow: inset 0 1px 0 rgba(255,255,255,.8); }
 :root:not([data-theme="dark"]) .chat-message-own { box-shadow: inset 0 0 0 1px rgba(var(--accent-rgb),.09); }
+
+/* Personal profile and weather cards. */
+#profileContainer .profile-hero {
+  display:flex; flex-direction:column; align-items:center; gap:12px; text-align:center;
+  padding:24px 18px 20px; border:1px solid var(--glass-border); border-radius:28px;
+  background:radial-gradient(ellipse at 20% 0%,rgba(var(--accent-rgb),.2),transparent 75%),var(--surface-bg);
+  box-shadow:var(--surface-shadow); margin-bottom:12px;
+}
+.profile-greeting { color:var(--ink-soft); font-size:12px; }
+#profileContainer .profile-avatar { width:88px; height:88px; border-radius:50%; display:grid; place-items:center; font-size:28px; border:4px solid var(--glass-bg); box-shadow:0 8px 24px rgba(var(--accent-rgb),.15); }
+#profileContainer .profile-header-info { width:100%; flex:initial; }
+#profileContainer .profile-name { font-size:clamp(20px,5vw,26px); letter-spacing:-.025em; }
+#profileContainer .profile-study-info { justify-content:center; margin-top:10px; }
+#profileContainer .profile-study-info span { padding:5px 10px; border-radius:20px; background:var(--glass-active); }
+.profile-quick-actions { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:8px; margin-bottom:14px; }
+.profile-quick-actions button { display:flex; flex-direction:column; align-items:center; justify-content:center; gap:9px; min-width:0; padding:14px 4px; border:1px solid var(--glass-border); border-radius:22px; color:var(--ink); background:var(--surface-bg); font-size:11px; font-weight:650; cursor:pointer; }
+.profile-quick-actions svg { width:24px; height:24px; fill:none; stroke:currentColor; stroke-width:2; stroke-linecap:round; stroke-linejoin:round; }
+.smart-weather {
+  position:relative; isolation:isolate; overflow:hidden; width:100%; display:flex; flex-direction:column; align-items:flex-start;
+  padding:18px; margin:0 0 12px; border:1px solid rgba(255,255,255,.3); border-radius:26px; text-align:left;
+  color:#fff; background:radial-gradient(ellipse at 14% 0%,rgba(255,223,128,.55),transparent 50%),linear-gradient(150deg,#246a9b,#549cc7 65%,#9cbccb); cursor:pointer;
+  box-shadow:0 8px 24px rgba(25,70,100,.12); font-family:var(--font-body);
+}
+.smart-weather::before { content:''; position:absolute; z-index:-1; width:75%; height:180px; left:30%; top:55px; border:1px dashed rgba(255,255,255,.3); border-radius:50%; pointer-events:none; }
+.weather-location { font-size:12px; font-weight:650; max-width:75%; }
+.weather-temperature { font-size:52px; font-weight:500; line-height:1.15; letter-spacing:-.055em; margin-top:12px; }
+.weather-caption { font-size:13px; margin-top:2px; max-width:75%; }
+.weather-orb { position:absolute; top:24px; right:24px; font-size:48px; line-height:1; text-shadow:0 0 24px rgba(255,228,137,.6); }
+.weather-metrics { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:8px; width:100%; margin-top:18px; }
+.weather-metrics > span { display:flex; flex-direction:column; gap:6px; padding:10px; border:1px solid rgba(255,255,255,.28); border-radius:16px; background:rgba(255,255,255,.16); }
+.weather-metrics small { font-size:10px; font-weight:500; }
+.weather-metrics strong { font-size:19px; font-weight:700; }
+[data-theme="dark"] .smart-weather { background:radial-gradient(ellipse at 14% 0%,rgba(146,176,210,.22),transparent 55%),linear-gradient(150deg,#18334d,#2c5e79 70%,#426e80); }
+
+.gpa-ring-summary { display:flex; align-items:center; justify-content:space-between; gap:12px; padding:6px 0; }
+.gpa-ring-copy { display:flex; flex-direction:column; gap:8px; min-width:0; }
+.gpa-ring-copy > .gpa-label { color:var(--ink); font-weight:700; font-size:16px; }
+.gpa-ring-hint { color:var(--ink-soft); font-size:12px; }
+.gpa-ring-more { display:flex; align-items:center; gap:4px; margin-top:6px; font-size:12px; color:var(--ink-soft); }
+.gpa-ring-more .action-icon { width:16px; height:16px; margin:0; }
+.gpa-ring { position:relative; display:grid; place-items:center; width:112px; height:112px; flex-shrink:0; }
+.gpa-ring > svg { width:100%; height:100%; transform:rotate(-90deg); overflow:visible; }
+.gpa-ring-track, .gpa-ring-progress { fill:none; stroke-width:9; }
+.gpa-ring-track { stroke:var(--line); }
+.gpa-ring-progress { stroke:url(#gpaRingGradient); stroke-linecap:round; }
+.gpa-ring-number { position:absolute; text-align:center; font-size:25px; line-height:1.2; font-weight:800; color:var(--ink); letter-spacing:-.035em; }
+.gpa-ring-number small { display:block; margin-top:4px; font-size:11px; font-weight:500; letter-spacing:0; color:var(--ink-soft); }
+@media(max-width:360px) { .gpa-ring { width:96px; height:96px; } .gpa-ring-copy > .gpa-label { font-size:14px; } }
