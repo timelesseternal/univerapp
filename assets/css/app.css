@@ -2004,3 +2004,32 @@ svg.umkd-arrow, .profile-gpa-arrow { width:20px; height:20px; flex:0 0 20px; dis
 .tab-refreshing .tab-refresh-icon { display:block; animation:tabRefreshTurn .7s cubic-bezier(.25,.6,.3,1) 1; }
 @keyframes tabRefreshTurn { from { transform:rotate(0deg); } to { transform:rotate(360deg); } }
 @media(prefers-reduced-motion:reduce) { .tab-refreshing .tab-refresh-icon { animation:none; } }
+
+/* The header controls share their outer dimensions. */
+.header-right-top > .today-btn, .header-right-top > .appearance-toggle, .header-right-top > .theme-btn { box-sizing:border-box; height:40px; min-height:40px; max-height:40px; flex-shrink:0; align-items:center; justify-content:center; border-radius:12px; }
+.header-right-top > .appearance-toggle, .header-right-top > .theme-btn { width:40px; min-width:40px; padding:9px; }
+.header-right-top > .today-btn { width:auto; padding:0 9px; line-height:1; }
+.logout-dialog { width:calc(100% - 40px); max-width:340px; margin:auto; padding:22px; border:1px solid var(--glass-border); border-radius:24px; background:var(--paper-2); color:var(--ink); box-shadow:var(--glass-shadow); }
+.logout-dialog::backdrop { background:var(--overlay); backdrop-filter:blur(6px); }
+.logout-dialog h2 { margin:0 0 10px; font-size:20px; line-height:1.3; }
+.logout-dialog p { margin:0 0 20px; color:var(--ink-soft); font-size:13px; line-height:1.5; }
+/* Weather composition follows the reference, without any clock labels. */
+.smart-weather { padding:22px 16px 10px; border-radius:30px; background:radial-gradient(ellipse at 12% 30%,rgba(255,222,107,.55),transparent 49%),linear-gradient(180deg,#206696 0%,#4da2db 48%,#c7dde9 72%,#edf0f1 92%); }
+.weather-location { min-height:36px; padding:0 44px; font-size:12px; color:rgba(255,255,255,.8); }
+.weather-sky-symbol { top:22px; left:24px; width:34px; height:34px; }
+.weather-card-avatar { position:absolute; top:22px; right:22px; width:34px; height:34px; display:grid; place-items:center; border-radius:50%; background:rgba(255,255,255,.75); color:#28506a; font-size:12px; font-weight:700; border:1px solid rgba(255,255,255,.55); }
+.weather-scene { height:148px; margin-top:6px; }
+.weather-temperature { padding-top:30px; font-size:46px; font-weight:400; }
+.weather-caption { font-size:11px; margin-top:3px; max-width:42%; }
+.weather-solar-path path { stroke-dasharray:5 6; stroke-width:.8; }
+.weather-solar-path circle { fill:rgba(225,242,238,.32); stroke:rgba(255,255,255,.65); r:8px; }
+.weather-data-panels { gap:8px; margin-top:0; }
+.weather-data-panel { padding:12px 10px; gap:5px; border-radius:24px; background:rgba(255,255,255,.78); border:1px solid rgba(255,255,255,.75); }
+.weather-data-panel > .weather-panel-heading { display:flex; align-items:center; justify-content:space-between; gap:4px; font-size:10px; color:#202a31; }
+.weather-panel-heading svg { width:18px; height:18px; flex-shrink:0; fill:none; stroke:currentColor; stroke-width:1.8; stroke-linecap:round; stroke-linejoin:round; }
+.weather-data-panel strong { margin-top:8px; font-size:29px; font-weight:700; letter-spacing:-.035em; }
+.weather-quality-row { gap:5px; align-items:center; }
+.weather-quality-row > small { color:#78858b; font-size:10px; }
+.weather-quality-row .weather-aqi-scale, .weather-quality-row .weather-cloud-scale { flex:0 0 47%; margin:0; height:9px; }
+.weather-source { font-size:8px; color:#617787; }
+@media(max-width:360px) { .weather-data-panel { padding:10px 8px; } .weather-panel-heading svg { width:15px; height:15px; } .weather-quality-row { flex-wrap:wrap; } .weather-quality-row .weather-aqi-scale { flex-basis:100%; } }

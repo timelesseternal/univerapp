@@ -569,14 +569,12 @@ if ('serviceWorker' in navigator) {
   // Telegram (или если showConfirm недоступен) — обычный confirm().
   function confirmLogout() {
     haptic('light');
-    const message = 'Вы уверены, что хотите выйти из аккаунта?';
-    if (tg && tg.showConfirm) {
-      tg.showConfirm(message, (confirmed) => {
-        if (confirmed) logout();
-      });
-    } else if (window.confirm(message)) {
-      logout();
-    }
+    const dialog = document.getElementById('logoutDialog');
+    if (!dialog.open) dialog.showModal();
+  }
+  function closeLogoutConfirmation(confirmed = false) {
+    document.getElementById('logoutDialog').close();
+    if (confirmed) logout();
   }
 
   function logout() {
@@ -1237,16 +1235,16 @@ if ('serviceWorker' in navigator) {
     const quality = !hasAqi ? 'Нет данных' : aqi <= 50 ? 'Хороший' : aqi <= 100 ? 'Умеренный' : aqi <= 150 ? 'Для чувствительных групп' : aqi <= 200 ? 'Нездоровый' : aqi <= 300 ? 'Очень плохой' : 'Опасный';
     return `<section class="smart-weather ${night ? 'weather-night' : 'weather-day'}" aria-label="Погода в городе ${escapeHtml(city)}">
       <div class="weather-sky-symbol ${night ? 'weather-moon' : 'weather-sun'}" aria-hidden="true"></div>
+      <div class="weather-card-avatar" aria-hidden="true">${escapeHtml((platonusStudent?.studentName || '').split(' ').filter(Boolean).slice(0, 2).map(name => name[0]).join('') || 'U')}</div>
       <div class="weather-location"><svg aria-hidden="true" viewBox="0 0 24 24"><path d="M20 10c0 6-8 11-8 11S4 16 4 10a8 8 0 1 1 16 0Z"/><circle cx="12" cy="10" r="2.5"/></svg><span>${escapeHtml(city)}</span></div>
       <div class="weather-scene">
         <svg class="weather-solar-path" viewBox="0 0 320 165" preserveAspectRatio="none" aria-hidden="true"><path d="${arcPath}"/>${validArc && !night ? '<circle cx="' + x.toFixed(1) + '" cy="' + y.toFixed(1) + '" r="7"/>' : ''}</svg>
         <div class="weather-temperature">${metric(cur.temperature_2m)}°</div>
         <div class="weather-caption">${weatherDescription(cur.weather_code)}</div>
-        <div class="weather-solar-times"><span>Восход ${clock(rise)}</span><span>${clock(now)}</span><span>Закат ${clock(set)}</span></div>
       </div>
       <div class="weather-data-panels">
-        <div class="weather-data-panel"><span>Качество воздуха <small>AQI US</small></span><strong>${metric(aqi)}</strong><div class="weather-quality-row"><small>${quality}</small><div class="weather-aqi-scale">${hasAqi ? '<i style="left:' + Math.min(100, Math.max(0, aqi / 300 * 100)) + '%"></i>' : ''}</div></div></div>
-        <div class="weather-data-panel"><span>Облачность</span><strong>${metric(cur.cloud_cover)}%</strong><small>${Number.isFinite(cur.cloud_cover) ? cur.cloud_cover <= 20 ? 'Ясное небо' : cur.cloud_cover <= 70 ? 'Переменная' : 'Облачно' : 'Нет данных'}</small><div class="weather-cloud-scale"><i style="width:${Number.isFinite(cur.cloud_cover) ? Math.min(100, Math.max(0, cur.cloud_cover)) : 0}%"></i></div></div>
+        <div class="weather-data-panel"><span class="weather-panel-heading">Качество воздуха <svg aria-hidden="true" viewBox="0 0 24 24"><circle cx="12" cy="12" r="4"/><path d="M12 2v2m0 16v2M2 12h2m16 0h2M5 5l1.4 1.4m11.2 11.2L19 19M5 19l1.4-1.4M17.6 6.4 19 5"/></svg></span><strong>${metric(aqi)}</strong><div class="weather-quality-row"><small>${quality}</small><div class="weather-aqi-scale">${hasAqi ? '<i style="left:' + Math.min(100, Math.max(0, aqi / 300 * 100)) + '%"></i>' : ''}</div></div></div>
+        <div class="weather-data-panel"><span class="weather-panel-heading">Облачность <svg aria-hidden="true" viewBox="0 0 24 24"><path d="M7 19a5 5 0 1 1 1-10 6 6 0 1 1 10 10Z"/></svg></span><strong>${metric(cur.cloud_cover)}%</strong><div class="weather-quality-row"><small>${Number.isFinite(cur.cloud_cover) ? cur.cloud_cover <= 20 ? 'Ясное небо' : cur.cloud_cover <= 70 ? 'Переменная' : 'Облачно' : 'Нет данных'}</small><div class="weather-cloud-scale"><i style="width:${Number.isFinite(cur.cloud_cover) ? Math.min(100, Math.max(0, cur.cloud_cover)) : 0}%"></i></div></div></div>
       </div>
       <a class="weather-source" href="https://open-meteo.com/" target="_blank" rel="noopener noreferrer">Open-Meteo · CAMS</a>
     </section>`;

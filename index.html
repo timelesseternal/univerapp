@@ -96,6 +96,12 @@
   <div class="umkd-file-frame" id="umkdFileFrame"></div>
 </div>
 
+<dialog class="logout-dialog" id="logoutDialog" aria-labelledby="logoutTitle">
+  <h2 id="logoutTitle">Выйти из аккаунта?</h2>
+  <p>Чтобы вернуться, войди с логином и паролем Platonus.</p>
+  <div class="modal-buttons"><button type="button" class="modal-btn cancel" autofocus onclick="closeLogoutConfirmation()">Отмена</button><button type="button" class="modal-btn save" onclick="closeLogoutConfirmation(true)">Выйти</button></div>
+</dialog>
+
 <div class="app-wrapper">
   <div class="container">
 
