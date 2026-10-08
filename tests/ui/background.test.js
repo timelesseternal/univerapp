@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import vm from 'node:vm';
 
-const source = fs.readFileSync(new URL('../assets/js/background.js', import.meta.url), 'utf8');
+const source = fs.readFileSync(new URL('../../assets/js/background.js', import.meta.url), 'utf8');
 function setup({ reducedMotion = false, saveData = false } = {}) {
   const callbacks = new Map(), pageCallbacks = new Map(), timers = new Map();
   let timerID = 0;

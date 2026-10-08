@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import vm from 'node:vm';
 
-const source = readFileSync(new URL('../assets/js/chat.js', import.meta.url), 'utf8');
+const source = readFileSync(new URL('../../assets/js/chat.js', import.meta.url), 'utf8');
 class Element {
   children = []; listeners = {}; style = {}; value = ''; hidden = false;
   scrollHeight = 100; scrollTop = 0; clientHeight = 100;
@@ -54,6 +54,47 @@ function messageTexts(ui) {
   return ui.elements.get('chatMessages').children.filter(child => child.className?.includes('chat-message'))
     .map(child => child.children[0].textContent);
 }
+test('peer avatar opens the verified profile and back returns to the conversation', async () => {
+  const ui = setup(async url => {
+    if (url.includes('action=session')) return reply({ profile, conversations: [conversation] });
+    if (url.includes('action=inbox')) return reply({ conversations: [conversation] });
+    if (url.includes('action=profile')) return reply({ profile: { name: 'Друг', studentID: 23, academicGpa: 3.5, course: 2, group: 'ИС-23', updatedAt: '2026-10-09' } });
+    if (url.includes('action=read')) return reply({ ok: true });
+    return reply({ messages: [message], hasMore: false });
+  });
+  ui.api.onSection('chat'); await settle();
+  await ui.elements.get('chatInbox').children[0].listeners.click(); await settle();
+  await ui.elements.get('chatPeerAvatar').listeners.click();
+  assert.equal(ui.elements.get('chatPeerProfile').hidden, false);
+  assert.equal(ui.elements.get('chatThread').hidden, true);
+  const rendered = ui.elements.get('chatPeerProfileContent').children;
+  const texts = element => [element.textContent, ...element.children.flatMap(texts)].filter(Boolean);
+  assert.match(rendered.flatMap(texts).join(' '), /ID: 23.*Группа: ИС-23.*Курс: 2.*3,50/);
+  ui.elements.get('chatProfileBack').listeners.click();
+  assert.equal(ui.elements.get('chatPeerProfile').hidden, true);
+  assert.equal(ui.elements.get('chatThread').hidden, false);
+  await settle();
+});
+test('returning to the messages tab fetches the latest page and scrolls to the newest message', async () => {
+  let histories = 0;
+  const historyURLs = [];
+  const latest = { ...message, id: '99', text: 'Последнее сообщение', createdAt: '2026-10-09T10:00:00Z' };
+  const ui = setup(async url => {
+    if (url.includes('action=session')) return reply({ profile, conversations: [conversation] });
+    if (url.includes('action=inbox')) return reply({ conversations: [conversation] });
+    if (url.includes('action=read')) return reply({ ok: true });
+    historyURLs.push(url);
+    return reply({ messages: [++histories === 1 ? message : latest], hasMore: false });
+  });
+  ui.api.onSection('chat'); await settle();
+  await ui.elements.get('chatInbox').children[0].listeners.click(); await settle();
+  ui.api.onSection('profile');
+  ui.elements.get('chatMessages').scrollTop = 0;
+  ui.api.onSection('chat'); await settle();
+  assert.deepEqual(messageTexts(ui), ['Последнее сообщение']);
+  assert.ok(historyURLs.every(url => !url.includes('after=') && !url.includes('before=')));
+  assert.equal(ui.elements.get('chatMessages').scrollTop, ui.elements.get('chatMessages').scrollHeight);
+});
 test('bootstrap supplies the inbox in one browser request', async () => {
   let calls = 0;
   const ui = setup(async () => { calls++; return reply({ profile, conversations: [conversation] }); });
@@ -179,7 +220,7 @@ test('a background history response is not acknowledged until the thread is visi
     if(url.includes('action=read')){readAcks++;return reply({ok:true});}
     if(url.includes('action=inbox'))return reply({conversations:[conversation]});
     if(++historyRequests===1)return new Promise(resolve=>{finishRead=resolve;});
-    return reply({messages:[],hasMore:false});
+    return reply({messages:url.includes('after=') ? [] : [message],hasMore:false});
   });
   ui.api.onSection('chat');await settle();
   ui.elements.get('chatInbox').children[0].listeners.click();await settle();

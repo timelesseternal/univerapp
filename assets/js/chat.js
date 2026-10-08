@@ -8,7 +8,7 @@
     epoch: 0, visible: false, sessionWork: null, timer: null, searchTimer: null,
     searchVersion: 0, refreshing: false, sending: false, hasOlder: false,
     history: new Map(), pending: new Map(), inboxAt: 0, readThrough: new Map(),
-    monitoring: false, badgeTimer: null, badgeBusy: false };
+    monitoring: false, badgeTimer: null, badgeBusy: false, peerProfileOpen: false, peerProfileVersion: 0 };
   const telegramApp = window.Telegram?.WebApp;
   const bootstrap = () => request('session', { method:'POST',headers:{'x-session':platonusSession},
     ...(telegramApp?.initData ? { body:{initData:telegramApp.initData} } : {}) });
@@ -190,6 +190,14 @@
     if (scroll === 'bottom' || (scroll === 'keep' && nearBottom)) list.scrollTop = list.scrollHeight;
     else if (scroll === 'older') list.scrollTop = previousTop + list.scrollHeight - previousHeight;
     else list.scrollTop = previousTop;
+    if (scroll === 'bottom') {
+      const id = state.conversation?.id;
+      const epoch = state.epoch;
+      const afterLayout = window.requestAnimationFrame || (fn => fn());
+      afterLayout(() => {
+        if (!stale(epoch) && state.visible && state.conversation?.id === id) list.scrollTop = list.scrollHeight;
+      });
+    }
   }
   async function refreshMessages({ older = false, initial = false } = {}) {
     if (!state.conversation) return;
@@ -203,6 +211,7 @@
     if (!params.after) state.hasOlder = data.hasMore;
     const newIDs = new Set(data.messages.filter(message => !state.messages.has(message.id)).map(message => message.id));
     let changed = newIDs.size > 0;
+    if (initial) state.messages.clear();
     for (const message of data.messages) {
       state.messages.set(message.id, message);
       if (message.senderID === state.profile.id && state.pending.delete(message.clientID)) changed = true;
@@ -211,7 +220,7 @@
     if (changed || initial || older) drawMessages({ scroll: initial ? 'bottom' : older ? 'older' : 'keep',
       newIDs: initial || older ? new Set() : newIDs });
     if (params.after && data.hasMore) await refreshMessages();
-    if (state.visible && !document.hidden && state.conversation?.id===id) {
+    if (state.visible && !state.peerProfileOpen && !document.hidden && state.conversation?.id===id) {
       const through = orderedMessages().at(-1)?.id;
       if (through && state.readThrough.get(id)!==through) {
         // Acknowledge after visible rendering, without delaying the message refresh.
@@ -227,12 +236,12 @@
     state.timer = setTimeout(refresh, Math.max(250, (state.conversation ? 2500 : 8000) - elapsed));
   }
   let chatRefreshTask = null;
-  function refresh() {
+  function refresh(latest = false) {
     if (chatRefreshTask) return chatRefreshTask;
-    chatRefreshTask = refreshOnce().finally(() => { chatRefreshTask = null; });
+    chatRefreshTask = refreshOnce(latest).finally(() => { chatRefreshTask = null; });
     return chatRefreshTask;
   }
-  async function refreshOnce() {
+  async function refreshOnce(latest = false) {
     if (!state.visible || document.hidden || state.refreshing || !platonusSession) return;
     const epoch = state.epoch;
     const started = Date.now();
@@ -241,7 +250,7 @@
     try {
       await ensureSession();
       if (stale(epoch)) return;
-      const work = [refreshMessages()];
+      const work = [refreshMessages({ initial: latest })];
       if (!state.inboxAt || Date.now() - state.inboxAt >= 8000) {
         work.push(request('inbox').then(data => {
           if (stale(epoch)) return;
@@ -304,6 +313,7 @@
     }
   }
   async function openConversation(conversation) {
+    closePeerProfile();
     saveDraft();
     rememberHistory();
     state.conversation = conversation;
@@ -323,11 +333,12 @@
     try {
       await ensureSession();
       if (stale(epoch) || state.conversation?.id !== conversation.id) return;
-      await refreshMessages({ initial: !cached });
+      await refreshMessages({ initial: true });
       if (!stale(epoch)) { status(); scheduleRefresh(); }
     } catch (error) { if (!stale(epoch)) showError(error); }
   }
   function closeConversation() {
+    closePeerProfile();
     saveDraft();
     rememberHistory();
     state.conversation = null;
@@ -344,6 +355,44 @@
     input.style.height = 'auto';
     input.style.height = Math.min(120, input.scrollHeight) + 'px';
     byID('chatSend').disabled = state.sending || !input.value.trim();
+  }
+  function closePeerProfile() {
+    state.peerProfileOpen = false;
+    state.peerProfileVersion++;
+    byID('chatPeerProfile').hidden = true;
+    byID('chatPeerProfileContent').replaceChildren();
+    if (state.conversation) byID('chatThread').hidden = false;
+  }
+  async function openPeerProfile() {
+    if (!state.conversation) return;
+    const id = state.conversation.id, epoch = state.epoch;
+    const version = ++state.peerProfileVersion;
+    state.peerProfileOpen = true;
+    byID('chatThread').hidden = true;
+    byID('chatPeerProfile').hidden = false;
+    const content = byID('chatPeerProfileContent');
+    content.replaceChildren(node('p', 'chat-empty', 'Загружаем профиль…'));
+    try {
+      await ensureSession();
+      const data = await request('profile', { params: { conversationID: id } });
+      if (stale(epoch) || version !== state.peerProfileVersion || state.conversation?.id !== id) return;
+      const person = data.profile;
+      if (!person) throw new Error('chat_unavailable');
+      const hero = node('div', 'chat-peer-profile-hero');
+      hero.append(node('div', 'profile-avatar', initials(person.name)), node('h2', 'profile-name', person.name));
+      const info = node('div', 'profile-study-info');
+      info.append(node('span', '', 'Группа: ' + (person.group || '—')), node('span', '', 'Курс: ' + (person.course || '—')));
+      hero.append(node('div', 'profile-id', 'ID: ' + person.studentID), info);
+      const gpa = node('div', 'gpa-card');
+      const row = node('div', 'gpa-row');
+      const value = person.academicGpa;
+      row.append(node('span', 'gpa-label', 'Академический GPA'), node('span', 'gpa-value accent', Number.isFinite(value) ? value.toFixed(2).replace('.', ',') : '—'));
+      gpa.append(row);
+      content.replaceChildren(hero, gpa);
+      if (!person.updatedAt) content.append(node('p', 'chat-empty', 'Учебные данные появятся, когда пользователь снова откроет приложение.'));
+    } catch (error) {
+      if (!stale(epoch) && version === state.peerProfileVersion) content.replaceChildren(node('p', 'chat-empty', error.message === 'chat_setup_required' ? 'Профили ещё не подключены: требуется обновление базы данных.' : 'Не удалось загрузить профиль. Закройте его и попробуйте снова.'));
+    }
   }
   async function send(event) {
     event.preventDefault();
@@ -398,6 +447,7 @@
     }
   }
   function reset() {
+    closePeerProfile();
     state.epoch++;
     state.searchVersion++;
     clearTimeout(state.timer);
@@ -440,7 +490,7 @@
       if (chatRefreshTask) await chatRefreshTask;
       state.inboxAt = 0;
       clearTimeout(state.timer);
-      await refresh();
+      await refresh(true);
     },
     onLogin() {
       const epoch = state.epoch;
@@ -462,10 +512,11 @@
       });
     },
     onSection(section) {
+      if (section !== 'chat') closePeerProfile();
       state.visible = section === 'chat';
       clearTimeout(state.timer);
       clearTimeout(state.searchTimer);
-      if (state.visible) { status(state.profile ? '' : 'Подключаем чат…'); refresh(); }
+      if (state.visible) { status(state.profile ? '' : 'Подключаем чат…'); window.univerChat.refreshNow(); }
     },
     logout: logoutChat,
   };
@@ -475,6 +526,8 @@
     state.searchTimer = setTimeout(search, 300);
   });
   byID('chatBack').addEventListener('click', closeConversation);
+  byID('chatPeerAvatar').addEventListener('click', openPeerProfile);
+  byID('chatProfileBack').addEventListener('click', () => { closePeerProfile(); window.univerChat.refreshNow(); });
   byID('chatOlder').addEventListener('click', async () => {
     const button = byID('chatOlder'), epoch = state.epoch;
     button.disabled = true;

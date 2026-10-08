@@ -83,6 +83,10 @@ export async function startSession(req, res) {
   const oldToken = readToken(req);
   const profile = await rpc('chat_bootstrap', { p_student_id: studentID, p_display_name: name,
     p_token_hash: tokenHash(token), p_previous_hash: oldToken ? tokenHash(oldToken) : null });
+  // Only the verified selfStudentCard response may update academic profile fields.
+  const study = verifiedStudyProfile(student);
+  try { await rpc('chat_sync_student_profile', { p_user_id: profile.id, ...study }); }
+  catch { /* Old deployments keep chatting until migration 003 is applied. */ }
   setCookie(req, res, token);
   // Return the first inbox in the bootstrap response, avoiding another browser round trip.
   const conversations = await rpc('chat_inbox', { p_user_id: profile.id });
@@ -91,4 +95,22 @@ export async function startSession(req, res) {
 export function uuid(value) {
   if (typeof value !== 'string' || !/^[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}$/i.test(value)) throw new ChatError(400, 'invalid_chat_request');
   return value;
+}
+
+export function verifiedStudyProfile(student) {
+  const rawGpa = student.academicGpa;
+  const gpa = rawGpa == null || String(rawGpa).trim() === '' ? NaN : Number(String(rawGpa).replace(',', '.'));
+  let group = null, course = null;
+  for (const candidate of [student.studentGroupName, student.groupName, student.academicGroupName,
+    student.studyGroupName, student.group, student.studentGroup, student.studyGroup, student.academicGroup,
+    student.studentInfo?.groupName, student.student?.groupName]) {
+    const name = candidate && typeof candidate === 'object' ? candidate.name || candidate.groupName : candidate;
+    if (typeof name === 'string' && name.trim()) { group = name.trim().slice(0,120); break; }
+  }
+  for (const value of [student.courseNumber, student.course, student.studyCourse, student.yearOfStudy,
+    student.studentInfo?.course, student.student?.course]) {
+    const number = Number(value);
+    if (Number.isInteger(number) && number >= 1 && number <= 8) { course = number; break; }
+  }
+  return { p_academic_gpa: Number.isFinite(gpa) && gpa >= 0 && gpa <= 4 ? gpa : null, p_group: group, p_course: course };
 }

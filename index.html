@@ -168,7 +168,7 @@
       <div id="chatThread" class="chat-thread" hidden>
         <header class="chat-thread-header">
           <button id="chatBack" type="button" class="chat-back" aria-label="Вернуться к списку чатов"><svg aria-hidden="true" class="action-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m14 6-6 6 6 6"/></svg></button>
-          <span id="chatPeerAvatar" class="chat-avatar" aria-hidden="true"></span>
+          <button id="chatPeerAvatar" type="button" class="chat-avatar chat-profile-trigger" aria-label="Открыть профиль собеседника"></button>
           <div class="chat-peer-info"><h2 id="chatPeerName" class="chat-peer-name"></h2><span class="chat-peer-caption">Личная переписка</span></div>
         </header>
         <button id="chatOlder" class="chat-older" type="button" hidden>Предыдущие сообщения</button>
@@ -180,8 +180,11 @@
             <svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 19V5m-6 6 6-6 6 6"/></svg>
           </button>
         </form>
-        <p class="chat-update-note">Сообщения обновляются автоматически.</p>
       </div>
+      <section id="chatPeerProfile" class="chat-peer-profile" aria-label="Профиль собеседника" hidden>
+        <button id="chatProfileBack" type="button" class="profile-back navigation-back"><svg aria-hidden="true" class="action-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m14 6-6 6 6 6"/></svg><span>Назад</span></button>
+        <div id="chatPeerProfileContent" aria-live="polite"></div>
+      </section>
     </section>
 
   </div>

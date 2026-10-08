@@ -1,7 +1,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import handler from '../api/chat.js';
-import { COOKIE_NAME, tokenHash } from '../api/_lib/chat.js';
+import handler from '../../api/chat.js';
+import { COOKIE_NAME, tokenHash } from '../../api/_lib/chat.js';
 
 const user = '11111111-1111-4111-8111-111111111111';
 const conversation = '22222222-2222-4222-8222-222222222222';

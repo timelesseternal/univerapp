@@ -37,6 +37,8 @@ export default async function handler(req, res) {
     const userID = await currentUser(req);
     if (action === 'telegram' && req.method === 'POST') {
       res.status(200).json({ linked: await linkTelegram(userID,req.body?.initData) });
+    } else if (action === 'profile' && req.method === 'GET') {
+      res.status(200).json({ profile: await rpc('chat_peer_profile', { p_user_id:userID,p_conversation_id:uuid(req.query.conversationID) }) });
     } else if (action === 'conversation' && req.method === 'GET') {
       res.status(200).json({ conversation: await rpc('chat_get_conversation', { p_user_id:userID,p_conversation_id:uuid(req.query.conversationID) }) });
     } else if (action === 'read' && req.method === 'POST') {

@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import vm from 'node:vm';
 
-const app = fs.readFileSync(new URL('../assets/js/app.js', import.meta.url), 'utf8');
+const app = fs.readFileSync(new URL('../../assets/js/app.js', import.meta.url), 'utf8');
 function setup() {
   const elements = new Map(), timers = new Map(), removed = [];
   let timerID = 0, loads = 0;

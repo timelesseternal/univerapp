@@ -107,3 +107,10 @@
 @supports (background: color-mix(in srgb, white 80%, transparent)) {
   .chat-person, .chat-status, .chat-message:not(.chat-message-own) { background: color-mix(in srgb, var(--paper-2) 82%, transparent); }
 }
+
+.chat-profile-trigger { padding:0; border:1px solid var(--glass-border); font:inherit; font-weight:700; cursor:pointer; }
+.chat-profile-trigger:focus-visible { outline:2px solid var(--accent); outline-offset:3px; }
+.chat-peer-profile-hero { display:flex; flex-direction:column; align-items:center; gap:12px; padding:24px 16px; margin-bottom:12px; text-align:center; border:1px solid var(--glass-border); border-radius:26px; background:radial-gradient(ellipse at 20% 0%,rgba(var(--accent-rgb),.2),transparent 75%),var(--surface-bg); }
+.chat-peer-profile-hero .profile-avatar { display:grid; place-items:center; width:72px; height:72px; border-radius:50%; font-size:24px; }
+.chat-peer-profile-hero .profile-name { margin:0; }
+.chat-peer-profile-hero .profile-study-info { justify-content:center; }

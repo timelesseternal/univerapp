@@ -276,6 +276,8 @@ if ('serviceWorker' in navigator) {
           lessonsForDay.push({
             'пара': String(displayNumber),
             'sub': `${lesson.subjectName}${typeLabel ? ' (' + typeLabel + ')' : ''}`,
+            subjectTitle: lesson.subjectName || '',
+            lessonType: typeLabel,
             'teacher': (lesson.tutorName || '').trim(),
             'room': `${lesson.auditory || ''}`.trim(),
             'building': `${lesson.building || ''}`.trim(),
@@ -2027,6 +2029,17 @@ if ('serviceWorker' in navigator) {
 
   let lastRenderedScreenKey = '';
 
+  function lessonTitleHtml(item) {
+    const title = String(item.sub || '');
+    // Older cached schedules only contain the combined title.
+    const legacy = title.match(/^(.*)\s+\(([^()]+)\)$/);
+    const name = item.subjectTitle || (legacy ? legacy[1] : title);
+    const type = item.lessonType ?? (legacy ? legacy[2] : '');
+    return type
+      ? '<span class="lesson-subject-name">' + escapeHtml(name) + '</span><span class="lesson-type-name">' + escapeHtml(type) + '</span>'
+      : '<span class="lesson-subject-wrap">' + escapeHtml(name) + '</span>';
+  }
+
   function renderSchedule(animate = true) {
     const container = document.getElementById('scheduleContainer');
 
@@ -2134,7 +2147,7 @@ if ('serviceWorker' in navigator) {
           </div>
           <div class="row-body">
             <div class="row-top">
-              <span class="row-title" title="${escapeHtml(item.sub)}">${escapeHtml(item.sub)}</span>
+              <span class="row-title" title="${escapeHtml(item.sub)}">${lessonTitleHtml(item)}</span>
               ${isActive ? '<span class="live-tag"><span class="live-dot pulse-live-tag"></span>сейчас</span>' : ''}
             </div>
             <div class="row-meta">${item.teacher}</div>
@@ -2272,7 +2285,7 @@ if ('serviceWorker' in navigator) {
   const DOWNLOAD_ICON = '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v12"/><path d="M8 11l4 4 4-4"/><path d="M5 21h14"/></svg>';
 
   function isMobilePlatform() {
-    const p = tg && tg.platform;
+    const p = tg && tg.initData && tg.platform;
     if (p && p !== 'unknown') return ['ios', 'android', 'android_x'].includes(p);
     return /Android|iPhone|iPad|iPod/i.test(navigator.userAgent)
       || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
@@ -2301,56 +2314,40 @@ if ('serviceWorker' in navigator) {
     if (!currentUmkdPdf) return;
     const { buffer, fileName } = currentUmkdPdf;
     const blob = new Blob([buffer], { type: 'application/pdf' });
+    const inTelegram = Boolean(tg && tg.initData);
 
-    if (isMobilePlatform()) {
-      const file = new File([blob], fileName, { type: 'application/pdf' });
-
-      // 1) Системное «Поделиться», если WebView умеет отправлять файлы
-      if (navigator.share && navigator.canShare && navigator.canShare({ files: [file] })) {
-        try {
+    // Preserve the working iPhone share sheet, also available in Android browsers.
+    if (isMobilePlatform() && navigator.share && navigator.canShare) {
+      try {
+        const file = new File([blob], fileName, { type: 'application/pdf' });
+        if (navigator.canShare({ files: [file] })) {
           await navigator.share({ files: [file], title: fileName });
           return;
-        } catch (e) {
-          if (e && e.name === 'AbortError') return; // человек сам закрыл окно
         }
-      }
-
-      // 2) Нативное окно Telegram для скачивания (нужна ссылка на сервер)
-      if (currentUmkdRef) {
-        const url = `${location.origin}${API_BASE}/api/umkd-file`
-          + `?fileTypeID=${encodeURIComponent(currentUmkdRef.fileTypeID)}`
-          + `&umkdid=${encodeURIComponent(currentUmkdRef.umkdid)}`
-          + `&session=${encodeURIComponent(platonusSession)}`
-          + `&download=1`
-          + `&name=${encodeURIComponent(fileName)}`;
-
-        if (tg && tg.downloadFile && tg.isVersionAtLeast && tg.isVersionAtLeast('8.0')) {
-          tg.downloadFile({ url, file_name: fileName });
-          return;
-        }
-        // 3) Старый Telegram: откроем ссылку во внешнем браузере, он скачает файл
-        if (tg && tg.openLink) {
-          tg.openLink(url);
-          return;
-        }
-      }
-    } else if (window.showSaveFilePicker) {
-      // Компьютер: диалог «Куда сохранить?»
-      try {
-        const handle = await window.showSaveFilePicker({
-          suggestedName: fileName,
-          types: [{ description: 'PDF', accept: { 'application/pdf': ['.pdf'] } }],
-        });
-        const writable = await handle.createWritable();
-        await writable.write(blob);
-        await writable.close();
-        return;
-      } catch (e) {
-        if (e && e.name === 'AbortError') return;
+      } catch (error) {
+        if (error?.name === 'AbortError') return;
       }
     }
 
-    // Запасной вариант: обычное скачивание
+    // Telegram Desktop also needs the native download API, not a blob navigation.
+    if (inTelegram && currentUmkdRef) {
+      const url = `${location.origin}${API_BASE}/api/umkd-file`
+        + `?fileTypeID=${encodeURIComponent(currentUmkdRef.fileTypeID)}`
+        + `&umkdid=${encodeURIComponent(currentUmkdRef.umkdid)}`
+        + `&session=${encodeURIComponent(platonusSession)}`
+        + '&download=1'
+        + `&name=${encodeURIComponent(fileName)}`;
+      if (tg.downloadFile && tg.isVersionAtLeast?.('8.0')) {
+        try { tg.downloadFile({ url, file_name: fileName }); return; }
+        catch (error) { /* Fall back when the client does not implement downloading. */ }
+      }
+      if (tg.openLink) {
+        try { tg.openLink(url); return; }
+        catch (error) { /* A browser download remains available. */ }
+      }
+    }
+
+    // Start directly from the click: a blocked save picker must not consume activation.
     downloadBlob(blob, fileName);
   }
 

@@ -2,7 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import vm from 'node:vm';
 import { readFileSync } from 'node:fs';
-const source = readFileSync(new URL('../assets/js/app.js', import.meta.url), 'utf8');
+const source = readFileSync(new URL('../../assets/js/app.js', import.meta.url), 'utf8');
 function setup(section) {
   const classes = new Set();
   const attrs = new Map();

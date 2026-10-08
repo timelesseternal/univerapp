@@ -3,8 +3,8 @@ import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import vm from 'node:vm';
 
-const html = fs.readFileSync(new URL('../index.html', import.meta.url), 'utf8');
-const app = fs.readFileSync(new URL('../assets/js/app.js', import.meta.url), 'utf8');
+const html = fs.readFileSync(new URL('../../index.html', import.meta.url), 'utf8');
+const app = fs.readFileSync(new URL('../../assets/js/app.js', import.meta.url), 'utf8');
 function storageContext(cloud = true) {
   const local = new Map();
   const calls = [];
@@ -139,27 +139,27 @@ test('ready grades refresh before the schedule and ignore late data after logout
 
 test('all inline and standalone JavaScript parses', () => {
   for (const match of html.matchAll(/<script(?:\s[^>]*)?>([\s\S]*?)<\/script>/g)) new vm.Script(match[1]);
-  for (const name of ['appearance.js', 'app.js', 'chat.js', 'background.js', 'sw.js']) new vm.Script(fs.readFileSync(new URL(`../assets/js/${name}`, import.meta.url), 'utf8'));
+  for (const name of ['appearance.js', 'app.js', 'chat.js', 'background.js', 'sw.js']) new vm.Script(fs.readFileSync(new URL(`../../assets/js/${name}`, import.meta.url), 'utf8'));
 });
 
 test('the page references existing local assets in the expected script order', () => {
-  const root = new URL('../', import.meta.url);
+  const root = new URL('../../', import.meta.url);
   for (const match of html.matchAll(/(?:src|href)="(\.\/[^"\s]+)"/g)) {
     assert.ok(fs.existsSync(new URL(match[1], root)), `Missing ${match[1]}`);
   }
   assert.ok(html.indexOf('telegram-web-app.js') < html.indexOf('assets/js/app.js'));
   assert.ok(html.indexOf('assets/js/app.js') < html.indexOf('assets/js/background.js'));
-  const background = fs.readFileSync(new URL('../assets/js/background.js', import.meta.url), 'utf8');
+  const background = fs.readFileSync(new URL('../../assets/js/background.js', import.meta.url), 'utf8');
   assert.ok(background.includes("new URL('../media/background.mp4'"));
-  assert.ok(fs.existsSync(new URL('../assets/media/background.mp4', import.meta.url)));
+  assert.ok(fs.existsSync(new URL('../../assets/media/background.mp4', import.meta.url)));
 });
 
 test('the relocated worker retains root scope and caches the complete public shell', () => {
-  const config = JSON.parse(fs.readFileSync(new URL('../vercel.json', import.meta.url), 'utf8'));
+  const config = JSON.parse(fs.readFileSync(new URL('../../vercel.json', import.meta.url), 'utf8'));
   const workerHeaders = config.headers.find(entry => entry.source === '/assets/js/sw.js');
   assert.ok(workerHeaders.headers.some(h => h.key === 'Service-Worker-Allowed' && h.value === '/'));
   assert.ok(app.includes("register('./assets/js/sw.js', { scope: '/' })"));
-  const worker = fs.readFileSync(new URL('../assets/js/sw.js', import.meta.url), 'utf8');
+  const worker = fs.readFileSync(new URL('../../assets/js/sw.js', import.meta.url), 'utf8');
   const ctx = vm.createContext({ self: { addEventListener() {} } });
   vm.runInContext(worker + '\n globalThis.shellPaths = [...SHELL_PATHS];', ctx);
   const assets = [...html.matchAll(/(?:src|href)="\.\/(assets\/[^"\s]+)"/g)].map(match => '/' + match[1]);

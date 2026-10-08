@@ -48,6 +48,7 @@ export default async function handler(req, res) {
     // ?download=1 — файл должен скачаться (кнопка «Поделиться» на телефоне),
     // иначе отдаём inline, как раньше (просмотрщик в мини-аппе).
     const asDownload = String(req.query.download || '') === '1';
+    if (asDownload) res.setHeader('Access-Control-Allow-Origin', 'https://web.telegram.org');
     const rawName = String(req.query.name || 'umkd.pdf');
     const safeName = rawName.replace(/[\\/:*?"<>|\r\n]+/g, ' ').trim().slice(0, 150) || 'umkd.pdf';
     // Кириллицу в имени файла кодируем по RFC 5987

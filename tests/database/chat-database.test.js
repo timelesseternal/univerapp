@@ -4,7 +4,7 @@ import { randomUUID } from 'node:crypto';
 import fs from 'node:fs';
 import { PGlite } from '@electric-sql/pglite';
 
-const migration = fs.readFileSync(new URL('../supabase/migrations/001_chat.sql', import.meta.url), 'utf8');
+const migration = fs.readFileSync(new URL('../../supabase/migrations/001_chat.sql', import.meta.url), 'utf8');
 test('chat schema and privacy rules run in PostgreSQL', async t => {
   const db = new PGlite();
   t.after(() => db.close());

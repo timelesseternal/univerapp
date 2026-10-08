@@ -8,7 +8,7 @@ test('Telegram queue and read acknowledgements run in PostgreSQL', async t => {
   const db = new PGlite(); t.after(() => db.close());
   await db.exec('create role anon; create role authenticated; create role service_role bypassrls;');
   for (const name of ['001_chat.sql','002_telegram_notifications.sql','002_telegram_notifications.sql']) {
-    await db.exec(readFileSync(new URL('../supabase/migrations/'+name,import.meta.url),'utf8'));
+    await db.exec(readFileSync(new URL('../../supabase/migrations/'+name,import.meta.url),'utf8'));
   }
   const rpc = async (sql,params=[]) => (await db.query('select '+sql+' as result',params)).rows[0].result;
   let student = 1000, telegram = 7000;

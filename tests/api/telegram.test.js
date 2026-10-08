@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { createHmac } from 'node:crypto';
-import { verifyTelegram, processNotifications, appLink } from '../api/_lib/telegram.js';
+import { verifyTelegram, processNotifications, appLink } from '../../api/_lib/telegram.js';
 const token='test-bot-token';
 function signed(fields) {
   const params=new URLSearchParams(fields);

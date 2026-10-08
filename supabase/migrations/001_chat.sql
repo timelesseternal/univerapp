@@ -1,4 +1,4 @@
--- Run once in Supabase SQL Editor. No Platonus credentials or grades are stored here.
+-- Run once in Supabase SQL Editor. No Platonus credentials are stored here.
 begin;
 
 create table if not exists public.chat_profiles (

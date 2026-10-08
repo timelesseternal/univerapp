@@ -2,7 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import vm from 'node:vm';
 import { readFileSync } from 'node:fs';
-const source = readFileSync(new URL('../assets/js/sw.js', import.meta.url), 'utf8');
+const source = readFileSync(new URL('../../assets/js/sw.js', import.meta.url), 'utf8');
 function worker(cached, fetch) {
   const handlers = {}; const writes = [];
   vm.runInNewContext(source, {
