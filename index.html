@@ -124,7 +124,7 @@
       <div class="week-stepper" id="weekStepper">
         <button class="week-step-btn" id="weekPrevBtn" onclick="stepWeek(-1)" aria-label="Предыдущая неделя"><svg aria-hidden="true" class="action-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m14 6-6 6 6 6"/></svg></button>
         <span class="week-step-label" id="weekStepLabel">Неделя —</span>
-        <button class="week-step-btn" id="weekNextBtn" onclick="stepWeek(1)" aria-label="Следующая неделя"><svg aria-hidden="true" class="action-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m10 6 6 6-6 6"/></svg></button>
+        <button class="week-step-btn" id="weekNextBtn" onclick="stepWeek(1)" aria-label="Следующая неделя"><svg aria-hidden="true" class="action-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m9 6 6 6-6 6"/></svg></button>
       </div>
 
       <div class="days-grid" id="daysGrid">
@@ -181,32 +181,37 @@
   </div>
 </div>
 
+<div class="tab-scroll-fade" aria-hidden="true"></div>
 <nav class="bottom-tab-bar" id="bottomTabBar">
   <div class="bottom-tab-indicator" id="tabIndicator"></div>
-  <button class="bottom-tab-btn active" id="section-schedule" onclick="switchSection('schedule')" aria-label="Расписание">
+  <button class="bottom-tab-btn active" id="section-schedule" onclick="tapTab('schedule')" aria-label="Расписание">
     <div class="bottom-tab-icon-wrap">
+      <svg aria-hidden="true" class="tab-refresh-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 10a8 8 0 1 0-2 8M20 4v6h-6"/></svg>
       <svg aria-hidden="true" class="bottom-tab-icon icon-outline" viewBox="0 0 24 24" fill="none" fill-opacity="1" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="5" width="16" height="15" rx="3"/><path d="M8 3v4m8-4v4M4 10h16" fill="none"/></svg>
       <svg aria-hidden="true" class="bottom-tab-icon icon-filled" viewBox="0 0 24 24" fill="currentColor" fill-opacity=".14" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="5" width="16" height="15" rx="3"/><path d="M8 3v4m8-4v4M4 10h16" fill="none"/></svg>
     </div>
     <span>Расписание</span>
   </button>
-  <button class="bottom-tab-btn" id="section-grades" onclick="switchSection('grades')">
+  <button class="bottom-tab-btn" id="section-grades" onclick="tapTab('grades')">
     <div class="bottom-tab-icon-wrap">
+      <svg aria-hidden="true" class="tab-refresh-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 10a8 8 0 1 0-2 8M20 4v6h-6"/></svg>
       <svg aria-hidden="true" class="bottom-tab-icon icon-outline" viewBox="0 0 24 24" fill="none" fill-opacity="1" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="12" width="4" height="8" rx="1.5"/><rect x="10" y="4" width="4" height="16" rx="1.5"/><rect x="16" y="8" width="4" height="12" rx="1.5"/></svg>
       <svg aria-hidden="true" class="bottom-tab-icon icon-filled" viewBox="0 0 24 24" fill="currentColor" fill-opacity=".14" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="12" width="4" height="8" rx="1.5"/><rect x="10" y="4" width="4" height="16" rx="1.5"/><rect x="16" y="8" width="4" height="12" rx="1.5"/></svg>
     </div>
     <span>Оценки</span>
   </button>
-  <button class="bottom-tab-btn" id="section-chat" onclick="switchSection('chat')">
+  <button class="bottom-tab-btn" id="section-chat" onclick="tapTab('chat')">
     <div class="bottom-tab-icon-wrap">
+      <svg aria-hidden="true" class="tab-refresh-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 10a8 8 0 1 0-2 8M20 4v6h-6"/></svg>
       <svg aria-hidden="true" class="bottom-tab-icon icon-outline" viewBox="0 0 24 24" fill="none" fill-opacity="1" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 11a7 7 0 0 1-7 7H8l-4 3v-8a8 8 0 1 1 16-2Z"/><path d="M8 10h8m-8 4h5" fill="none"/></svg>
       <svg aria-hidden="true" class="bottom-tab-icon icon-filled" viewBox="0 0 24 24" fill="currentColor" fill-opacity=".14" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 11a7 7 0 0 1-7 7H8l-4 3v-8a8 8 0 1 1 16-2Z"/><path d="M8 10h8m-8 4h5" fill="none"/></svg>
       <span class="message-badge" id="messageBadge" hidden aria-hidden="true"></span>
     </div>
     <span>Сообщения</span>
   </button>
-  <button class="bottom-tab-btn" id="section-profile" onclick="switchSection('profile')">
+  <button class="bottom-tab-btn" id="section-profile" onclick="tapTab('profile')">
     <div class="bottom-tab-icon-wrap">
+      <svg aria-hidden="true" class="tab-refresh-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 10a8 8 0 1 0-2 8M20 4v6h-6"/></svg>
       <svg aria-hidden="true" class="bottom-tab-icon icon-outline" viewBox="0 0 24 24" fill="none" fill-opacity="1" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="4"/><path d="M4 21v-1a8 6 0 0 1 16 0v1"/></svg>
       <svg aria-hidden="true" class="bottom-tab-icon icon-filled" viewBox="0 0 24 24" fill="currentColor" fill-opacity=".14" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="4"/><path d="M4 21v-1a8 6 0 0 1 16 0v1"/></svg>
     </div>

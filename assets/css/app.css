@@ -1990,3 +1990,17 @@
 .weather-quality-row { display:flex; align-items:center; gap:8px; min-height:16px; }
 .weather-quality-row > small { flex:1 1 auto; min-width:0; line-height:1.25; }
 .weather-quality-row .weather-aqi-scale { flex:0 0 48%; margin-top:0; }
+
+/* Scrolling content softens into the navigation shelf. */
+.tab-scroll-fade { position:fixed; bottom:0; left:0; right:0; height:calc(env(safe-area-inset-bottom,0px) + 114px); z-index:499; pointer-events:none; background:linear-gradient(to bottom,transparent,var(--aurora-base)); -webkit-backdrop-filter:blur(8px); backdrop-filter:blur(8px); -webkit-mask-image:linear-gradient(to bottom,transparent,#000 66%); mask-image:linear-gradient(to bottom,transparent,#000 66%); }
+.login-screen .tab-scroll-fade { display:none; }
+.app-wrapper { padding-bottom:calc(env(safe-area-inset-bottom,0px) + 132px); }
+.list-card .umkd-subject-row { display:flex; align-items:center; gap:12px; }
+.umkd-subject-row > span:first-child, .umkd-item > span:first-child { flex:1 1 0; }
+svg.umkd-arrow, .profile-gpa-arrow { width:20px; height:20px; flex:0 0 20px; display:block; }
+.umkd-document-action { display:flex; align-items:center; gap:6px; flex-shrink:0; color:var(--ink-soft); font-size:12px; }
+.tab-refresh-icon { display:none; position:absolute; inset:0; width:24px; height:24px; }
+.tab-refreshing .bottom-tab-icon { opacity:0!important; }
+.tab-refreshing .tab-refresh-icon { display:block; animation:tabRefreshTurn .7s cubic-bezier(.25,.6,.3,1) 1; }
+@keyframes tabRefreshTurn { from { transform:rotate(0deg); } to { transform:rotate(360deg); } }
+@media(prefers-reduced-motion:reduce) { .tab-refreshing .tab-refresh-icon { animation:none; } }

@@ -851,7 +851,7 @@ if ('serviceWorker' in navigator) {
 
 <details class="gpa-card profile-gpa" id="profileGpaDetails" ${gpaExpanded ? 'open' : ''}>
         <summary class="gpa-ring-summary" aria-label="Академический GPA ${gpaText} из 4: раскрыть остальные показатели">
-          <span class="gpa-ring-copy"><span class="gpa-label">Академический GPA</span><span class="gpa-ring-hint">${hasAcademicGpa ? 'Шкала от 0 до 4,0' : 'Показатель пока недоступен'}</span><span class="gpa-ring-more">Все показатели <svg aria-hidden="true" class="action-icon profile-gpa-arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m10 6 6 6-6 6"/></svg></span></span>
+          <span class="gpa-ring-copy"><span class="gpa-label">Академический GPA</span><span class="gpa-ring-hint">${hasAcademicGpa ? 'Шкала от 0 до 4,0' : 'Показатель пока недоступен'}</span><span class="gpa-ring-more">Все показатели <svg aria-hidden="true" class="action-icon profile-gpa-arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m9 6 6 6-6 6"/></svg></span></span>
           <span class="gpa-ring" aria-hidden="true"><svg viewBox="0 0 120 120"><defs><linearGradient id="gpaRingGradient" x1="0" y1="0" x2="1" y2="1"><stop offset="0%" stop-color="var(--accent)"/><stop offset="100%" stop-color="var(--ink-soft)"/></linearGradient></defs><circle class="gpa-ring-track" cx="60" cy="60" r="51"/><circle class="gpa-ring-progress" cx="60" cy="60" r="51" pathLength="100" stroke-dasharray="${gpaProgress} 100"/></svg><span class="gpa-ring-number">${gpaText}<small>из 4,0</small></span></span>
         </summary>
         <div class="profile-gpa-extra">
@@ -865,12 +865,12 @@ if ('serviceWorker' in navigator) {
         <button type="button" class="profile-study-tile" onclick="switchSection('umkd')">
           <span class="profile-tile-icon"><svg aria-hidden="true" viewBox="0 0 24 24"><path d="M12 6v15M12 6C9 4 6 3 3 4v15c3-1 6 0 9 2 3-2 6-3 9-2V4c-3-1-6 0-9 2Z"/></svg></span>
           <span class="profile-tile-title">УМКД</span><span class="profile-tile-caption">Учебные материалы</span>
-          <svg aria-hidden="true" class="profile-tile-arrow" viewBox="0 0 24 24"><path d="m10 6 6 6-6 6"/></svg>
+          <svg aria-hidden="true" class="profile-tile-arrow" viewBox="0 0 24 24"><path d="m9 6 6 6-6 6"/></svg>
         </button>
         <button type="button" class="profile-study-tile" onclick="switchSection('exams')">
           <span class="profile-tile-icon"><svg aria-hidden="true" viewBox="0 0 24 24"><rect x="4" y="5" width="16" height="16" rx="3"/><path d="M8 3v4m8-4v4M4 11h16m-12 5 2 2 5-5"/></svg></span>
           <span class="profile-tile-title">Экзамены</span><span class="profile-tile-caption">Расписание сессии</span>
-          <svg aria-hidden="true" class="profile-tile-arrow" viewBox="0 0 24 24"><path d="m10 6 6 6-6 6"/></svg>
+          <svg aria-hidden="true" class="profile-tile-arrow" viewBox="0 0 24 24"><path d="m9 6 6 6-6 6"/></svg>
         </button>
       </nav>
 
@@ -1939,6 +1939,42 @@ if ('serviceWorker' in navigator) {
     selectDay(realTodayName, null, true);
   }
 
+  const refreshingTabs = new Set();
+  async function tapTab(section) {
+    if (section !== currentSection) { switchSection(section); return; }
+    if (refreshingTabs.has(section)) return;
+    refreshingTabs.add(section);
+    const button = document.getElementById('section-' + section);
+    const generation = authGeneration;
+    button.classList.add('tab-refreshing');
+    button.setAttribute('aria-busy', 'true');
+    haptic('light');
+    const reduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    if (section !== 'chat') window.scrollTo({ top: 0, behavior: reduced ? 'auto' : 'smooth' });
+    try {
+      const refreshData = async () => {
+        if (section === 'chat') { await window.univerChat?.refreshNow(); return; }
+        const info = liveScheduleWeekInfo;
+        if (section === 'grades' && info?.selectedStudyYear && info?.selectedTerm) {
+          await fetchJournal(info.selectedStudyYear, info.selectedTerm);
+        } else if (section === 'schedule' && browsedWeekInfo && platonusStudent) {
+          const { studyYear, term, week } = browsedWeekInfo;
+          await refreshWeekInBackground(studyYear, term, week);
+        } else {
+          await loadLiveStudentData();
+        }
+        if (generation === authGeneration && currentSection === section) renderCurrentSection();
+      };
+      await Promise.allSettled([refreshData(), new Promise(resolve => setTimeout(resolve, reduced ? 0 : 700))]);
+    } catch (error) {
+      // Keep the last rendered data; each loader presents its own failure state.
+    } finally {
+      refreshingTabs.delete(section);
+      button.classList.remove('tab-refreshing');
+      button.removeAttribute('aria-busy');
+    }
+  }
+
   function switchSection(section) {
     if (section === currentSection) return;
     haptic('light');
@@ -2133,7 +2169,7 @@ if ('serviceWorker' in navigator) {
       itemsHtml += `
         <div class="umkd-subject-row row-enter" style="animation-delay:${Math.min(index, 8) * 0.04}s;" onclick="selectUmkdSubject(${index})">
           <span>${rec.subjectName}</span>
-          <svg aria-hidden="true" class="action-icon umkd-arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m10 6 6 6-6 6"/></svg>
+          <svg aria-hidden="true" class="action-icon umkd-arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m9 6 6 6-6 6"/></svg>
         </div>
       `;
     });
@@ -2174,7 +2210,7 @@ if ('serviceWorker' in navigator) {
       bodyHtml = UMKD_FILE_TYPES.map(type => `
         <div class="umkd-item" onclick="openUmkdFile(${type.id}, ${rec.umkdID})">
           <span>${type.label}</span>
-          <span class="umkd-arrow">PDF ›</span>
+          <span class="umkd-document-action"><span>PDF</span><svg aria-hidden="true" class="action-icon umkd-arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m9 6 6 6-6 6"/></svg></span>
         </div>
       `).join('');
     } else {

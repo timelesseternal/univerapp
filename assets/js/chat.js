@@ -226,7 +226,13 @@
     if (!state.visible || document.hidden || !platonusSession) return;
     state.timer = setTimeout(refresh, Math.max(250, (state.conversation ? 2500 : 8000) - elapsed));
   }
-  async function refresh() {
+  let chatRefreshTask = null;
+  function refresh() {
+    if (chatRefreshTask) return chatRefreshTask;
+    chatRefreshTask = refreshOnce().finally(() => { chatRefreshTask = null; });
+    return chatRefreshTask;
+  }
+  async function refreshOnce() {
     if (!state.visible || document.hidden || state.refreshing || !platonusSession) return;
     const epoch = state.epoch;
     const started = Date.now();
@@ -430,6 +436,12 @@
     catch { /* The route clears the cookie even if its database is unavailable. */ }
   }
   window.univerChat = {
+    async refreshNow() {
+      if (chatRefreshTask) await chatRefreshTask;
+      state.inboxAt = 0;
+      clearTimeout(state.timer);
+      await refresh();
+    },
     onLogin() {
       const epoch = state.epoch;
       const start = telegramApp?.initDataUnsafe?.start_param || new URLSearchParams(window.location?.search || '').get('tgWebAppStartParam');
