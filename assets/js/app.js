@@ -1241,6 +1241,7 @@ if ('serviceWorker' in navigator) {
         <svg class="weather-solar-path" viewBox="0 0 320 165" preserveAspectRatio="none" aria-hidden="true"><path d="${arcPath}"/>${validArc && !night ? '<circle cx="' + x.toFixed(1) + '" cy="' + y.toFixed(1) + '" r="7"/>' : ''}</svg>
         <div class="weather-temperature">${metric(cur.temperature_2m)}°</div>
         <div class="weather-caption">${weatherDescription(cur.weather_code)}</div>
+        <div class="weather-solar-times"><span>Восход ${clock(rise)}</span><span>Закат ${clock(set)}</span></div>
       </div>
       <div class="weather-data-panels">
         <div class="weather-data-panel"><span class="weather-panel-heading">Качество воздуха <svg aria-hidden="true" viewBox="0 0 24 24"><circle cx="12" cy="12" r="4"/><path d="M12 2v2m0 16v2M2 12h2m16 0h2M5 5l1.4 1.4m11.2 11.2L19 19M5 19l1.4-1.4M17.6 6.4 19 5"/></svg></span><strong>${metric(aqi)}</strong><div class="weather-quality-row"><small>${quality}</small><div class="weather-aqi-scale">${hasAqi ? '<i style="left:' + Math.min(100, Math.max(0, aqi / 300 * 100)) + '%"></i>' : ''}</div></div></div>
