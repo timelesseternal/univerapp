@@ -5,6 +5,7 @@
 // login) to discover who it's talking to before asking for schedule/grades.
 
 import { getSessionFromRequest, buildPlatonusHeaders } from './_lib/platonus.js';
+import { enrichStudentStudy, fetchStudySummaryHtml } from './_lib/student-study.js';
 
 export default async function handler(req, res) {
   res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate');
@@ -15,6 +16,7 @@ export default async function handler(req, res) {
   }
 
   try {
+    const studyHtml = fetchStudySummaryHtml(session);
     const r = await fetch('https://platonus.kstu.kz/rest/integralGpa/selfStudentCard/ru', {
       headers: buildPlatonusHeaders(session),
     });
@@ -23,7 +25,7 @@ export default async function handler(req, res) {
       return;
     }
     const data = await r.json();
-    res.status(200).json(data);
+    res.status(200).json(await enrichStudentStudy(session, data, studyHtml));
   } catch (err) {
     res.status(502).json({ error: 'platonus_unreachable' });
   }

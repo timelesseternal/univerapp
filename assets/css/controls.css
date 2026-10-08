@@ -1,0 +1,22 @@
+/* Keep all three header controls at the same height; adjust only this value. */
+:root { --header-control-height: 40px; }
+.header-right-top > :is(.today-btn, .appearance-toggle, .theme-btn) {
+  box-sizing: border-box;
+  height: var(--header-control-height);
+  min-height: var(--header-control-height);
+  max-height: var(--header-control-height);
+  flex: 0 0 auto;
+  align-items: center;
+  justify-content: center;
+  border-radius: 12px;
+}
+.header-right-top > :is(.appearance-toggle, .theme-btn) {
+  width: var(--header-control-height);
+  min-width: var(--header-control-height);
+  padding: 9px;
+}
+.header-right-top > .today-btn {
+  width: auto;
+  padding: 0 9px;
+  line-height: 1;
+}

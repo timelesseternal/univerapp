@@ -1,5 +1,6 @@
 import { createHash, randomBytes } from 'node:crypto';
 import { getSessionFromRequest, buildPlatonusHeaders } from './platonus.js';
+import { enrichStudentStudy, fetchStudySummaryHtml } from './student-study.js';
 
 export const COOKIE_NAME = 'univer_chat_session';
 const SESSION_SECONDS = 8 * 60 * 60;
@@ -66,6 +67,7 @@ export async function startSession(req, res) {
   configuration();
   const session = getSessionFromRequest(req);
   if (!session) throw new ChatError(401, 'session_expired');
+  const studyHtml = fetchStudySummaryHtml(session);
   let response;
   try {
     response = await fetch('https://platonus.kstu.kz/rest/integralGpa/selfStudentCard/ru', {
@@ -84,7 +86,7 @@ export async function startSession(req, res) {
   const profile = await rpc('chat_bootstrap', { p_student_id: studentID, p_display_name: name,
     p_token_hash: tokenHash(token), p_previous_hash: oldToken ? tokenHash(oldToken) : null });
   // Only the verified selfStudentCard response may update academic profile fields.
-  const study = verifiedStudyProfile(student);
+  const study = verifiedStudyProfile(await enrichStudentStudy(session, student, studyHtml));
   try { await rpc('chat_sync_student_profile', { p_user_id: profile.id, ...study }); }
   catch { /* Old deployments keep chatting until migration 003 is applied. */ }
   setCookie(req, res, token);

@@ -2010,10 +2010,6 @@ svg.umkd-arrow, .profile-gpa-arrow { width:20px; height:20px; flex:0 0 20px; dis
 @keyframes tabRefreshTurn { from { transform:rotate(0deg); } to { transform:rotate(360deg); } }
 @media(prefers-reduced-motion:reduce) { .tab-refreshing .tab-refresh-icon { animation:none; } }
 
-/* The header controls share their outer dimensions. */
-.header-right-top > .today-btn, .header-right-top > .appearance-toggle, .header-right-top > .theme-btn { box-sizing:border-box; height:40px; min-height:40px; max-height:40px; flex-shrink:0; align-items:center; justify-content:center; border-radius:12px; }
-.header-right-top > .appearance-toggle, .header-right-top > .theme-btn { width:40px; min-width:40px; padding:9px; }
-.header-right-top > .today-btn { width:auto; padding:0 9px; line-height:1; }
 .logout-dialog { width:calc(100% - 40px); max-width:340px; margin:auto; padding:22px; border:1px solid var(--glass-border); border-radius:24px; background:var(--paper-2); color:var(--ink); box-shadow:var(--glass-shadow); }
 .logout-dialog::backdrop { background:var(--overlay); backdrop-filter:blur(6px); }
 .logout-dialog h2 { margin:0 0 10px; font-size:20px; line-height:1.3; }

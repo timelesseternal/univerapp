@@ -62,7 +62,7 @@ test('a forged or rejected Platonus session never creates a chat profile', async
   const session = Buffer.from(JSON.stringify({ sid: 'fake', token: 'fake', cookie: 'fake' })).toString('base64');
   const res = await call({ method: 'POST', action: 'session', headers: { 'x-session': session } });
   assert.equal(res.code, 401);
-  assert.equal(requests, 1);
+  assert.equal(requests, 2);
   assert.equal(res.headers['Set-Cookie'], undefined);
 });
 test('cross-origin writes are rejected before touching the database', async t => {
