@@ -1178,7 +1178,9 @@ if ('serviceWorker' in navigator) {
     target.innerHTML = smartWeatherHtml(city, data);
   }
 
+  let dayWeatherRequest = 0;
   async function fillDayOffWeather() {
+    const request = ++dayWeatherRequest;
     const el = document.getElementById('dayOffWeatherDetail');
     if (!el) return;
     let savedCity = localStorage.getItem('user_city');
@@ -1191,6 +1193,7 @@ if ('serviceWorker' in navigator) {
       return;
     }
 
+    el.innerHTML = weatherSkeletonHtml();
     try {
       const location = CITY_COORDS[savedCity];
       const [weather, air] = await Promise.allSettled([
@@ -1198,12 +1201,12 @@ if ('serviceWorker' in navigator) {
       ]);
       if (weather.status !== 'fulfilled') throw weather.reason;
       const data = { ...weather.value, airQuality: air.status === 'fulfilled' ? air.value.current?.us_aqi : null };
-      if ((localStorage.getItem('user_city') || 'Караганда') !== savedCity) return;
+      if (request !== dayWeatherRequest || document.getElementById('dayOffWeatherDetail') !== el || (localStorage.getItem('user_city') || 'Караганда') !== savedCity) return;
       dayOffWeatherCache = { city: savedCity, data, timestamp: Date.now() };
       renderDayOffWeatherHtml(data);
     } catch (e) {
       const stillThere = document.getElementById('dayOffWeatherDetail');
-      if (stillThere) stillThere.innerHTML = 'не удалось загрузить погоду';
+      if (request === dayWeatherRequest && stillThere === el) stillThere.innerHTML = 'не удалось загрузить погоду';
     }
   }
 
@@ -1224,9 +1227,9 @@ if ('serviceWorker' in navigator) {
     const now = cur.time;
     const validArc = Number.isFinite(rise) && Number.isFinite(set) && set > rise && Number.isFinite(now);
     const progress = validArc ? Math.max(0, Math.min(1, (now - rise) / (set - rise))) : 0;
-    const arcPath = Array.from({ length: 41 }, (_, i) => `${i ? 'L' : 'M'}${20 + 7 * i} ${(148 - 120 * Math.sin(Math.PI * i / 40)).toFixed(1)}`).join(' ');
-    const x = 20 + 280 * progress;
-    const y = 148 - 120 * Math.sin(Math.PI * progress);
+    const arcPath = Array.from({ length: 41 }, (_, i) => `${i ? 'L' : 'M'}${72 + 5.7 * i} ${(148 - 120 * Math.pow(Math.sin(Math.PI * i / 40), 2.3)).toFixed(1)}`).join(' ');
+    const x = 72 + 228 * progress;
+    const y = 148 - 120 * Math.pow(Math.sin(Math.PI * progress), 2.3);
     const clock = value => Number.isFinite(value) ? new Date((value + (data.utc_offset_seconds || 0)) * 1000).toISOString().slice(11,16) : '—';
     const metric = value => Number.isFinite(value) ? Math.round(value) : '—';
     const aqi = data.airQuality;
@@ -1234,7 +1237,7 @@ if ('serviceWorker' in navigator) {
     const quality = !hasAqi ? 'Нет данных' : aqi <= 50 ? 'Хороший' : aqi <= 100 ? 'Умеренный' : aqi <= 150 ? 'Для чувствительных групп' : aqi <= 200 ? 'Нездоровый' : aqi <= 300 ? 'Очень плохой' : 'Опасный';
     return `<section class="smart-weather ${night ? 'weather-night' : 'weather-day'}" aria-label="Погода в городе ${escapeHtml(city)}">
       <div class="weather-sky-symbol ${night ? 'weather-moon' : 'weather-sun'}" aria-hidden="true"></div>
-      <div class="weather-location">${escapeHtml(city)}</div>
+      <div class="weather-location"><svg aria-hidden="true" viewBox="0 0 24 24"><path d="M20 10c0 6-8 11-8 11S4 16 4 10a8 8 0 1 1 16 0Z"/><circle cx="12" cy="10" r="2.5"/></svg><span>${escapeHtml(city)}</span></div>
       <div class="weather-scene">
         <svg class="weather-solar-path" viewBox="0 0 320 165" preserveAspectRatio="none" aria-hidden="true"><path d="${arcPath}"/>${validArc && !night ? '<circle cx="' + x.toFixed(1) + '" cy="' + y.toFixed(1) + '" r="7"/>' : ''}</svg>
         <div class="weather-temperature">${metric(cur.temperature_2m)}°</div>
@@ -1242,7 +1245,7 @@ if ('serviceWorker' in navigator) {
         <div class="weather-solar-times"><span>Восход ${clock(rise)}</span><span>${clock(now)}</span><span>Закат ${clock(set)}</span></div>
       </div>
       <div class="weather-data-panels">
-        <div class="weather-data-panel"><span>Качество воздуха <small>AQI US</small></span><strong>${metric(aqi)}</strong><small>${quality}</small><div class="weather-aqi-scale">${hasAqi ? '<i style="left:' + Math.min(100, Math.max(0, aqi / 300 * 100)) + '%"></i>' : ''}</div></div>
+        <div class="weather-data-panel"><span>Качество воздуха <small>AQI US</small></span><strong>${metric(aqi)}</strong><div class="weather-quality-row"><small>${quality}</small><div class="weather-aqi-scale">${hasAqi ? '<i style="left:' + Math.min(100, Math.max(0, aqi / 300 * 100)) + '%"></i>' : ''}</div></div></div>
         <div class="weather-data-panel"><span>Облачность</span><strong>${metric(cur.cloud_cover)}%</strong><small>${Number.isFinite(cur.cloud_cover) ? cur.cloud_cover <= 20 ? 'Ясное небо' : cur.cloud_cover <= 70 ? 'Переменная' : 'Облачно' : 'Нет данных'}</small><div class="weather-cloud-scale"><i style="width:${Number.isFinite(cur.cloud_cover) ? Math.min(100, Math.max(0, cur.cloud_cover)) : 0}%"></i></div></div>
       </div>
       <a class="weather-source" href="https://open-meteo.com/" target="_blank" rel="noopener noreferrer">Open-Meteo · CAMS</a>
@@ -1348,6 +1351,8 @@ if ('serviceWorker' in navigator) {
       localStorage.setItem('user_city', pendingCity);
       closeCityModal();
       loadWeather();
+      dayOffWeatherCache = { city: null, data: null, timestamp: 0 };
+      fillDayOffWeather();
     }
   }
 

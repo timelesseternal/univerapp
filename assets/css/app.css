@@ -1984,3 +1984,9 @@
 .navigation-back .action-icon { width:20px; height:20px; margin:0; flex-shrink:0; }
 #profileContainer .profile-hero { padding:18px 14px; gap:8px; }
 #profileContainer .profile-avatar { width:72px; height:72px; font-size:24px; }
+
+.weather-location { display:flex; align-items:center; justify-content:center; gap:5px; }
+.weather-location svg { width:14px; height:14px; flex-shrink:0; fill:none; stroke:currentColor; stroke-width:1.8; }
+.weather-quality-row { display:flex; align-items:center; gap:8px; min-height:16px; }
+.weather-quality-row > small { flex:1 1 auto; min-width:0; line-height:1.25; }
+.weather-quality-row .weather-aqi-scale { flex:0 0 48%; margin-top:0; }
