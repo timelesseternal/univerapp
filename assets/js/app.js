@@ -849,13 +849,7 @@ if ('serviceWorker' in navigator) {
         </div>
       </div>
 
-      <nav class="profile-quick-actions" aria-label="Быстрые действия">
-        <button type="button" onclick="switchSection('chat')"><svg aria-hidden="true" viewBox="0 0 24 24"><path d="M21 11.5a8.4 8.4 0 0 1-9 8.5 10 10 0 0 1-4-.8L3 21l1.8-5a8.3 8.3 0 0 1-.8-4.5 8.5 8.5 0 0 1 17 0Z"/></svg><span>Сообщения</span></button>
-        <button type="button" onclick="switchSection('schedule')"><svg aria-hidden="true" viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="16" rx="3"/><path d="M7 3v4m10-4v4M3 11h18"/></svg><span>Расписание</span></button>
-        <button type="button" onclick="switchSection('grades')"><svg aria-hidden="true" viewBox="0 0 24 24"><rect x="4" y="13" width="4" height="8" rx="1"/><rect x="10" y="8" width="4" height="13" rx="1"/><rect x="16" y="3" width="4" height="18" rx="1"/></svg><span>Оценки</span></button>
-      </nav>
-
-      <details class="gpa-card profile-gpa" id="profileGpaDetails" ${gpaExpanded ? 'open' : ''}>
+<details class="gpa-card profile-gpa" id="profileGpaDetails" ${gpaExpanded ? 'open' : ''}>
         <summary class="gpa-ring-summary" aria-label="Академический GPA ${gpaText} из 4: раскрыть остальные показатели">
           <span class="gpa-ring-copy"><span class="gpa-label">Академический GPA</span><span class="gpa-ring-hint">${hasAcademicGpa ? 'Шкала от 0 до 4,0' : 'Показатель пока недоступен'}</span><span class="gpa-ring-more">Все показатели <svg aria-hidden="true" class="action-icon profile-gpa-arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m10 6 6 6-6 6"/></svg></span></span>
           <span class="gpa-ring" aria-hidden="true"><svg viewBox="0 0 120 120"><defs><linearGradient id="gpaRingGradient" x1="0" y1="0" x2="1" y2="1"><stop offset="0%" stop-color="var(--accent)"/><stop offset="100%" stop-color="var(--ink-soft)"/></linearGradient></defs><circle class="gpa-ring-track" cx="60" cy="60" r="51"/><circle class="gpa-ring-progress" cx="60" cy="60" r="51" pathLength="100" stroke-dasharray="${gpaProgress} 100"/></svg><span class="gpa-ring-number">${gpaText}<small>из 4,0</small></span></span>
@@ -869,7 +863,6 @@ if ('serviceWorker' in navigator) {
 
       <nav aria-label="Учебные разделы">
         <div class="gpa-card"><button type="button" class="gpa-row profile-section-link" onclick="switchSection('umkd')"><span class="gpa-label">УМКД</span><svg aria-hidden="true" class="action-icon profile-gpa-arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m10 6 6 6-6 6"/></svg></button></div>
-        <div class="gpa-card"><button type="button" class="gpa-row profile-section-link" onclick="switchSection('exams')"><span class="gpa-label">Экзамены</span><svg aria-hidden="true" class="action-icon profile-gpa-arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m10 6 6 6-6 6"/></svg></button></div>
       </nav>
 
       <button class="profile-logout-btn" onclick="confirmLogout()">Выйти из аккаунта</button>
@@ -1171,32 +1164,9 @@ if ('serviceWorker' in navigator) {
   function renderDayOffWeatherHtml(data) {
     const target = document.getElementById('dayOffWeatherDetail');
     if (!target) return;
-    const cur = data.current;
-    const emoji = weatherEmoji(cur.weather_code);
-    const desc = weatherDescription(cur.weather_code);
-    const temp = Math.round(cur.temperature_2m);
-    const feels = Math.round(cur.apparent_temperature);
-    const humidity = Math.round(cur.relative_humidity_2m);
-    const wind = Math.round(cur.wind_speed_10m);
-    const hasDaily = data.daily && data.daily.temperature_2m_max && data.daily.temperature_2m_min;
-    const tMax = hasDaily ? Math.round(data.daily.temperature_2m_max[0]) : null;
-    const tMin = hasDaily ? Math.round(data.daily.temperature_2m_min[0]) : null;
-    const rangeHtml = (tMax !== null && tMin !== null)
-      ? `<span>${tMin > 0 ? '+' + tMin : tMin}° / ${tMax > 0 ? '+' + tMax : tMax}°</span>`
-      : '';
-    target.innerHTML = `
-      <div class="day-off-weather-main">
-        <span class="day-off-weather-emoji">${emoji}</span>
-        <span class="day-off-weather-temp">${temp > 0 ? '+' + temp : temp}°C</span>
-        <span class="day-off-weather-desc">${desc}</span>
-      </div>
-      <div class="day-off-weather-details">
-        <span>ощущается как ${feels > 0 ? '+' + feels : feels}°</span>
-        ${rangeHtml}
-        <span>влажность ${humidity}%</span>
-        <span>ветер ${wind} км/ч</span>
-      </div>
-    `;
+    let city = localStorage.getItem('user_city');
+    if (!city || !CITY_COORDS[city]) city = 'Караганда';
+    target.innerHTML = '<button type="button" class="smart-weather" onclick="openCityModal()" aria-label="Выбрать город для погоды">' + smartWeatherHtml(city, data.current) + '</button>';
   }
 
   async function fillDayOffWeather() {
@@ -1243,20 +1213,21 @@ if ('serviceWorker' in navigator) {
       localStorage.setItem('user_city', savedCity);
     }
 
-    if (!isRetry) weatherEl.innerHTML = smartWeatherHtml(savedCity, null, true);
+    if (!isRetry) weatherEl.textContent = savedCity + ' · …';
     const location = CITY_COORDS[savedCity];
 
     try {
-      const data = await fetchDayWeatherDetails(location);
+      const data = await fetchWeather(location);
       if (request !== weatherRequest) return;
-      weatherEl.innerHTML = smartWeatherHtml(savedCity, data.current);
+      const temp = Math.round(data.current.temperature_2m);
+      weatherEl.textContent = `${savedCity} · ${temp > 0 ? '+' + temp : temp}°`;
     } catch (e) {
       if (request !== weatherRequest) return;
       if (!isRetry) {
         setTimeout(() => { if (request === weatherRequest) loadWeather(true); }, 4000);
-        weatherEl.innerHTML = smartWeatherHtml(savedCity, null);
+        weatherEl.textContent = savedCity + ' · —°';
       } else {
-        weatherEl.innerHTML = smartWeatherHtml(savedCity, null);
+        weatherEl.textContent = savedCity + ' · —°';
       }
     }
   }
