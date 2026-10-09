@@ -1227,7 +1227,7 @@ if ('serviceWorker' in navigator) {
     const now = cur.time;
     const validArc = Number.isFinite(rise) && Number.isFinite(set) && set > rise && Number.isFinite(now);
     const progress = validArc ? Math.max(0, Math.min(1, (now - rise) / (set - rise))) : 0;
-    const arcPath = Array.from({ length: 41 }, (_, i) => `${i ? 'L' : 'M'}${72 + 5.7 * i} ${(148 - 120 * Math.pow(Math.sin(Math.PI * i / 40), 2.3)).toFixed(1)}`).join(' ');
+    const arcPath = Array.from({ length: 201 }, (_, i) => `${i ? 'L' : 'M'}${(72 + 228 * i / 200).toFixed(2)} ${(148 - 120 * Math.pow(Math.sin(Math.PI * i / 200), 2.3)).toFixed(2)}`).join(' ');
     const x = 72 + 228 * progress;
     const y = 148 - 120 * Math.pow(Math.sin(Math.PI * progress), 2.3);
     const clock = value => Number.isFinite(value) ? new Date((value + (data.utc_offset_seconds || 0)) * 1000).toISOString().slice(11,16) : '—';
@@ -1240,7 +1240,7 @@ if ('serviceWorker' in navigator) {
       <div class="weather-card-avatar" aria-hidden="true">${escapeHtml((platonusStudent?.studentName || '').split(' ').filter(Boolean).slice(0, 2).map(name => name[0]).join('') || 'U')}</div>
       <div class="weather-location"><svg aria-hidden="true" viewBox="0 0 24 24"><path d="M20 10c0 6-8 11-8 11S4 16 4 10a8 8 0 1 1 16 0Z"/><circle cx="12" cy="10" r="2.5"/></svg><span>${escapeHtml(city)}</span></div>
       <div class="weather-scene">
-        <svg class="weather-solar-path" viewBox="0 0 320 165" preserveAspectRatio="none" aria-hidden="true"><path d="${arcPath}"/>${validArc && !night ? '<circle cx="' + x.toFixed(1) + '" cy="' + y.toFixed(1) + '" r="7"/>' : ''}</svg>
+        <svg class="weather-solar-path" viewBox="0 0 320 165" preserveAspectRatio="none" aria-hidden="true"><path d="${arcPath}" vector-effect="non-scaling-stroke"/>${validArc && !night ? '<circle cx="' + x.toFixed(1) + '" cy="' + y.toFixed(1) + '" r="7"/>' : ''}</svg>
         <div class="weather-temperature">${metric(cur.temperature_2m)}°</div>
         <div class="weather-caption">${weatherDescription(cur.weather_code)}</div>
         <div class="weather-solar-times"><span>Восход ${clock(rise)}</span><span>Закат ${clock(set)}</span></div>

@@ -1927,7 +1927,7 @@
 .weather-moon::after { content:''; position:absolute; width:31px; height:31px; top:-5px; left:12px; border-radius:50%; background:#233c60; }
 .weather-scene { position:relative; height:180px; margin-top:12px; }
 .weather-solar-path { position:absolute; inset:0; width:100%; height:100%; pointer-events:none; }
-.weather-solar-path path { fill:none; stroke:rgba(255,255,255,.55); stroke-width:1.2; stroke-dasharray:5 7; }
+.weather-solar-path path { fill:none; stroke:rgba(255,255,255,.55); stroke-width:1.25; stroke-dasharray:4 7; stroke-linecap:round; stroke-linejoin:round; }
 .weather-solar-path circle { fill:rgba(255,255,255,.65); stroke:#fff; stroke-width:1; }
 .weather-temperature { position:relative; padding-top:40px; font-size:48px; font-weight:500; line-height:1.15; letter-spacing:-.055em; }
 .weather-caption { position:relative; margin-top:4px; font-size:12px; max-width:60%; }
@@ -2022,7 +2022,6 @@ svg.umkd-arrow, .profile-gpa-arrow { width:20px; height:20px; flex:0 0 20px; dis
 .weather-scene { height:148px; margin-top:6px; }
 .weather-temperature { padding-top:30px; font-size:46px; font-weight:400; }
 .weather-caption { font-size:11px; margin-top:3px; max-width:42%; }
-.weather-solar-path path { stroke-dasharray:5 6; stroke-width:.8; }
 .weather-solar-path circle { fill:rgba(225,242,238,.32); stroke:rgba(255,255,255,.65); r:8px; }
 .weather-data-panels { gap:8px; margin-top:0; }
 .weather-data-panel { padding:12px 10px; gap:5px; border-radius:24px; background:rgba(255,255,255,.78); border:1px solid rgba(255,255,255,.75); }
