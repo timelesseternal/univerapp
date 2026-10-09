@@ -1,0 +1,12 @@
+.aurora-backdrop::before, .aurora-backdrop::after { animation: none; }
+.aurora-canvas {
+  position: absolute;
+  inset: -4%;
+  width: 108%;
+  height: 108%;
+  display: block;
+  pointer-events: none;
+  filter: blur(12px);
+}
+.aurora-backdrop.canvas-ready::before,
+.aurora-backdrop.canvas-ready::after { opacity: 0; }

@@ -2,127 +2,83 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import vm from 'node:vm';
-
 const source = fs.readFileSync(new URL('../../assets/js/background.js', import.meta.url), 'utf8');
-function setup({ reducedMotion = false, saveData = false } = {}) {
-  const callbacks = new Map(), pageCallbacks = new Map(), timers = new Map();
-  let timerID = 0;
-  function element() {
-    const listeners = new Map(), attributes = new Map(), classes = new Set();
-    return {
-      style: {}, children: [], paused: true, ended: false, duration: 10, currentTime: 0,
-      classList: { add: name => classes.add(name), remove: name => classes.delete(name), contains: name => classes.has(name) },
-      appendChild(child) { this.children.push(child); },
-      setAttribute: (name, value) => attributes.set(name, value),
-      getAttribute(name) { return name === 'src' ? this.src || null : attributes.get(name); },
-      addEventListener: (name, fn) => listeners.set(name, fn),
-      emit: name => listeners.get(name)?.(),
-      play() { this.paused = false; this.ended = false; return Promise.resolve(); },
-      pause() { this.paused = true; },
-    };
-  }
-  const surface = element();
-  const document = {
-    hidden: false, baseURI: 'https://example.com/',
-    currentScript: { src: 'https://example.com/assets/js/background.js' },
-    body: element(), querySelector: () => surface, createElement: element,
-    addEventListener: (name, fn) => callbacks.set(name, fn),
-  };
-  const window = {
-    matchMedia: () => ({ matches: reducedMotion, addEventListener() {} }),
-    addEventListener: (name, fn) => pageCallbacks.set(name, fn), requestIdleCallback: fn => fn(),
-  };
-  vm.runInNewContext(source, {
-    document, window, navigator: { connection: { saveData, addEventListener() {} } }, URL,
-    setTimeout: fn => { timers.set(++timerID, fn); return timerID; },
-    clearTimeout: id => timers.delete(id),
-  });
-  return {
-    document, surface, videos: surface.children[0].children,
-    start: () => pageCallbacks.get('univer-ready')(),
-    visibility: () => callbacks.get('visibilitychange')(),
-    finish() { for (const [id, fn] of [...timers]) { timers.delete(id); fn(); } },
-  };
+function setup({ reduced = false, saveData = false, available = true } = {}) {
+  const events = new Map(), pages = new Map(), frames = new Map();
+  const colors = [], created = [];
+  let paints = 0, frameID = 0, observer;
+  const ctx = { fillRect() { paints++; }, beginPath() {}, lineTo() {}, moveTo() {}, stroke() {},
+    createRadialGradient() { return { addColorStop(_, color) { colors.push(color); } }; },
+    createLinearGradient() { return { addColorStop(_, color) { colors.push(color); } }; } };
+  const classList = () => ({ add() {} });
+  const canvas = { getContext: () => available ? ctx : null, setAttribute() {} };
+  const surface = { children: [], classList: classList(), appendChild(item) { this.children.push(item); } };
+  const root = { dark: true, getAttribute() { return this.dark ? 'dark' : null; } };
+  const document = { hidden: false, documentElement: root, body: { classList: classList() },
+    querySelector: () => surface, createElement(tag) { created.push(tag); return canvas; },
+    addEventListener(name, fn) { events.set(name, fn); } };
+  const motion = { matches: reduced, addEventListener(name, fn) { this.change = fn; } };
+  const connection = { saveData, addEventListener() {} };
+  let accent = '40, 180, 150';
+  const window = { innerWidth: 1920, innerHeight: 1080,
+    matchMedia: () => motion, addEventListener(name, fn) { pages.set(name, fn); },
+    requestAnimationFrame(fn) { frames.set(++frameID, fn); return frameID; },
+    cancelAnimationFrame(id) { frames.delete(id); } };
+  vm.runInNewContext(source, { window, document, navigator: { connection, hardwareConcurrency: 8 },
+    getComputedStyle: () => ({ getPropertyValue: name => name === '--accent-rgb' ? accent : '#0b1115' }),
+    MutationObserver: class { constructor(fn) { observer = fn; } observe() {} } });
+  return { canvas, created, surface, frames, document, root, motion, window, events, pages, colors,
+    get paints() { return paints; }, start: () => pages.get('univer-ready')?.(),
+    step(timestamp) { const [id, callback] = [...frames][0]; frames.delete(id); callback(timestamp); },
+    appearance(rgb) { accent = rgb; observer(); } };
 }
-
-test('background waits for startup and keeps the standby video paused', async () => {
+test('code background draws without video and caps its pixel budget before animation starts', () => {
   const env = setup();
-  assert.ok(env.videos.every(video => !video.src && video.paused && video.loop === false));
+  assert.deepEqual(env.created, ['canvas']);
+  assert.ok(env.canvas.width * env.canvas.height <= 241000);
+  assert.ok(env.paints > 0);
+  assert.equal(env.frames.size, 0);
   env.start();
-  await Promise.resolve();
-  assert.equal(env.videos[0].paused, false);
-  assert.equal(env.videos[1].paused, true);
-  assert.equal(env.videos[0].src, env.videos[1].src);
+  env.step(0);
+  const before = env.paints;
+  env.step(16);
+  assert.equal(env.paints, before);
+  env.step(40);
+  assert.ok(env.paints > before);
 });
-
-test('loop seam crossfades without darkening, then recycles the outgoing video', async () => {
-  const env = setup();
-  env.start();
-  await Promise.resolve();
-  const [first, second] = env.videos;
-  first.emit('playing');
-  first.currentTime = 9;
-  first.emit('timeupdate');
-  await Promise.resolve();
-  assert.equal(second.paused, false);
-  assert.equal(second.style.opacity, '0');
-  second.emit('playing');
-  assert.equal(first.style.opacity, '1');
-  assert.equal(second.style.opacity, '1');
-  assert.equal(second.style.transition, 'opacity 1.2s linear');
-  env.finish();
-  assert.equal(first.paused, true);
-  assert.equal(first.currentTime, 0);
-  assert.equal(first.style.opacity, '0');
-  assert.equal(second.style.opacity, '1');
-  second.currentTime = 9;
-  second.emit('timeupdate');
-  await Promise.resolve();
-  first.emit('playing');
-  env.finish();
-  assert.equal(second.paused, true);
-  assert.equal(first.style.opacity, '1');
+test('hidden and suspended pages stop rendering; resume ignores time spent away', () => {
+  const env = setup(); env.start(); env.step(0); env.step(40);
+  env.document.hidden = true; env.events.get('visibilitychange')();
+  assert.equal(env.frames.size, 0);
+  const before = env.paints;
+  env.document.hidden = false; env.events.get('visibilitychange')();
+  env.step(500000);
+  assert.equal(env.paints, before);
+  env.step(500040); assert.ok(env.paints > before);
+  env.pages.get('pagehide')(); assert.equal(env.frames.size, 0);
+  env.pages.get('pageshow')(); assert.equal(env.frames.size, 1);
 });
-
-test('late preparation holds the last frame until the next cycle actually plays', async () => {
-  const env = setup();
-  env.start();
-  await Promise.resolve();
-  const [first, second] = env.videos;
-  first.ended = true;
-  first.paused = true;
-  first.currentTime = 10;
-  first.emit('ended');
-  assert.equal(first.currentTime, 10);
-  assert.equal(first.style.opacity, '1');
-  assert.equal(second.style.opacity, '0');
-  second.emit('playing');
-  env.finish();
-  assert.equal(second.style.opacity, '1');
-});
-
-test('hiding during a crossfade pauses both decoders and resumes the new cycle', async () => {
-  const env = setup();
-  env.start();
-  await Promise.resolve();
-  env.videos[0].currentTime = 9;
-  env.videos[0].emit('timeupdate');
-  await Promise.resolve();
-  env.videos[1].emit('playing');
-  env.document.hidden = true;
-  env.visibility();
-  assert.ok(env.videos.every(video => video.paused));
-  env.document.hidden = false;
-  env.visibility();
-  await new Promise(setImmediate);
-  assert.equal(env.videos[1].paused, false);
-  assert.equal(env.videos[0].paused, true);
-});
-
-test('reduced motion and data saving do not load either video', () => {
-  for (const options of [{ reducedMotion: true }, { saveData: true }]) {
-    const env = setup(options);
-    env.start();
-    assert.ok(env.videos.every(video => !video.src && video.paused));
+test('reduced motion and saveData keep a static rendered background', () => {
+  for (const options of [{ reduced: true }, { saveData: true }]) {
+    const env = setup(options); env.start();
+    assert.equal(env.frames.size, 0); assert.ok(env.paints > 0);
   }
+  const env = setup(); env.start();
+  env.motion.matches = true; env.motion.change(); assert.equal(env.frames.size, 0);
+  env.motion.matches = false; env.motion.change(); assert.equal(env.frames.size, 1);
+});
+test('theme and accent repaint the same canvas and resize stays within budget', () => {
+  const env = setup(); const before = env.paints;
+  env.root.dark = false; env.appearance('120, 80, 240');
+  assert.ok(env.paints > before);
+  assert.ok(env.colors.some(color => color.includes('120, 80, 240')));
+  assert.equal(env.surface.children.length, 1);
+  env.window.innerWidth = 390; env.window.innerHeight = 844;
+  env.pages.get('resize')();
+  assert.ok(env.canvas.width * env.canvas.height <= 241000);
+});
+test('unavailable Canvas leaves the CSS fallback intact', () => {
+  const env = setup({ available: false });
+  assert.equal(env.surface.children.length, 0);
+  assert.equal(env.frames.size, 0);
 });

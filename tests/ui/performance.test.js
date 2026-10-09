@@ -150,8 +150,8 @@ test('the page references existing local assets in the expected script order', (
   assert.ok(html.indexOf('telegram-web-app.js') < html.indexOf('assets/js/app.js'));
   assert.ok(html.indexOf('assets/js/app.js') < html.indexOf('assets/js/background.js'));
   const background = fs.readFileSync(new URL('../../assets/js/background.js', import.meta.url), 'utf8');
-  assert.ok(background.includes("new URL('../media/background.mp4'"));
-  assert.ok(fs.existsSync(new URL('../../assets/media/background.mp4', import.meta.url)));
+  assert.ok(!background.includes('background.mp4'));
+  assert.ok(background.includes("getContext('2d'"));
 });
 
 test('the relocated worker retains root scope and caches the complete public shell', () => {

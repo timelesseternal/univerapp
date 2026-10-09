@@ -1677,48 +1677,7 @@
     .texture-canvas { filter: none; opacity: 1; }
     .aurora-backdrop.webgl-ready::after { opacity: 0; }
 
-    /* The video fills the viewport; the foreground keeps its own contrast. */
-    :root { --video-brightness: 1.15; --video-opacity: 0.48; }
-    [data-theme="dark"] { --video-brightness: 0.7; --video-opacity: 1; }
-    .video-background {
-      position: absolute;
-      inset: 0;
-      width: 100%;
-      height: 100%;
-      object-fit: cover;
-      object-position: center;
-      display: block;
-      pointer-events: none;
-      filter: grayscale(1) brightness(var(--video-brightness));
-      opacity: 0;
-      transform: translateZ(0);
-      backface-visibility: hidden;
-      transition: opacity 0.8s ease;
-    }
-    .aurora-backdrop.video-ready .video-background { opacity: var(--video-opacity); }
-    .video-background-frame {
-      position: absolute;
-      inset: 0;
-      width: 100%;
-      height: 100%;
-      object-fit: cover;
-      object-position: center;
-      pointer-events: none;
-      transform: translateZ(0);
-      backface-visibility: hidden;
-    }
-    .aurora-backdrop::before { transition: opacity 0.8s ease; }
-    .aurora-backdrop.video-ready::before { opacity: 0; }
-    .aurora-backdrop.video-ready::after {
-      background: linear-gradient(145deg, rgba(var(--background-tint-rgb), 0.74), rgba(var(--background-tint-rgb), 0.55));
-      mix-blend-mode: color;
-      opacity: 1;
-    }
-    @supports not (mix-blend-mode: color) {
-      .aurora-backdrop.video-ready::after { opacity: 0.28; }
-    }
-
-    /* Avoid repeatedly blurring a changing video under every glass surface. */
+    /* Avoid repeatedly blurring the animated background under every glass surface. */
     :root { --motion-surface: rgba(255, 255, 255, 0.78); }
     [data-theme="dark"] { --motion-surface: rgba(21, 23, 28, 0.82); }
     .has-animated-background .week-stepper,
