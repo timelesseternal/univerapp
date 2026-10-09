@@ -2036,18 +2036,18 @@ svg.umkd-arrow, .profile-gpa-arrow { width:20px; height:20px; flex:0 0 20px; dis
 @media(max-width:360px) { .weather-data-panel { padding:10px 8px; } .weather-panel-heading svg { width:15px; height:15px; } .weather-quality-row { flex-wrap:wrap; } .weather-quality-row .weather-aqi-scale { flex-basis:100%; } }
 
 /* Sunrise and sunset stay visible in the compact weather card. */
-.smart-weather { padding:16px 12px 8px; border-radius:26px; }
-.weather-location { min-height:30px; }
-.weather-sky-symbol { top:16px; left:20px; width:30px; height:30px; }
-.weather-card-avatar { top:16px; right:18px; width:30px; height:30px; }
-.weather-scene { height:112px; margin-top:4px; }
+.smart-weather { padding:12px 12px 6px; border-radius:26px; }
+.weather-location { min-height:28px; }
+.weather-sky-symbol { top:12px; left:20px; width:28px; height:28px; }
+.weather-card-avatar { top:12px; right:18px; width:28px; height:28px; }
+.weather-scene { height:84px; margin-top:4px; }
 .weather-solar-path { height:calc(100% - 18px); }
-.weather-temperature { padding-top:17px; font-size:38px; }
+.weather-temperature { padding-top:6px; font-size:34px; }
 .weather-caption { font-size:10px; }
 .weather-solar-times { bottom:0; font-size:9px; line-height:14px; }
-.weather-data-panels { margin-top:8px; }
-.weather-data-panel { padding:9px 10px; gap:4px; border-radius:19px; }
-.weather-data-panel strong { margin-top:3px; font-size:25px; }
+.weather-data-panels { margin-top:6px; }
+.weather-data-panel { padding:7px 10px; gap:3px; border-radius:19px; }
+.weather-data-panel strong { margin-top:2px; font-size:23px; }
 
 /* Every typed lesson uses one line for its subject and one for its class type. */
 #scheduleContainer .row-title { display:block; white-space:normal; max-height:none; min-height:0; text-overflow:clip; line-height:1.4; }
