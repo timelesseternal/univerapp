@@ -11,7 +11,7 @@
   surface.appendChild(canvas);
   const motion = window.matchMedia('(prefers-reduced-motion: reduce)');
   const connection = navigator.connection;
-  const frameInterval = navigator.hardwareConcurrency <= 4 ? 50 : 1000 / 30;
+  const frameInterval = navigator.hardwareConcurrency <= 4 ? 1000 / 24 : 1000 / 30;
   let ready = false, suspended = false, frame = null, previous = null, time = 0;
   let palette, width = 1, height = 1;
   function colors() {
@@ -43,24 +43,32 @@
     ctx.lineCap = 'round';
     ctx.lineJoin = 'round';
     const pixel = width / Math.max(1, window.innerWidth);
-    // The ribs fan out from the upper-left and fold at different heights.
-    // A narrow moving light exposes only the crests; the rest falls into black.
+    // Reference: 720 × 1280, 23.98 fps. The crest travels about 0.12 screen
+    // heights in 3.5 seconds. Repeat the wave in space, not the animation clock.
+    const wavelength = .94;
+    const travel = (time * .034) % wavelength;
+    const peak = (distance, spread) => Math.exp(-Math.pow(distance / spread, 2));
     for (let line = 0; line < 19; line++) {
       const u = line / 18;
       const bend = .395 - .10 * u + .095 * Math.exp(-Math.pow((u - .48) / .21, 2))
-        + .008 * Math.sin(u * 9) + .014 * Math.sin(time * .42 + u * 1.6);
-      const release = .57 - .09 * u + .022 * Math.sin(time * .31 + 1);
+        + .008 * Math.sin(u * 9);
+      const release = bend + .165 - .045 * u;
       const gradient = ctx.createLinearGradient(0, 0, 0, height);
       for (let stop = 0; stop <= 100; stop++) {
         const v = stop / 100;
-        const crest = Math.exp(-Math.pow((v - bend - .006) / .026, 2));
-        const reflection = Math.exp(-Math.pow((v - bend - .070) / .085, 2));
-        const upper = Math.exp(-Math.pow((v - .035 - u * .26) / .035, 2));
-        const tail = Math.exp(-Math.pow((v - .87 - .05 * Math.sin(u * 6 + time * .2)) / .085, 2));
         const variation = .65 + .35 * Math.pow(Math.sin(u * 11 + 1), 2);
-        const light = .002 + (crest + reflection * .22) * variation
-          + upper * .30 * Math.exp(-Math.pow((u - .22) / .2, 2))
-          + tail * .48 * Math.exp(-Math.pow((u - .61) / .065, 2));
+        let light = .003;
+        for (let wave = -2; wave <= 2; wave++) {
+          const offset = travel + wave * wavelength;
+          const crest = peak(v - bend - offset - .006, .025);
+          const reflection = peak(v - bend - offset - .060, .072);
+          const tail = peak(v - .87 - offset - .05 * Math.sin(u * 6), .085);
+          light += (crest + reflection * .18) * variation
+            + tail * .52 * peak(u - .61, .075);
+        }
+        const upperLight = .10 + .38 * Math.pow(Math.sin(time * .55), 2);
+        light += peak(v - .04 - .025 * Math.sin(time * .7 + 2), .035)
+          * upperLight * peak(u - .22, .2);
         gradient.addColorStop(v, rgba(Math.min(1, light) * (palette.dark ? 1 : .40)));
       }
       ctx.strokeStyle = gradient;
@@ -68,9 +76,15 @@
       for (let step = 0; step <= 160; step++) {
         const v = step / 160;
         const fan = (u - .5) * .34 * Math.sin(Math.PI * v);
-        const fold = .055 * Math.tanh((v - bend) / .032)
-          - .053 * Math.tanh((v - release) / .049);
-        const ripple = .010 * Math.sin(v * 17 + u * 2 - time * .38);
+        let fold = 0;
+        for (let wave = -2; wave <= 2; wave++) {
+          const offset = travel + wave * wavelength;
+          fold += .055 * (Math.tanh((v - bend - offset) / .032)
+            - Math.tanh((v - release - offset) / .049));
+        }
+        fold += .025 * (Math.tanh((v - .025) / .018)
+          - Math.tanh((v - .11) / .045)) * peak(u - .15, .2);
+        const ripple = .010 * Math.sin((v - travel) * Math.PI * 6 / wavelength + u * 2);
         const x = width * (.05 + .27 * u + (.56 + .19 * u) * v + fan + fold + ripple);
         const y = height * v;
         if (step) ctx.lineTo(x, y); else ctx.moveTo(x, y);
@@ -94,7 +108,7 @@
       const other = Math.sin(dot * 311.7 + 47.3) * 19341.592;
       const x = width * ((seed - Math.floor(seed)) * .94 + .03 + .008 * Math.sin(time * .16 + dot));
       const y = height * ((other - Math.floor(other)) * .94 + .03 + .006 * Math.cos(time * .14 + dot));
-      const shine = .08 + .38 * Math.pow(.5 + .5 * Math.sin(time * .7 + dot * 2.1), 3);
+      const shine = .04 + .28 * Math.pow(.5 + .5 * Math.sin(time * 1.1 + dot * 2.1), 3);
       ctx.fillStyle = rgba(shine);
       const size = Math.max(.6, (dot % 7 === 0 ? 2 : 1) * pixel);
       ctx.fillRect(x, y, size, size);

@@ -32,6 +32,33 @@ function setup({ reduced = false, saveData = false, available = true } = {}) {
     step(timestamp) { const [id, callback] = [...frames][0]; frames.delete(id); callback(timestamp); },
     appearance(rgb) { accent = rgb; observer(); } };
 }
+
+test('travelling ribs move over time and remain continuous across successive waves', () => {
+  const paths = [];
+  // A standalone recorder avoids asserting a particular artistic shape.
+  const ctx = { fillRect() {}, beginPath() {}, moveTo(x, y) { paths.push([x, y]); },
+    lineTo(x, y) { paths.push([x, y]); }, stroke() {},
+    createRadialGradient: () => ({ addColorStop() {} }),
+    createLinearGradient: () => ({ addColorStop() {} }) };
+  const noop = () => {};
+  const window = { innerWidth: 390, innerHeight: 844, addEventListener: noop,
+    matchMedia: () => ({ matches: true, addEventListener: noop }) };
+  vm.runInNewContext(source.replace(/\}\)\(\);\s*$/,
+    'window.renderAt = value => { time = value; draw(); };})();'), {
+    window, navigator: {}, document: { hidden: false,
+      querySelector: () => ({ appendChild: noop, classList: { add: noop } }),
+      createElement: () => ({ getContext: () => ctx, setAttribute: noop }),
+      documentElement: { getAttribute: () => 'dark' }, body: { classList: { add: noop } },
+      addEventListener: noop }, getComputedStyle: () => ({ getPropertyValue: () => '' }),
+    MutationObserver: class { observe() {} }
+  });
+  const capture = t => { paths.length = 0; window.renderAt(t); return paths.slice(); };
+  const start = capture(0), later = capture(3.5);
+  assert.ok(start.some((point, i) => Math.abs(point[0] - later[i][0]) > 5));
+  const boundary = .94 / .034;
+  const before = capture(boundary - .001), after = capture(boundary + .001);
+  assert.ok(before.every((point, i) => Math.abs(point[0] - after[i][0]) < .1));
+});
 test('code background draws without video and caps its pixel budget before animation starts', () => {
   const env = setup();
   assert.deepEqual(env.created, ['canvas']);
