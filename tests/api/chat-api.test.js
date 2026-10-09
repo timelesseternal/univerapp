@@ -1,7 +1,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import handler from '../../api/chat.js';
-import { COOKIE_NAME, tokenHash, startSession } from '../../api/_lib/chat.js';
+import { COOKIE_NAME, tokenHash, startSession, syncOwnStudyProfile } from '../../api/_lib/chat.js';
 
 const user = '11111111-1111-4111-8111-111111111111';
 const conversation = '22222222-2222-4222-8222-222222222222';
@@ -24,6 +24,25 @@ async function call({ method = 'GET', action = 'inbox', headers = {}, query = {}
   return res;
 }
 const reply = (data, status = 200) => ({ ok: status < 400, status, json: async () => data });
+
+test('GPA refresh syncs the same student and preserves study fields on a transcript timeout', async t => {
+  let saved;
+  setup(t, async (url, options) => {
+    if (url.includes('/chat_sessions?')) return reply([{ user_id: user }]);
+    if (url.includes('/chat_profiles?')) return reply([{ student_id: 23, academic_gpa: 3, study_group: 'DS-24-1к', study_course: 3 }]);
+    assert.ok(url.endsWith('/rpc/chat_sync_student_profile'));
+    saved = JSON.parse(options.body);
+    return reply(null);
+  });
+  const req = { headers: { cookie: `${COOKIE_NAME}=${'a'.repeat(64)}` } };
+  await syncOwnStudyProfile(req, { studentID: 23, academicGpa: '3,5' });
+  assert.deepEqual(saved, { p_user_id: user, p_academic_gpa: 3.5, p_group: 'DS-24-1к', p_course: 3 });
+  saved = undefined;
+  await syncOwnStudyProfile(req, { studentID: 99, academicGpa: 4, studentGroupName: 'Подмена', courseNumber: 1 });
+  assert.equal(saved, undefined);
+  await syncOwnStudyProfile(req, { studentID: 23, academicGpa: 3.75, studentGroupName: 'DS-24-2к', courseNumber: 4 });
+  assert.deepEqual(saved, { p_user_id: user, p_academic_gpa: 3.75, p_group: 'DS-24-2к', p_course: 4 });
+});
 
 test('an older database returns the verified base peer profile without academic fields', async t => {
   setup(t, async url => {

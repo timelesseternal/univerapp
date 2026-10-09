@@ -6,6 +6,8 @@
 
 import { getSessionFromRequest, buildPlatonusHeaders } from './_lib/platonus.js';
 import { enrichStudentStudy, fetchStudyDetails } from './_lib/student-study.js';
+import { syncOwnStudyProfile } from './_lib/chat.js';
+import { waitUntil } from '@vercel/functions';
 
 export default async function handler(req, res) {
   res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate');
@@ -24,8 +26,11 @@ export default async function handler(req, res) {
       res.status(401).json({ error: 'session_expired' });
       return;
     }
+    if (!r.ok) { res.status(502).json({ error: 'platonus_unreachable' }); return; }
     const data = await r.json();
-    res.status(200).json(await enrichStudentStudy(session, data, studyDetails));
+    const student = await enrichStudentStudy(session, data, studyDetails);
+    res.status(200).json(student);
+    waitUntil(syncOwnStudyProfile(req, student).catch(() => {}));
   } catch (err) {
     res.status(502).json({ error: 'platonus_unreachable' });
   }

@@ -122,6 +122,24 @@ export async function readPeerProfile(userID, conversationID) {
   }
 }
 
+// Refresh only the signed-in student's profile from a verified Platonus response.
+// The GPA route also runs for existing chat sessions, unlike chat bootstrap.
+export async function syncOwnStudyProfile(req, student) {
+  if (!readToken(req)) return;
+  const studentID = Number(student?.studentID);
+  if (!Number.isSafeInteger(studentID) || studentID <= 0) return;
+  const userID = await currentUser(req);
+  const rows = await database(`chat_profiles?select=student_id,academic_gpa,study_group,study_course&id=eq.${uuid(userID)}&limit=1`, { method: 'GET' });
+  const existing = rows?.[0];
+  if (!existing || Number(existing.student_id) !== studentID) return;
+  const fields = verifiedStudyProfile(student);
+  // A transient transcript failure must not erase already verified details.
+  fields.p_academic_gpa ??= existing.academic_gpa;
+  fields.p_group ??= existing.study_group;
+  fields.p_course ??= existing.study_course;
+  await rpc('chat_sync_student_profile', { p_user_id: userID, ...fields });
+}
+
 export function verifiedStudyProfile(student) {
   const rawGpa = student.academicGpa;
   const gpa = rawGpa == null || String(rawGpa).trim() === '' ? NaN : Number(String(rawGpa).replace(',', '.'));
