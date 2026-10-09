@@ -516,7 +516,7 @@
       state.visible = section === 'chat';
       clearTimeout(state.timer);
       clearTimeout(state.searchTimer);
-      if (state.visible) { status(state.profile ? '' : 'Подключаем чат…'); window.univerChat.refreshNow(); }
+      if (state.visible) { status(state.profile ? '' : 'Подключаем чат…'); refresh(true); }
     },
     logout: logoutChat,
   };

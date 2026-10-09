@@ -1,7 +1,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import handler from '../../api/chat.js';
-import { COOKIE_NAME, tokenHash } from '../../api/_lib/chat.js';
+import { COOKIE_NAME, tokenHash, startSession } from '../../api/_lib/chat.js';
 
 const user = '11111111-1111-4111-8111-111111111111';
 const conversation = '22222222-2222-4222-8222-222222222222';
@@ -24,6 +24,31 @@ async function call({ method = 'GET', action = 'inbox', headers = {}, query = {}
   return res;
 }
 const reply = (data, status = 200) => ({ ok: status < 400, status, json: async () => data });
+
+test('slow Platonus transcript refresh does not delay the inbox and still syncs verified study details', async t => {
+  let releaseTranscript, background, synced;
+  setup(t, async (url, options) => {
+    if (url.endsWith('/rest/transcript/load/ru/0')) return new Promise(resolve => { releaseTranscript = resolve; });
+    if (url.includes('platonus.kstu.kz')) return reply({ studentID: 91, studentName: 'Студент', academicGpa: 3.25 });
+    if (url.endsWith('/rpc/chat_bootstrap')) return reply({ id: user, name: 'Студент' });
+    if (url.endsWith('/rpc/chat_inbox')) return reply([{ id: conversation }]);
+    assert.ok(url.endsWith('/rpc/chat_sync_student_profile'));
+    synced = JSON.parse(options.body);
+    return reply({});
+  });
+  const session = Buffer.from(JSON.stringify({ sid: 'sid', token: 'token', cookie: 'cookie' })).toString('base64');
+  const res = { setHeader() {} };
+  const task = startSession({ headers: { 'x-session': session } }, res, promise => { background = promise; });
+  const result = await Promise.race([task, new Promise((_, reject) => {
+    const timer = setTimeout(() => reject(new Error('Inbox waited for the transcript')), 1000);
+    task.finally(() => clearTimeout(timer));
+  })]);
+  assert.deepEqual(result.conversations, [{ id: conversation }]);
+  assert.equal(synced, undefined);
+  releaseTranscript(reply({ student: { personID: 91, groupName: 'DS-24-1к', courseNumber: 3 } }));
+  await background;
+  assert.deepEqual(synced, { p_user_id: user, p_academic_gpa: 3.25, p_group: 'DS-24-1к', p_course: 3 });
+});
 
 test('missing configuration leaves the existing application usable and reports chat unavailable', async t => {
   setup(t, () => { throw new Error('Unexpected network'); });

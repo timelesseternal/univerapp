@@ -1,6 +1,7 @@
 import { createHash, randomBytes } from 'node:crypto';
 import { getSessionFromRequest, buildPlatonusHeaders } from './platonus.js';
 import { enrichStudentStudy, fetchStudyDetails } from './student-study.js';
+import { waitUntil } from '@vercel/functions';
 
 export const COOKIE_NAME = 'univer_chat_session';
 const SESSION_SECONDS = 8 * 60 * 60;
@@ -63,7 +64,7 @@ export async function currentUser(req) {
   if (!rows?.[0]?.user_id) throw new ChatError(401, 'chat_session_expired');
   return rows[0].user_id;
 }
-export async function startSession(req, res) {
+export async function startSession(req, res, defer = waitUntil) {
   configuration();
   const session = getSessionFromRequest(req);
   if (!session) throw new ChatError(401, 'session_expired');
@@ -86,9 +87,12 @@ export async function startSession(req, res) {
   const profile = await rpc('chat_bootstrap', { p_student_id: studentID, p_display_name: name,
     p_token_hash: tokenHash(token), p_previous_hash: oldToken ? tokenHash(oldToken) : null });
   // Academic fields come only from authenticated Platonus responses for this student.
-  const study = verifiedStudyProfile(await enrichStudentStudy(session, student, studyDetails));
-  try { await rpc('chat_sync_student_profile', { p_user_id: profile.id, ...study }); }
-  catch { /* Old deployments keep chatting until migration 003 is applied. */ }
+  defer((async () => {
+    try {
+      const study = verifiedStudyProfile(await enrichStudentStudy(session, student, studyDetails));
+      await rpc('chat_sync_student_profile', { p_user_id: profile.id, ...study });
+    } catch { /* Profile refresh must not delay or prevent opening conversations. */ }
+  })());
   setCookie(req, res, token);
   // Return the first inbox in the bootstrap response, avoiding another browser round trip.
   const conversations = await rpc('chat_inbox', { p_user_id: profile.id });

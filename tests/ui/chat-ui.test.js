@@ -104,6 +104,19 @@ test('bootstrap supplies the inbox in one browser request', async () => {
   assert.equal(ui.elements.get('chatInbox').children.length, 1);
 });
 
+test('returning to a recently loaded inbox displays it without another network request', async () => {
+  let calls = 0;
+  const ui = setup(async () => { calls++; return reply({ profile, conversations: [conversation] }); });
+  ui.api.onLogin(); await settle();
+  ui.api.onSection('chat'); await settle();
+  ui.api.onSection('profile');
+  ui.api.onSection('chat'); await settle();
+  assert.equal(calls, 1);
+  assert.equal(ui.elements.get('chatInbox').children.length, 1);
+  await ui.api.refreshNow();
+  assert.equal(calls, 2);
+});
+
 test('reopening a thread displays memory history before a slow response, logout discards it', async () => {
   let finishRead;
   let reads = 0;
