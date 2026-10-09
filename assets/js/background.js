@@ -17,8 +17,19 @@
   function colors() {
     const style = getComputedStyle(document.documentElement);
     const rgb = style.getPropertyValue('--accent-rgb').trim() || '92, 150, 140';
+    const dark = document.documentElement.getAttribute('data-theme') === 'dark';
+    const channels = rgb.split(',').map(value => Number(value.trim()));
+    const accent = channels.length === 3 && channels.every(Number.isFinite)
+      ? channels.map(value => Math.max(0, Math.min(255, value))) : [92, 150, 140];
+    // Equal perceived brightness keeps yellow, purple and green equally quiet.
+    // Mix toward a neutral endpoint instead of clipping individual channels.
+    const luminance = accent[0] * .2126 + accent[1] * .7152 + accent[2] * .0722;
+    const target = dark ? 185 : 105;
+    const endpoint = luminance < target ? 255 : 0;
+    const amount = Math.abs(target - luminance) / Math.max(1, Math.abs(endpoint - luminance));
+    const lines = accent.map(value => Math.round(value + (endpoint - value) * amount)).join(', ');
     palette = { rgb, base: style.getPropertyValue('--aurora-base').trim() || '#0b1115',
-      dark: document.documentElement.getAttribute('data-theme') === 'dark' };
+      dark, lines };
   }
   function resize() {
     const viewportWidth = Math.max(1, window.innerWidth);
@@ -30,13 +41,12 @@
     if (!document.hidden && !suspended) draw();
   }
   function draw() {
-    ctx.fillStyle = palette.dark ? '#020304' : palette.base;
+    ctx.fillStyle = palette.base;
     ctx.fillRect(0, 0, width, height);
-    const silver = palette.dark ? '238, 240, 241' : '47, 53, 59';
-    const rgba = alpha => `rgba(${silver}, ${alpha})`;
+    const rgba = alpha => `rgba(${palette.lines}, ${alpha})`;
     const glow = ctx.createRadialGradient(width * .6, height * .45, 0,
       width * .6, height * .45, Math.max(width, height) * .65);
-    glow.addColorStop(0, `rgba(${palette.rgb}, ${palette.dark ? .018 : .025})`);
+    glow.addColorStop(0, `rgba(${palette.rgb}, ${palette.dark ? .045 : .055})`);
     glow.addColorStop(1, `rgba(${palette.rgb}, 0)`);
     ctx.fillStyle = glow;
     ctx.fillRect(0, 0, width, height);
@@ -69,7 +79,7 @@
         const upperLight = .10 + .38 * Math.pow(Math.sin(time * .55), 2);
         light += peak(v - .04 - .025 * Math.sin(time * .7 + 2), .035)
           * upperLight * peak(u - .22, .2);
-        gradient.addColorStop(v, rgba(Math.min(1, light) * (palette.dark ? 1 : .40)));
+        gradient.addColorStop(v, rgba(Math.min(1, light) * (palette.dark ? .90 : .32)));
       }
       ctx.strokeStyle = gradient;
       ctx.beginPath();
@@ -109,7 +119,7 @@
       const x = width * ((seed - Math.floor(seed)) * .94 + .03 + .008 * Math.sin(time * .16 + dot));
       const y = height * ((other - Math.floor(other)) * .94 + .03 + .006 * Math.cos(time * .14 + dot));
       const shine = .04 + .28 * Math.pow(.5 + .5 * Math.sin(time * 1.1 + dot * 2.1), 3);
-      ctx.fillStyle = rgba(shine);
+      ctx.fillStyle = rgba(shine * (palette.dark ? 1 : .55));
       const size = Math.max(.6, (dot % 7 === 0 ? 2 : 1) * pixel);
       ctx.fillRect(x, y, size, size);
     }
