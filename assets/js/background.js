@@ -33,7 +33,7 @@
     ctx.fillStyle = palette.base;
     ctx.fillRect(0, 0, width, height);
     const accent = palette.rgb.split(',').map(Number);
-    const silver = accent.map(value => Math.round(palette.dark ? 205 + value * .18 : 35 + value * .28)).join(', ');
+    const silver = palette.dark ? '238, 240, 241' : '47, 53, 59';
     const rgba = alpha => `rgba(${silver}, ${alpha})`;
     const glow = ctx.createRadialGradient(width * .6, height * .45, 0,
       width * .6, height * .45, Math.max(width, height) * .65);
@@ -45,31 +45,34 @@
     ctx.lineJoin = 'round';
     const pixel = width / Math.max(1, window.innerWidth);
     // One continuous field keeps the lines parallel while the folds change shape.
-    for (let line = 0; line < 34; line++) {
-      const u = line / 33;
-      const highlight = .5 + .32 * Math.sin(time * .24 + u * 5);
+    for (let line = 0; line < 30; line++) {
+      const u = line / 29;
+      const highlight = .28 + .32 * u + .085 * Math.sin(time * .5 + u * 3);
+      const band = .18 + .82 * Math.exp(-Math.pow((u - .42 - .12 * Math.sin(time * .18)) / .3, 2));
       const gradient = ctx.createLinearGradient(0, 0, 0, height);
       gradient.addColorStop(0, rgba(.015));
-      gradient.addColorStop(highlight - .13, rgba(palette.dark ? .07 : .045));
-      gradient.addColorStop(highlight, rgba(palette.dark ? .68 : .28));
-      gradient.addColorStop(highlight + .13, rgba(palette.dark ? .07 : .045));
+      gradient.addColorStop(highlight - .10, rgba(palette.dark ? .07 : .045));
+      gradient.addColorStop(highlight, rgba((palette.dark ? .92 : .38) * band));
+      gradient.addColorStop(highlight + .10, rgba(palette.dark ? .07 : .045));
       gradient.addColorStop(1, rgba(.015));
       ctx.strokeStyle = gradient;
       ctx.beginPath();
       for (let step = 0; step <= 96; step++) {
         const v = step / 96;
-        const spread = .64 + .09 * Math.sin(v * 7 - time * .25);
-        const x = width * (.46 + .35 * (v - .5) + (u - .5) * spread
-          + .085 * Math.sin(v * 9 - time * .36)
-          + .05 * Math.sin(v * 17 + time * .27 + u * .6));
+        const spread = .77 + .08 * Math.sin(v * 4 - time * .24);
+        const shoulder = Math.exp(-Math.pow((v - .34 - .025 * Math.sin(time * .35)) / .17, 2));
+        const waist = Math.exp(-Math.pow((v - .60 - .04 * Math.cos(time * .27)) / .15, 2));
+        const x = width * (.12 + .48 * v + (u - .5) * spread
+          + .17 * shoulder - .11 * waist
+          + .04 * Math.sin(v * 12 - time * .6 + u * .7));
         const y = height * (v * 1.1 - .05);
         if (step) ctx.lineTo(x, y); else ctx.moveTo(x, y);
       }
       ctx.globalAlpha = .15;
-      ctx.lineWidth = Math.max(.8, 3.2 * pixel);
+      ctx.lineWidth = Math.max(.8, 4 * pixel);
       ctx.stroke();
       ctx.globalAlpha = 1;
-      ctx.lineWidth = Math.max(.45, .9 * pixel);
+      ctx.lineWidth = Math.max(.45, 1.15 * pixel);
       ctx.stroke();
     }
     // Deterministic specks shimmer gently, without random flicker between frames.

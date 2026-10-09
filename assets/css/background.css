@@ -6,7 +6,7 @@
   height: 108%;
   display: block;
   pointer-events: none;
-  filter: blur(.4px);
+  filter: none;
 }
 .aurora-backdrop.canvas-ready::before,
 .aurora-backdrop.canvas-ready::after { opacity: 0; }
