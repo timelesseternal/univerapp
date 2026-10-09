@@ -897,12 +897,12 @@ if ('serviceWorker' in navigator) {
 
     const subjects = Array.isArray(liveJournalData) ? liveJournalData.filter(subj => subj && typeof subj === 'object') : null;
     if (subjects?.length) {
-      if (gradesLoadFailed) html += '<div class="notice-panel"><div class="notice-hint">Не удалось обновить оценки. Показаны сохранённые данные.</div><button class="back-link" onclick="retryGrades()">Повторить</button></div>';
+      if (gradesLoadFailed) html += '<div class="notice-panel"><div class="notice-hint">Показаны сохранённые данные. Обновление повторится автоматически.</div></div>';
       html += subjects.map((subj, index) => buildGradeCardHtml(subj, index)).join('');
     } else if (gradesLoadFailed) {
-      html += '<div class="notice-panel"><div class="notice-title">Не удалось загрузить оценки</div><div class="notice-hint">Проверьте интернет или повторите попытку позже.</div><button class="back-link" onclick="retryGrades()">Повторить</button></div>';
+      html += '<div class="notice-panel"><div class="notice-title">Не удалось загрузить оценки</div><div class="notice-hint">Проверьте интернет. Загрузка повторится автоматически.</div></div>';
     } else if (subjects) {
-      html += '<div class="notice-panel"><div class="notice-title">Оценок пока нет</div><div class="notice-hint">Platonus вернул пустой журнал за выбранный семестр.</div><button class="back-link" onclick="retryGrades()">Обновить</button></div>';
+      html += '<div class="notice-panel"><div class="notice-title">Оценок пока нет</div><div class="notice-hint">Platonus вернул пустой журнал за выбранный семестр.</div></div>';
     } else {
       html += '<div class="notice-panel"><div class="notice-hint">Оценки по предметам загружаются…</div></div>';
     }
@@ -914,7 +914,7 @@ if ('serviceWorker' in navigator) {
     if (currentSection === 'profile') renderProfile(false);
     else if (currentSection === 'grades') renderGrades(false);
     else if (currentSection === 'schedule') renderSchedule(false);
-    else if (currentSection === 'umkd') renderUmkdSubjects(false);
+    else if (currentSection === 'umkd' && selectedUmkdSubject === null) renderUmkdSubjects(false);
   }
 
   function retryLiveLoad() {
@@ -928,16 +928,19 @@ if ('serviceWorker' in navigator) {
   // Оценки и УМКД не зависят друг от друга — грузим одновременно.
   // Если запрос не удался, возвращаем null, и старые (кэшированные) данные остаются.
   let journalRequest = null;
-  function fetchJournal(year, term) {
+  let journalSnapshot = null, umkdRequest = null, umkdSnapshot = null;
+  function fetchJournal(year, term, force = false) {
     const studentID = platonusStudent && platonusStudent.studentID;
     const generation = authGeneration;
     const key = `${generation}-${studentID}-${year}-${term}`;
     if (journalRequest?.key === key) return journalRequest.work;
+    if (!force && journalSnapshot?.key === key && Date.now() - journalSnapshot.at < 30000) return Promise.resolve(liveJournalData);
     const journalWork = studentID ? platonusFetch(`/api/grades?studentID=${studentID}&year=${year}&term=${term}`)
       .then(journal => {
         if (!Array.isArray(journal)) throw new Error('invalid_journal');
         if (generation === authGeneration) {
           liveJournalData = journal;
+          journalSnapshot = { key, at: Date.now() };
           gradesLoadFailed = false;
           if (currentSection === 'grades') renderGrades(false);
           saveCachedStudentData();
@@ -955,10 +958,29 @@ if ('serviceWorker' in navigator) {
     journalWork.finally(() => { if (journalRequest === pending) journalRequest = null; });
     return journalWork;
   }
+  function fetchUmkd(year, term, force = false) {
+    const generation = authGeneration;
+    const key = `${generation}-${year}-${term}`;
+    if (umkdRequest?.key === key) return umkdRequest.work;
+    if (!force && umkdSnapshot?.key === key && Date.now() - umkdSnapshot.at < 300000) return Promise.resolve(liveUmkdData);
+    const work = platonusFetch(`/api/umkd?year=${year}&term=${term}`).then(umkd => {
+      if (generation === authGeneration) {
+        liveUmkdData = umkd;
+        umkdSnapshot = { key, at: Date.now() };
+        if (currentSection === 'umkd' && selectedUmkdSubject === null) renderUmkdSubjects(false);
+        saveCachedStudentData();
+      }
+      return umkd;
+    }).catch(() => null);
+    const pending = { key, work };
+    umkdRequest = pending;
+    work.finally(() => { if (umkdRequest === pending) umkdRequest = null; });
+    return work;
+  }
   function fetchGradesAndUmkd(year, term) {
     return Promise.all([
       fetchJournal(year, term),
-      platonusFetch(`/api/umkd?year=${year}&term=${term}`).catch(() => null),
+      fetchUmkd(year, term),
     ]).then(([journal, umkd]) => ({ journal, umkd }));
   }
   function retryGrades() {
@@ -966,7 +988,7 @@ if ('serviceWorker' in navigator) {
     renderGrades(false);
     const info = liveScheduleWeekInfo;
     if (platonusStudent?.studentID && info?.selectedStudyYear && info?.selectedTerm) {
-      fetchJournal(info.selectedStudyYear, info.selectedTerm);
+      fetchJournal(info.selectedStudyYear, info.selectedTerm, true);
     } else if (!liveLoadInFlight) loadLiveStudentData();
     else { gradesLoadFailed = true; renderGrades(false); }
   }
@@ -986,6 +1008,7 @@ if ('serviceWorker' in navigator) {
         ? `${ci.selectedStudyYear}-${ci.selectedTerm}` : null;
       const earlyExtras = (cachedID && cachedKey)
         ? fetchGradesAndUmkd(ci.selectedStudyYear, ci.selectedTerm) : null;
+      let scheduleExtras = null, scheduleExtrasKey = null;
       // Cached semester data can refresh grades/UMKD before a slow schedule returns.
       if (earlyExtras) earlyExtras.then(extras => {
         if (generation !== authGeneration) return;
@@ -997,11 +1020,12 @@ if ('serviceWorker' in navigator) {
         saveCachedStudentData();
       }).catch(() => {});
 
-      const gpaPromise = platonusFetch('/api/gpa').then(gpa => {
+      const gpaPromise = platonusFetch(cachedID ? '/api/gpa' : '/api/gpa?summary=1').then(gpa => {
         ensureAuthGeneration(generation);
         platonusStudent = gpa;
         csSet('platonus_student', JSON.stringify(gpa));
         if (currentSection === 'profile') renderProfile(false);
+        if (!cachedID) refreshStudyProfile();
         return gpa;
       });
       const schedPromise = (cachedID ? Promise.resolve(cachedID) : gpaPromise.then(g => g.studentID))
@@ -1026,6 +1050,10 @@ if ('serviceWorker' in navigator) {
         // (в selectedWeek бывает заглушка), хотя «текущей» назвал шестую.
         // Если данные не подтверждают друг друга, перезапрашиваем явно.
         const w = normWeekInfo(entry.weekInfo);
+        if (!earlyExtras && w.studyYear && w.term) {
+          scheduleExtrasKey = `${w.studyYear}-${w.term}`;
+          scheduleExtras = fetchGradesAndUmkd(w.studyYear, w.term);
+        }
         const trusted = Number(schedule.selectedWeek) === w.week
           && Number(schedule.selectedTerm) === w.term
           && Number(schedule.selectedStudyYear) === w.studyYear;
@@ -1073,7 +1101,9 @@ if ('serviceWorker' in navigator) {
         const key = `${info.selectedStudyYear}-${info.selectedTerm}`;
         const extras = (earlyExtras && cachedKey === key)
           ? await earlyExtras
-          : await fetchGradesAndUmkd(info.selectedStudyYear, info.selectedTerm);
+          : (scheduleExtras && scheduleExtrasKey === key)
+            ? await scheduleExtras
+            : await fetchGradesAndUmkd(info.selectedStudyYear, info.selectedTerm);
         if (generation !== authGeneration) return;
         if (extras.journal) liveJournalData = extras.journal;
         if (extras.umkd) liveUmkdData = extras.umkd;
@@ -1090,6 +1120,31 @@ if ('serviceWorker' in navigator) {
     } finally {
       if (generation === authGeneration) liveLoadInFlight = false;
     }
+  }
+
+  let studyProfileRequest = null;
+  function refreshStudyProfile() {
+    const generation = authGeneration;
+    if (studyProfileRequest?.generation === generation) return studyProfileRequest.work;
+    const work = platonusFetch('/api/gpa').then(student => {
+      if (generation !== authGeneration) return;
+      platonusStudent = student;
+      csSet('platonus_student', JSON.stringify(student));
+      if (currentSection === 'profile') renderProfile(false);
+      saveCachedStudentData();
+    }).catch(() => {});
+    const pending = { generation, work };
+    studyProfileRequest = pending;
+    work.finally(() => { if (studyProfileRequest === pending) studyProfileRequest = null; });
+    return work;
+  }
+  function refreshVisibleAcademicData() {
+    if (document.hidden || !platonusSession) return;
+    const info = liveScheduleWeekInfo;
+    if (info?.selectedStudyYear && info?.selectedTerm) {
+      if (currentSection === 'grades') fetchJournal(info.selectedStudyYear, info.selectedTerm);
+      if (currentSection === 'umkd') fetchUmkd(info.selectedStudyYear, info.selectedTerm);
+    } else if (['grades','umkd'].includes(currentSection) && !liveLoadInFlight) loadLiveStudentData();
   }
 
   const CITY_COORDS = {
@@ -1957,7 +2012,7 @@ if ('serviceWorker' in navigator) {
         if (section === 'chat') { await window.univerChat?.refreshNow(); return; }
         const info = liveScheduleWeekInfo;
         if (section === 'grades' && info?.selectedStudyYear && info?.selectedTerm) {
-          await fetchJournal(info.selectedStudyYear, info.selectedTerm);
+          await fetchJournal(info.selectedStudyYear, info.selectedTerm, true);
         } else if (section === 'schedule' && browsedWeekInfo && platonusStudent) {
           const { studyYear, term, week } = browsedWeekInfo;
           await refreshWeekInBackground(studyYear, term, week);
@@ -2008,6 +2063,7 @@ if ('serviceWorker' in navigator) {
     } else if (section === 'profile') {
       renderProfile(false);
     }
+    refreshVisibleAcademicData();
   }
 
   function selectDay(dayName, btnElement, force = false) {
@@ -2172,6 +2228,7 @@ if ('serviceWorker' in navigator) {
   }
 
   function renderUmkdSubjects(animate = true) {
+    selectedUmkdSubject = null;
     document.querySelector("#sectionUmkd > .profile-back").style.display = "inline-flex";
     const container = document.getElementById('umkdContainer');
 
@@ -2225,6 +2282,7 @@ if ('serviceWorker' in navigator) {
     }
 
     document.querySelector("#sectionUmkd > .profile-back").style.display = 'none';
+    selectedUmkdSubject = rec.umkdID || rec.subjectName;
     currentUmkdSubjectName = rec.subjectName || '';
 
     let bodyHtml;
@@ -2501,6 +2559,8 @@ if ('serviceWorker' in navigator) {
       }
     };
     setInterval(refreshLiveUI, 15000);
+    setInterval(refreshVisibleAcademicData, 15000);
+    document.addEventListener('visibilitychange', refreshVisibleAcademicData);
     document.addEventListener('visibilitychange', refreshLiveUI);
     window.dispatchEvent(new Event('univer-ready'));
 

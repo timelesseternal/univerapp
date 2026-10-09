@@ -25,6 +25,28 @@ async function call({ method = 'GET', action = 'inbox', headers = {}, query = {}
 }
 const reply = (data, status = 200) => ({ ok: status < 400, status, json: async () => data });
 
+test('an existing cookie resumes the same student without contacting Platonus', async t => {
+  setup(t, async url => {
+    assert.ok(url.startsWith('https://test.supabase.co/'));
+    if (url.includes('/chat_sessions?')) return reply([{ user_id: user }]);
+    if (url.includes('/chat_profiles?')) return reply([{ id:user, student_id:23, display_name:'Студент' }]);
+    assert.ok(url.endsWith('/rpc/chat_inbox'));return reply([]);
+  });
+  const headers={cookie:`${COOKIE_NAME}=${'a'.repeat(64)}`};
+  const result=await call({action:'session',query:{studentID:'23'},headers});
+  assert.equal(result.code,200);assert.deepEqual(result.body,{profile:{id:user,name:'Студент'},conversations:[]});
+});
+
+test('resuming another student rejects the cookie before reading the inbox', async t => {
+  setup(t, async url => {
+    if (url.includes('/chat_sessions?')) return reply([{ user_id: user }]);
+    assert.ok(url.includes('/chat_profiles?'));
+    return reply([{id:user,student_id:23,display_name:'Студент'}]);
+  });
+  const result=await call({action:'session',query:{studentID:'24'},headers:{cookie:`${COOKIE_NAME}=${'a'.repeat(64)}`}});
+  assert.equal(result.code,401);assert.equal(result.body.error,'chat_session_expired');
+});
+
 test('GPA refresh syncs the same student and preserves study fields on a transcript timeout', async t => {
   let saved;
   setup(t, async (url, options) => {

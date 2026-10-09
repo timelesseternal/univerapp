@@ -16,7 +16,7 @@ export function configuration() {
   catch { throw new ChatError(503, 'chat_not_configured'); }
   return { url, key };
 }
-export async function database(path, { method = 'POST', body } = {}) {
+export async function database(path, { method = 'POST', body, timeoutMs = 10000 } = {}) {
   const { url, key } = configuration();
   let response;
   try {
@@ -26,7 +26,7 @@ export async function database(path, { method = 'POST', body } = {}) {
       headers: { apikey: key, ...(key.startsWith('sb_secret_') ? {} : { Authorization: `Bearer ${key}` }),
         'Content-Type': 'application/json', Prefer: 'return=representation' },
       body: body === undefined ? undefined : JSON.stringify(body),
-      signal: AbortSignal.timeout(10000),
+      signal: AbortSignal.timeout(timeoutMs),
     });
   } catch { throw new ChatError(503, 'chat_unavailable'); }
   const data = await response.json().catch(() => null);
@@ -39,7 +39,7 @@ export async function database(path, { method = 'POST', body } = {}) {
   }
   return data;
 }
-export const rpc = (name, body) => database(`rpc/${name}`, { body });
+export const rpc = (name, body, options = {}) => database(`rpc/${name}`, { ...options, body });
 export function tokenHash(token) { return createHash('sha256').update(token).digest('hex'); }
 export function readToken(req) {
   const cookie = req.headers.cookie || '';

@@ -1,6 +1,20 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { parseStudySummary, parseTranscriptStudy, enrichStudentStudy } from '../../api/_lib/student-study.js';
+import gpaHandler from '../../api/gpa.js';
+
+test('cold-start GPA summary returns without loading the transcript',async t=>{
+  const originalFetch=global.fetch;t.after(()=>{global.fetch=originalFetch;});
+  let calls=0;
+  global.fetch=async url=>{
+    calls++;assert.ok(url.endsWith('/selfStudentCard/ru'));
+    return {ok:true,status:200,json:async()=>({studentID:91,academicGpa:3.25})};
+  };
+  const session=Buffer.from(JSON.stringify({sid:'sid',token:'token',cookie:'cookie'})).toString('base64');
+  const res={setHeader(){},status(code){this.code=code;return this;},json(body){this.body=body;}};
+  await gpaHandler({query:{summary:'1'},headers:{'x-session':session}},res);
+  assert.equal(res.code,200);assert.equal(res.body.studentID,91);assert.equal(calls,1);
+});
 
 test('authenticated transcript request enriches the profile without exposing other transcript fields', async t => {
   const originalFetch = global.fetch;

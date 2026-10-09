@@ -8,7 +8,58 @@
     epoch: 0, visible: false, sessionWork: null, timer: null, searchTimer: null,
     searchVersion: 0, refreshing: false, sending: false, hasOlder: false,
     history: new Map(), pending: new Map(), inboxAt: 0, readThrough: new Map(),
-    monitoring: false, badgeTimer: null, badgeBusy: false, peerProfileOpen: false, peerProfileVersion: 0 };
+    monitoring: false, badgeTimer: null, badgeBusy: false, peerProfileOpen: false, peerProfileVersion: 0,
+    inbox: [], previewKey: null, previewOwnerID: null, canResume: false };
+  const warming = new Set();
+  function previewKey() {
+    const id = typeof platonusStudent !== 'undefined' && Number(platonusStudent?.studentID);
+    return Number.isSafeInteger(id) && id > 0 ? `univer-chat-preview-${id}` : null;
+  }
+  function persistPreview() {
+    const key = previewKey();
+    if (!key || !state.profile) return;
+    state.previewKey = key;
+    try {
+      const history = [...state.history].slice(-5).map(([id, entry]) => [id,
+        { messages: entry.messages.slice(-40), hasOlder: entry.hasOlder || entry.messages.length > 40, at: entry.at }]);
+      const snapshot = JSON.stringify({ at: Date.now(), profileID: state.profile.id, inbox: state.inbox.slice(0, 30), history });
+      if (snapshot.length < 300000) window.sessionStorage?.setItem(key, snapshot);
+    } catch { /* Memory previews still work when session storage is unavailable. */ }
+  }
+  function restorePreview() {
+    const key = previewKey();
+    if (!key) return;
+    state.previewKey = key;
+    try {
+      const saved = JSON.parse(window.sessionStorage?.getItem(key) || 'null');
+      if (!saved || !Number.isFinite(saved.at) || Date.now() - saved.at > 8 * 60 * 60 * 1000 || !Array.isArray(saved.inbox)
+        || typeof saved.profileID !== 'string' || saved.inbox.some(item => !item?.id || typeof item.peer?.name !== 'string')) return;
+      state.canResume = true;
+      state.previewOwnerID = saved.profileID;
+      for (const [id, entry] of (saved.history || []).slice(-5)) {
+        if (Array.isArray(entry?.messages) && entry.messages.every(message => /^[1-9]\d{0,18}$/.test(message?.id)
+          && typeof message.text === 'string' && Number.isFinite(Date.parse(message.createdAt)))) state.history.set(id, entry);
+      }
+      drawInbox(saved.inbox, saved.profileID);
+    } catch { /* Ignore incomplete snapshots. Never restore an authenticated session. */ }
+  }
+  function warmConversations(conversations) {
+    const defer = window.requestIdleCallback || window.setTimeout;
+    if (!defer || !state.profile || document.hidden) return;
+    const epoch = state.epoch;
+    const recent = conversations.filter(item => item.lastMessage && !state.history.has(item.id) && !warming.has(item.id)).slice(0, 2);
+    for (const conversation of recent) {
+      warming.add(conversation.id);
+      defer(() => {
+        if (stale(epoch) || document.hidden) { warming.delete(conversation.id); return; }
+        request('messages', { params: { conversationID: conversation.id } }).then(data => {
+          if (stale(epoch) || state.history.has(conversation.id) || !Array.isArray(data.messages)) return;
+          state.history.set(conversation.id, { messages: data.messages, hasOlder: data.hasMore, at: Date.now() });
+          persistPreview();
+        }).catch(() => {}).finally(() => { warming.delete(conversation.id); });
+      });
+    }
+  }
   const telegramApp = window.Telegram?.WebApp;
   let typingAt = 0, typingConversation = null, typingTimer = null, peerTypingTimer = null;
   function fitConversation() {
@@ -113,7 +164,12 @@
       if (!platonusSession) throw new Error('session_expired');
       let data;
       try {
-        data = await bootstrap();
+        if (state.canResume) {
+          state.canResume = false;
+          try { data = await request('session', { params: { studentID: platonusStudent.studentID } }); }
+          catch (error) { if (error.message !== 'chat_session_expired') throw error; }
+        }
+        if (!data) data = await bootstrap();
       } catch (error) {
         if (stale(epoch) || generation !== authGeneration) throw new Error('session_changed');
         if (error.message !== 'session_expired') throw error;
@@ -133,12 +189,14 @@
     try { return await work; }
     finally { if (state.sessionWork === work) state.sessionWork = null; }
   }
-  function drawInbox(conversations) {
+  function drawInbox(conversations, ownID = state.profile?.id) {
+    state.inbox = conversations;
     updateBadge(conversations.reduce((total, conversation) => total + Math.max(0, Number(conversation.unread) || 0), 0));
     const list = byID('chatInbox');
     list.replaceChildren();
     if (!conversations.length) {
       list.append(node('p', 'chat-empty', 'Пока нет переписок. Найдите знакомого по имени и напишите первым.'));
+      persistPreview();
       return;
     }
     for (const conversation of conversations) {
@@ -150,7 +208,7 @@
       heading.append(node('span', 'chat-person-name', conversation.peer.name));
       if (conversation.unread > 0) heading.append(node('span', 'chat-unread', conversation.unread > 99 ? '99+' : String(conversation.unread)));
       content.append(heading);
-      const prefix = conversation.lastMessage?.senderID === state.profile.id ? 'Вы: ' : '';
+      const prefix = conversation.lastMessage?.senderID === ownID ? 'Вы: ' : '';
       content.append(node('span', 'chat-person-preview', conversation.lastMessage ? prefix + conversation.lastMessage.text : 'Начните переписку'));
       button.append(content);
       if (conversation.lastMessage?.createdAt) {
@@ -164,6 +222,8 @@
       button.addEventListener('click', () => openConversation(conversation));
       list.append(button);
     }
+    persistPreview();
+    warmConversations(conversations);
   }
   function updateBadge(count) {
     const badge = byID('messageBadge');
@@ -198,8 +258,9 @@
     const messages = orderedMessages();
     const id = state.conversation.id;
     state.history.delete(id);
-    state.history.set(id, { messages: messages.slice(-200), hasOlder: state.hasOlder || messages.length > 200 });
+    state.history.set(id, { messages: messages.slice(-200), hasOlder: state.hasOlder || messages.length > 200, at: Date.now() });
     if (state.history.size > 10) state.history.delete(state.history.keys().next().value);
+    persistPreview();
   }
   function animateMessage(element) {
     if (!state.visible || document.hidden || !element.animate || window.matchMedia?.('(prefers-reduced-motion: reduce)').matches) return;
@@ -217,7 +278,7 @@
       const date = new Date(message.createdAt);
       const day = date.toLocaleDateString('ru-RU', { day: 'numeric', month: 'long', year: 'numeric' });
       if (day !== lastDay) { list.append(node('div', 'chat-date', day)); lastDay = day; }
-      const article = node('article', message.senderID === state.profile.id ? 'chat-message chat-message-own' : 'chat-message');
+      const article = node('article', message.senderID === (state.profile?.id || state.previewOwnerID) ? 'chat-message chat-message-own' : 'chat-message');
       article.append(node('p', 'chat-message-text', message.text));
       const time = node('time', 'chat-message-time', date.toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' }));
       time.dateTime = message.createdAt;
@@ -384,7 +445,7 @@
     try {
       await ensureSession();
       if (stale(epoch) || state.conversation?.id !== conversation.id) return;
-      await refreshMessages({ initial: true });
+      await refreshMessages({ initial: !cached?.at || Date.now() - cached.at >= 8000 });
       if (!stale(epoch)) { status(); scheduleRefresh(); }
     } catch (error) { if (!stale(epoch)) showError(error); }
   }
@@ -530,6 +591,12 @@
     state.visible = false;
     fitConversation();
     state.profile = null;
+    try { if (state.previewKey) window.sessionStorage?.removeItem(state.previewKey); } catch { /* Storage may be disabled. */ }
+    state.previewKey = null;
+    state.previewOwnerID = null;
+    state.canResume = false;
+    state.inbox = [];
+    warming.clear();
     state.conversation = null;
     state.messages.clear();
     state.drafts.clear();
@@ -566,6 +633,7 @@
       await refresh(true);
     },
     onLogin() {
+      restorePreview();
       const epoch = state.epoch;
       const start = telegramApp?.initDataUnsafe?.start_param || new URLSearchParams(window.location?.search || '').get('tgWebAppStartParam');
       const match = /^chat_([a-f0-9-]{36})$/i.exec(start || '');

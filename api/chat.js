@@ -35,7 +35,12 @@ export default async function handler(req, res) {
       return;
     }
     const userID = await currentUser(req);
-    if (action === 'telegram' && req.method === 'POST') {
+    if (action === 'session' && req.method === 'GET') {
+      const people = await database(`chat_profiles?select=id,student_id,display_name&id=eq.${userID}&limit=1`, { method: 'GET' });
+      const person = people?.[0];
+      if (!person || Number(req.query.studentID) !== Number(person.student_id)) throw new ChatError(401, 'chat_session_expired');
+      res.status(200).json({ profile: { id: person.id, name: person.display_name }, conversations: await rpc('chat_inbox', { p_user_id: userID }) });
+    } else if (action === 'telegram' && req.method === 'POST') {
       res.status(200).json({ linked: await linkTelegram(userID,req.body?.initData) });
     } else if (action === 'typing' && req.method === 'POST') {
       if (typeof req.body?.typing !== 'boolean') throw new ChatError(400, 'invalid_chat_request');
@@ -72,7 +77,7 @@ export default async function handler(req, res) {
         rpc('chat_read_messages', {
           p_user_id: userID, p_conversation_id: conversationID, p_before: before || null, p_after: after || null,
         }),
-        rpc('chat_peer_typing', { p_user_id: userID, p_conversation_id: conversationID }).catch(() => false),
+        rpc('chat_peer_typing', { p_user_id: userID, p_conversation_id: conversationID }, { timeoutMs: 600 }).catch(() => false),
       ]);
       res.status(200).json({ ...messages, peerTyping: peerTyping === true });
       waitUntil(processNotifications(userID,'delete'));

@@ -18,9 +18,11 @@ export default async function handler(req, res) {
   }
 
   try {
-    const studyDetails = fetchStudyDetails(session);
+    const summary = req.query?.summary === '1';
+    const studyDetails = summary ? null : fetchStudyDetails(session);
     const r = await fetch('https://platonus.kstu.kz/rest/integralGpa/selfStudentCard/ru', {
       headers: buildPlatonusHeaders(session),
+      signal: AbortSignal.timeout(12000),
     });
     if (r.status === 401 || r.status === 403) {
       res.status(401).json({ error: 'session_expired' });
@@ -28,6 +30,10 @@ export default async function handler(req, res) {
     }
     if (!r.ok) { res.status(502).json({ error: 'platonus_unreachable' }); return; }
     const data = await r.json();
+    if (summary) {
+      res.status(200).json(data);
+      return;
+    }
     const student = await enrichStudentStudy(session, data, studyDetails);
     res.status(200).json(student);
     waitUntil(syncOwnStudyProfile(req, student).catch(() => {}));

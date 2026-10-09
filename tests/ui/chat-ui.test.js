@@ -13,13 +13,13 @@ class Element {
   addEventListener(type, fn) { this.listeners[type] = fn; }
   setAttribute() {}
 }
-function setup(fetch) {
+function setup(fetch, options = {}) {
   const elements = new Map();
   const document = { hidden: false, listeners: {}, createElement: () => new Element(),
     getElementById(id) { if (!elements.has(id)) elements.set(id, new Element()); return elements.get(id); },
     addEventListener(type, fn) { this.listeners[type] = fn; } };
   const timers = new Map(); let timerID = 0;
-  const context = { document, window: {}, fetch, URLSearchParams, AbortSignal,
+  const context = { document, window: options.window || {}, platonusStudent: options.student, fetch, URLSearchParams, AbortSignal,
     authGeneration: 1, platonusSession: 'verified-session', crypto: { randomUUID: () => 'retry-id' },
     setTimeout(fn, delay) { const id = ++timerID; timers.set(id, { fn, delay }); return id; },
     clearTimeout(id) { timers.delete(id); }, silentRelogin: async () => false, logout() {} };
@@ -50,6 +50,42 @@ test('chat does not request or poll until opened, and stops polling on leaving',
 
 const conversation = { id: 'conversation', peer: { id: 'peer', name: 'Друг' }, unread: 0 };
 const message = { id: '1', senderID: 'peer', text: 'История', createdAt: '2026-10-06T10:00:00Z', clientID: 'incoming' };
+
+test('recent conversations prefetch history without marking it read',async()=>{
+  const idle=[],calls=[];
+  const ui=setup(async url=>{
+    calls.push(url);
+    if(url.includes('action=session'))return reply({profile,conversations:[{...conversation,lastMessage:message}]});
+    if(url.includes('action=messages'))return reply({messages:[message],hasMore:false});
+    return reply({ok:true});
+  },{window:{requestIdleCallback:fn=>idle.push(fn)}});
+  ui.api.onLogin();await settle();
+  assert.equal(idle.length,1);idle[0]();await settle();
+  assert.equal(calls.filter(url=>url.includes('action=messages')).length,1);
+  assert.equal(calls.some(url=>url.includes('action=read')),false);
+  ui.api.onSection('chat');await settle();
+  const opening=ui.elements.get('chatInbox').children[0].listeners.click();
+  assert.deepEqual(messageTexts(ui),['История']);
+  await opening;await settle();
+});
+
+test('login restores account-scoped previews before auth completes and logout clears them',async()=>{
+  const store=new Map([['univer-chat-preview-23',JSON.stringify({at:Date.now(),profileID:'me',inbox:[conversation],
+    history:[[conversation.id,{messages:[message],hasOlder:false,at:Date.now()}]]})]]);
+  const calls=[];
+  const ui=setup(async(url,options)=>{
+    calls.push({url,method:options.method});
+    if(options.method==='DELETE')return reply({ok:true});
+    return new Promise(()=>{});
+  },{student:{studentID:23},window:{sessionStorage:{getItem:key=>store.get(key),removeItem:key=>store.delete(key)}}});
+  ui.api.onLogin();
+  assert.equal(ui.elements.get('chatInbox').children[0].children[1].children[0].children[0].textContent,'Друг');
+  assert.match(calls[0].url,/action=session.*studentID=23/);assert.equal(calls[0].method,'GET');
+  ui.elements.get('chatInbox').children[0].listeners.click();
+  assert.deepEqual(messageTexts(ui),['История']);
+  ui.api.logout();
+  assert.equal(store.has('univer-chat-preview-23'),false);
+});
 function messageTexts(ui) {
   return ui.elements.get('chatMessages').children.filter(child => child.className?.includes('chat-message'))
     .map(child => child.children[0].textContent);
