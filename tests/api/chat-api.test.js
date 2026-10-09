@@ -25,6 +25,39 @@ async function call({ method = 'GET', action = 'inbox', headers = {}, query = {}
 }
 const reply = (data, status = 200) => ({ ok: status < 400, status, json: async () => data });
 
+test('an older database returns the verified base peer profile without academic fields', async t => {
+  setup(t, async url => {
+    if (url.includes('/chat_sessions?')) return reply([{ user_id: user }]);
+    if (url.endsWith('/rpc/chat_peer_profile')) return reply({ code: 'PGRST202' }, 404);
+    if (url.includes('/chat_conversations?')) {
+      assert.ok(url.includes(`id=eq.${conversation}`));
+      assert.ok(url.includes(`user_a.eq.${user},user_b.eq.${user}`));
+      return reply([{ user_a: user, user_b: client }]);
+    }
+    assert.ok(url.includes(`chat_profiles?select=id,student_id,display_name&id=eq.${client}`));
+    return reply([{ id: client, student_id: 23, display_name: 'Друг' }]);
+  });
+  const result = await call({ action: 'profile', query: { conversationID: conversation, peerID: user },
+    headers: { cookie: `${COOKIE_NAME}=${'a'.repeat(64)}` } });
+  assert.equal(result.code, 200);
+  assert.equal(result.body.profile.name, 'Друг');
+  assert.equal(result.body.profile.studentID, 23);
+  assert.equal(result.body.profile.studyAvailable, false);
+  assert.equal(result.body.profile.academicGpa, null);
+});
+
+test('base profile fallback rejects outsiders before reading any private profile', async t => {
+  setup(t, async url => {
+    if (url.includes('/chat_sessions?')) return reply([{ user_id: user }]);
+    if (url.endsWith('/rpc/chat_peer_profile')) return reply({ code: 'PGRST202' }, 404);
+    assert.ok(url.includes('/chat_conversations?'));
+    return reply([]);
+  });
+  const result = await call({ action: 'profile', query: { conversationID: conversation },
+    headers: { cookie: `${COOKIE_NAME}=${'a'.repeat(64)}` } });
+  assert.equal(result.code, 403);
+});
+
 test('typing identity comes from the cookie and rejects malformed activity', async t => {
   let activity;
   setup(t, async (url, options) => {

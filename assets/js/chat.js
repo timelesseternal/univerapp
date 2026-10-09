@@ -430,7 +430,15 @@
     content.replaceChildren(node('p', 'chat-empty', 'Загружаем профиль…'));
     try {
       await ensureSession();
-      const data = await request('profile', { params: { conversationID: id } });
+      if (stale(epoch) || version !== state.peerProfileVersion || state.conversation?.id !== id) return;
+      let data;
+      try { data = await request('profile', { params: { conversationID: id } }); }
+      catch (error) {
+        if (error.message !== 'chat_session_expired') throw error;
+        await ensureSession();
+        if (stale(epoch) || version !== state.peerProfileVersion || state.conversation?.id !== id) return;
+        data = await request('profile', { params: { conversationID: id } });
+      }
       if (stale(epoch) || version !== state.peerProfileVersion || state.conversation?.id !== id) return;
       const person = data.profile;
       if (!person) throw new Error('chat_unavailable');
@@ -445,9 +453,15 @@
       row.append(node('span', 'gpa-label', 'Академический GPA'), node('span', 'gpa-value accent', Number.isFinite(value) ? value.toFixed(2).replace('.', ',') : '—'));
       gpa.append(row);
       content.replaceChildren(hero, gpa);
-      if (!person.updatedAt) content.append(node('p', 'chat-empty', 'Учебные данные появятся, когда пользователь снова откроет приложение.'));
+      if (person.studyAvailable === false) content.append(node('p', 'chat-empty', 'Для GPA, курса и группы необходимо подключить учебные профили в базе приложения.'));
+      else if (!person.updatedAt) content.append(node('p', 'chat-empty', 'Учебные данные появятся, когда пользователь снова откроет приложение.'));
     } catch (error) {
-      if (!stale(epoch) && version === state.peerProfileVersion) content.replaceChildren(node('p', 'chat-empty', error.message === 'chat_setup_required' ? 'Профили ещё не подключены: требуется обновление базы данных.' : 'Не удалось загрузить профиль. Закройте его и попробуйте снова.'));
+      if (!stale(epoch) && version === state.peerProfileVersion) {
+        const retry = node('button', 'chat-retry', 'Повторить загрузку');
+        retry.type = 'button';
+        retry.addEventListener('click', openPeerProfile);
+        content.replaceChildren(node('p', 'chat-empty', error.message === 'chat_setup_required' ? 'Профили ещё не подключены: требуется обновление базы данных.' : 'Не удалось загрузить профиль.'), retry);
+      }
     }
   }
   async function send(event) {

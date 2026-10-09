@@ -103,6 +103,25 @@ export function uuid(value) {
   return value;
 }
 
+export async function readPeerProfile(userID, conversationID) {
+  try {
+    return await rpc('chat_peer_profile', { p_user_id: userID, p_conversation_id: conversationID });
+  } catch (error) {
+    if (!(error instanceof ChatError) || error.code !== 'chat_setup_required') throw error;
+    // An older database still has the base profile. Verify membership before
+    // reading it; never accept the peer ID supplied by the browser.
+    const conversations = await database(`chat_conversations?select=user_a,user_b&id=eq.${conversationID}&or=(user_a.eq.${userID},user_b.eq.${userID})&limit=1`, { method: 'GET' });
+    const conversation = conversations?.[0];
+    if (!conversation || ![conversation.user_a, conversation.user_b].includes(userID)) throw new ChatError(403, 'chat_forbidden');
+    const peerID = uuid(conversation.user_a === userID ? conversation.user_b : conversation.user_a);
+    const rows = await database(`chat_profiles?select=id,student_id,display_name&id=eq.${peerID}&limit=1`, { method: 'GET' });
+    const peer = rows?.[0];
+    if (!peer) throw new ChatError(404, 'chat_profile_not_found');
+    return { id: peer.id, name: peer.display_name, studentID: peer.student_id,
+      academicGpa: null, group: null, course: null, updatedAt: null, studyAvailable: false };
+  }
+}
+
 export function verifiedStudyProfile(student) {
   const rawGpa = student.academicGpa;
   const gpa = rawGpa == null || String(rawGpa).trim() === '' ? NaN : Number(String(rawGpa).replace(',', '.'));

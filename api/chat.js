@@ -1,4 +1,4 @@
-import { ChatError, checkOrigin, configuration, currentUser, database, readToken, rpc, setCookie, startSession, tokenHash, uuid } from './_lib/chat.js';
+import { ChatError, checkOrigin, configuration, currentUser, database, readPeerProfile, readToken, rpc, setCookie, startSession, tokenHash, uuid } from './_lib/chat.js';
 import { waitUntil } from '@vercel/functions';
 import { linkTelegram, processNotifications } from './_lib/telegram.js';
 
@@ -42,7 +42,7 @@ export default async function handler(req, res) {
       await rpc('chat_set_typing', { p_user_id: userID, p_conversation_id: uuid(req.body?.conversationID), p_typing: req.body.typing });
       res.status(200).json({ ok: true });
     } else if (action === 'profile' && req.method === 'GET') {
-      res.status(200).json({ profile: await rpc('chat_peer_profile', { p_user_id:userID,p_conversation_id:uuid(req.query.conversationID) }) });
+      res.status(200).json({ profile: await readPeerProfile(userID, uuid(req.query.conversationID)) });
     } else if (action === 'conversation' && req.method === 'GET') {
       res.status(200).json({ conversation: await rpc('chat_get_conversation', { p_user_id:userID,p_conversation_id:uuid(req.query.conversationID) }) });
     } else if (action === 'read' && req.method === 'POST') {
