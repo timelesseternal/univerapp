@@ -10,6 +10,44 @@
     history: new Map(), pending: new Map(), inboxAt: 0, readThrough: new Map(),
     monitoring: false, badgeTimer: null, badgeBusy: false, peerProfileOpen: false, peerProfileVersion: 0 };
   const telegramApp = window.Telegram?.WebApp;
+  let typingAt = 0, typingConversation = null, typingTimer = null, peerTypingTimer = null;
+  function fitConversation() {
+    const viewport = window.visualViewport;
+    if (!viewport || !root.getBoundingClientRect) return;
+    const keyboard = state.visible && !!state.conversation && !state.peerProfileOpen
+      && window.innerHeight - viewport.height > 120;
+    document.body?.classList.toggle('chat-keyboard-open', keyboard);
+    if (state.visible && state.conversation) {
+      const list = byID('chatMessages');
+      const bottom = list.scrollHeight - list.scrollTop - list.clientHeight < 90;
+      const height = Math.max(220, viewport.height + viewport.offsetTop - root.getBoundingClientRect().top - (keyboard ? 12 : 100));
+      root.style.setProperty('--chat-height', `${height}px`);
+      if (bottom) list.scrollTop = list.scrollHeight;
+    }
+  }
+  function showTyping(active) {
+    clearTimeout(peerTypingTimer);
+    byID('chatTyping').hidden = !active;
+    if (active) peerTypingTimer = setTimeout(() => { byID('chatTyping').hidden = true; }, 6000);
+  }
+  function stopTyping() {
+    clearTimeout(typingTimer);
+    const id = typingConversation;
+    typingConversation = null;
+    typingAt = 0;
+    if (id && state.profile) request('typing', { method: 'POST', body: { conversationID: id, typing: false } }).catch(() => {});
+  }
+  function publishTyping() {
+    if (!state.visible || document.hidden || !state.conversation || !state.profile || !byID('chatText').value.trim()) { stopTyping(); return; }
+    clearTimeout(typingTimer);
+    const id = state.conversation.id;
+    if (typingConversation !== id || Date.now() - typingAt >= 3000) {
+      typingConversation = id;
+      typingAt = Date.now();
+      request('typing', { method: 'POST', body: { conversationID: id, typing: true } }).catch(() => {});
+    }
+    typingTimer = setTimeout(stopTyping, 4000);
+  }
   const bootstrap = () => request('session', { method:'POST',headers:{'x-session':platonusSession},
     ...(telegramApp?.initData ? { body:{initData:telegramApp.initData} } : {}) });
   const labels = {
@@ -108,11 +146,21 @@
       button.type = 'button';
       button.append(node('span', 'chat-avatar', initials(conversation.peer.name)));
       const content = node('span', 'chat-person-content');
-      content.append(node('span', 'chat-person-name', conversation.peer.name));
+      const heading = node('span', 'chat-person-heading');
+      heading.append(node('span', 'chat-person-name', conversation.peer.name));
+      if (conversation.unread > 0) heading.append(node('span', 'chat-unread', conversation.unread > 99 ? '99+' : String(conversation.unread)));
+      content.append(heading);
       const prefix = conversation.lastMessage?.senderID === state.profile.id ? 'Вы: ' : '';
       content.append(node('span', 'chat-person-preview', conversation.lastMessage ? prefix + conversation.lastMessage.text : 'Начните переписку'));
       button.append(content);
-      if (conversation.unread > 0) button.append(node('span', 'chat-unread', conversation.unread > 99 ? '99+' : String(conversation.unread)));
+      if (conversation.lastMessage?.createdAt) {
+        const date = new Date(conversation.lastMessage.createdAt);
+        const stamp = node('time', 'chat-person-time', date.toLocaleDateString() === new Date().toLocaleDateString()
+          ? date.toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' })
+          : date.toLocaleDateString('ru-RU', { day: 'numeric', month: 'short' }));
+        stamp.dateTime = conversation.lastMessage.createdAt;
+        button.append(stamp);
+      }
       button.addEventListener('click', () => openConversation(conversation));
       list.append(button);
     }
@@ -155,8 +203,8 @@
   }
   function animateMessage(element) {
     if (!state.visible || document.hidden || !element.animate || window.matchMedia?.('(prefers-reduced-motion: reduce)').matches) return;
-    element.animate([{opacity:0,transform:'translateY(14px)'},{opacity:1,transform:'translateY(0)'}],
-      {duration:420,easing:'cubic-bezier(.16,1,.3,1)'});
+    element.animate([{opacity:0,transform:'translateY(10px) scale(.96)'},{opacity:1,transform:'translateY(0) scale(1)'}],
+      {duration:320,easing:'cubic-bezier(.16,1,.3,1)'});
   }
   function drawMessages({ scroll = 'keep', newIDs = new Set(), pendingID } = {}) {
     const list = byID('chatMessages');
@@ -208,6 +256,7 @@
     else if (!initial && messages.length) params.after = messages.at(-1).id;
     const data = await request('messages', { params });
     if (stale(epoch) || state.conversation?.id !== id) return;
+    showTyping(data.peerTyping === true && state.visible && !state.peerProfileOpen);
     if (!params.after) state.hasOlder = data.hasMore;
     const newIDs = new Set(data.messages.filter(message => !state.messages.has(message.id)).map(message => message.id));
     let changed = newIDs.size > 0;
@@ -313,6 +362,7 @@
     }
   }
   async function openConversation(conversation) {
+    stopTyping(); showTyping(false);
     closePeerProfile();
     saveDraft();
     rememberHistory();
@@ -327,6 +377,7 @@
     byID('chatPeerAvatar').textContent = initials(conversation.peer.name);
     byID('chatText').value = state.drafts.get(conversation.id)?.text || '';
     resizeComposer();
+    fitConversation();
     if (cached) drawMessages({ scroll: 'bottom' });
     else byID('chatMessages').replaceChildren(node('p', 'chat-empty', 'Загружаем переписку…'));
     const epoch = state.epoch;
@@ -338,10 +389,12 @@
     } catch (error) { if (!stale(epoch)) showError(error); }
   }
   function closeConversation() {
+    stopTyping(); showTyping(false);
     closePeerProfile();
     saveDraft();
     rememberHistory();
     state.conversation = null;
+    fitConversation();
     state.messages.clear();
     root.classList.remove('chat-in-thread');
     byID('chatThread').hidden = true;
@@ -362,12 +415,15 @@
     byID('chatPeerProfile').hidden = true;
     byID('chatPeerProfileContent').replaceChildren();
     if (state.conversation) byID('chatThread').hidden = false;
+    fitConversation();
   }
   async function openPeerProfile() {
+    stopTyping(); showTyping(false);
     if (!state.conversation) return;
     const id = state.conversation.id, epoch = state.epoch;
     const version = ++state.peerProfileVersion;
     state.peerProfileOpen = true;
+    fitConversation();
     byID('chatThread').hidden = true;
     byID('chatPeerProfile').hidden = false;
     const content = byID('chatPeerProfileContent');
@@ -399,6 +455,7 @@
     if (!state.conversation || state.sending) return;
     const text = byID('chatText').value.trim();
     if (!text || text.length > 2000) return;
+    stopTyping();
     const epoch = state.epoch, id = state.conversation.id;
     const previous = state.drafts.get(id);
     const clientID = previous?.text?.trim() === text && previous.clientID ? previous.clientID : crypto.randomUUID();
@@ -447,6 +504,7 @@
     }
   }
   function reset() {
+    stopTyping(); showTyping(false);
     closePeerProfile();
     state.epoch++;
     state.searchVersion++;
@@ -456,6 +514,7 @@
     state.monitoring = state.badgeBusy = false;
     updateBadge(0);
     state.visible = false;
+    fitConversation();
     state.profile = null;
     state.conversation = null;
     state.messages.clear();
@@ -512,8 +571,10 @@
       });
     },
     onSection(section) {
+      if (section !== 'chat') { stopTyping(); showTyping(false); }
       if (section !== 'chat') closePeerProfile();
       state.visible = section === 'chat';
+      fitConversation();
       clearTimeout(state.timer);
       clearTimeout(state.searchTimer);
       if (state.visible) { status(state.profile ? '' : 'Подключаем чат…'); refresh(true); }
@@ -536,13 +597,17 @@
     finally { button.disabled = false; }
   });
   byID('chatComposer').addEventListener('submit', send);
-  byID('chatText').addEventListener('input', resizeComposer);
+  byID('chatText').addEventListener('input', () => { resizeComposer(); publishTyping(); });
+  byID('chatText').addEventListener('blur', stopTyping);
+  window.visualViewport?.addEventListener('resize', fitConversation);
+  window.visualViewport?.addEventListener('scroll', fitConversation);
   byID('chatText').addEventListener('keydown', event => {
     if (event.key === 'Enter' && !event.shiftKey && !event.isComposing && window.matchMedia('(pointer: fine)').matches) {
       event.preventDefault(); byID('chatComposer').requestSubmit();
     }
   });
   document.addEventListener('visibilitychange', () => {
+    if (document.hidden) { stopTyping(); showTyping(false); }
     clearTimeout(state.timer);
     clearTimeout(state.badgeTimer);
     if (!document.hidden && state.visible) refresh();

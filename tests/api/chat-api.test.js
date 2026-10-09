@@ -25,6 +25,37 @@ async function call({ method = 'GET', action = 'inbox', headers = {}, query = {}
 }
 const reply = (data, status = 200) => ({ ok: status < 400, status, json: async () => data });
 
+test('typing identity comes from the cookie and rejects malformed activity', async t => {
+  let activity;
+  setup(t, async (url, options) => {
+    if (url.includes('/chat_sessions?')) return reply([{ user_id: user }]);
+    assert.ok(url.endsWith('/rpc/chat_set_typing'));
+    activity = JSON.parse(options.body);
+    return reply(true);
+  });
+  const headers = { cookie: `${COOKIE_NAME}=${'a'.repeat(64)}` };
+  const result = await call({ method: 'POST', action: 'typing', headers,
+    body: { conversationID: conversation, typing: true, userID: client, text: 'Never stored' } });
+  assert.equal(result.code, 200);
+  assert.deepEqual(activity, { p_user_id: user, p_conversation_id: conversation, p_typing: true });
+  const invalid = await call({ method: 'POST', action: 'typing', headers,
+    body: { conversationID: conversation, typing: 'true' } });
+  assert.equal(invalid.code, 400);
+});
+
+test('messages remain available before the optional typing migration is applied', async t => {
+  setup(t, async url => {
+    if (url.includes('/chat_sessions?')) return reply([{ user_id: user }]);
+    if (url.endsWith('/rpc/chat_read_messages')) return reply({ messages: [], hasMore: false });
+    if (url.endsWith('/rpc/chat_peer_typing')) return reply({ code: 'PGRST202' }, 404);
+    return reply([]);
+  });
+  const result = await call({ action: 'messages', query: { conversationID: conversation },
+    headers: { cookie: `${COOKIE_NAME}=${'a'.repeat(64)}` } });
+  assert.equal(result.code, 200);
+  assert.deepEqual(result.body, { messages: [], hasMore: false, peerTyping: false });
+});
+
 test('slow Platonus transcript refresh does not delay the inbox and still syncs verified study details', async t => {
   let releaseTranscript, background, synced;
   setup(t, async (url, options) => {

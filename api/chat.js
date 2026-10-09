@@ -37,6 +37,10 @@ export default async function handler(req, res) {
     const userID = await currentUser(req);
     if (action === 'telegram' && req.method === 'POST') {
       res.status(200).json({ linked: await linkTelegram(userID,req.body?.initData) });
+    } else if (action === 'typing' && req.method === 'POST') {
+      if (typeof req.body?.typing !== 'boolean') throw new ChatError(400, 'invalid_chat_request');
+      await rpc('chat_set_typing', { p_user_id: userID, p_conversation_id: uuid(req.body?.conversationID), p_typing: req.body.typing });
+      res.status(200).json({ ok: true });
     } else if (action === 'profile' && req.method === 'GET') {
       res.status(200).json({ profile: await rpc('chat_peer_profile', { p_user_id:userID,p_conversation_id:uuid(req.query.conversationID) }) });
     } else if (action === 'conversation' && req.method === 'GET') {
@@ -63,9 +67,14 @@ export default async function handler(req, res) {
         if (cursor !== undefined && (typeof cursor !== 'string' || !/^[1-9]\d{0,18}$/.test(cursor) || BigInt(cursor) > 9223372036854775807n)) throw new ChatError(400, 'invalid_chat_request');
       }
       if (before && after) throw new ChatError(400, 'invalid_chat_request');
-      res.status(200).json(await rpc('chat_read_messages', {
-        p_user_id: userID, p_conversation_id: uuid(req.query.conversationID), p_before: before || null, p_after: after || null,
-      }));
+      const conversationID = uuid(req.query.conversationID);
+      const [messages, peerTyping] = await Promise.all([
+        rpc('chat_read_messages', {
+          p_user_id: userID, p_conversation_id: conversationID, p_before: before || null, p_after: after || null,
+        }),
+        rpc('chat_peer_typing', { p_user_id: userID, p_conversation_id: conversationID }).catch(() => false),
+      ]);
+      res.status(200).json({ ...messages, peerTyping: peerTyping === true });
       waitUntil(processNotifications(userID,'delete'));
     } else if (action === 'messages' && req.method === 'POST') {
       const text = typeof req.body?.text === 'string' ? req.body.text.trim() : '';

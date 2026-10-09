@@ -196,9 +196,31 @@ test('inbox renders untrusted names and message previews as text', async () => {
   ui.api.onSection('chat');
   await settle();
   const button = ui.elements.get('chatInbox').children[0];
-  assert.equal(button.children[1].children[0].textContent, name);
+  assert.equal(button.children[1].children[0].children[0].textContent, name);
   assert.equal(button.children[1].children[1].textContent, '<script>danger()</script>');
-  assert.equal(button.children[1].children[0].children.length, 0);
+  assert.equal(button.children[1].children[0].children[0].children.length, 0);
+});
+
+test('typing publishes only activity, is throttled, and clears on leaving the conversation', async () => {
+  const sent = [];
+  const ui = setup(async (url, options) => {
+    if (url.includes('action=session')) return reply({ profile, conversations: [conversation] });
+    if (url.includes('action=inbox')) return reply({ conversations: [conversation] });
+    if (url.includes('action=typing')) { sent.push(JSON.parse(options.body)); return reply({ ok: true }); }
+    if (url.includes('action=read')) return reply({ ok: true });
+    return reply({ messages: [message], hasMore: false, peerTyping: true });
+  });
+  ui.api.onSection('chat'); await settle();
+  await ui.elements.get('chatInbox').children[0].listeners.click(); await settle();
+  assert.equal(ui.elements.get('chatTyping').hidden, false);
+  const input = ui.elements.get('chatText'); input.value = 'Приватный черновик';
+  input.listeners.input(); input.listeners.input(); await settle();
+  assert.equal(sent.length, 1);
+  assert.deepEqual(sent[0], { conversationID: conversation.id, typing: true });
+  ui.api.onSection('schedule'); await settle();
+  assert.equal(sent.at(-1).typing, false);
+  assert.equal(ui.elements.get('chatTyping').hidden, true);
+  assert.equal(ui.timers.size, 0);
 });
 
 test('logout clears private UI and revokes a late bootstrap cookie before reuse', async () => {
