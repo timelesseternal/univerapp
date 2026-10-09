@@ -75,65 +75,114 @@
 #sectionSchedule .days-grid { margin-top: 0; margin-bottom: 8px; }
 #sectionSchedule .day-btn { padding-block: 8px; }
 
-/* A shared four-line layout keeps every lesson card aligned. */
+/* Times sit outside the cards on a single continuous timeline. */
+#scheduleContainer .list-card { display: grid; gap: 12px; }
+#scheduleContainer .lesson-event {
+  position: relative;
+  display: grid;
+  grid-template-columns: 56px minmax(0, 1fr);
+  gap: 20px;
+  align-items: start;
+}
+#scheduleContainer .lesson-event::before {
+  content: '';
+  position: absolute;
+  left: 63px;
+  top: 22px;
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background: var(--ink-soft);
+  z-index: 1;
+}
+#scheduleContainer .lesson-event::after {
+  content: '';
+  position: absolute;
+  left: 65px;
+  top: 27px;
+  bottom: -34px;
+  width: 1px;
+  background: var(--line);
+}
+#scheduleContainer .lesson-event:last-child::after { display: none; }
+#scheduleContainer .lesson-event.is-current::before {
+  background: var(--accent);
+  box-shadow: 0 0 0 4px rgba(var(--accent-rgb), .12);
+}
 #scheduleContainer .list-row {
   box-sizing: border-box;
-  height: 116px;
-  padding: 12px 14px;
-  gap: 12px;
+  height: 156px;
+  min-width: 0;
+  padding: 14px;
+  gap: 0;
+  margin-bottom: 0;
+  border-radius: 18px;
   align-items: stretch;
 }
 #scheduleContainer .row-index {
   box-sizing: border-box;
   display: flex;
   flex-direction: column;
-  justify-content: center;
-  gap: 8px;
-  flex: 0 0 60px;
-  min-width: 60px;
-  padding: 2px 0 2px 10px;
+  justify-content: flex-start;
+  gap: 6px;
+  min-width: 0;
+  border: 0;
+  padding: 14px 0 0;
   font-family: var(--font-body);
   font-variant-numeric: tabular-nums;
 }
-#scheduleContainer .row-index-main { font-size: 17px; font-weight: 650; line-height: 22px; }
-#scheduleContainer .row-index-sub { margin: 0; font-size: 15px; font-weight: 550; line-height: 20px; }
+#scheduleContainer .row-index-main { font-size: 16px; font-weight: 700; line-height: 22px; }
+#scheduleContainer .row-index-sub { margin: 0; font-size: 12px; font-weight: 550; line-height: 18px; }
+#scheduleContainer .is-current .row-index-main { color: var(--accent); }
 #scheduleContainer .row-body {
-  display: grid;
+  display: flex;
+  flex-direction: column;
   min-width: 0;
-  grid-template-columns: minmax(0, 1fr);
-  grid-template-rows: 42px 18px 18px;
-  align-content: center;
-  gap: 4px;
+  gap: 0;
 }
-#scheduleContainer .row-top { display: flex; min-width: 0; gap: 8px; }
-#scheduleContainer .row-title { min-width: 0; flex: 1 1 0; font-size: 16px; font-weight: 650; line-height: 22px; }
-#scheduleContainer .lesson-subject-name { width: 100%; min-width: 0; line-height: 22px; letter-spacing: -.01em; }
-#scheduleContainer .lesson-type-name { font-size: 14px; font-weight: 600; line-height: 20px; }
-#scheduleContainer .lesson-subject-wrap { font-size: 16px; line-height: 22px; }
+#scheduleContainer .row-top { display: block; min-width: 0; }
+#scheduleContainer .row-title { display: block; min-width: 0; font-size: 15px; font-weight: 700; line-height: 20px; }
+#scheduleContainer .lesson-subject-wrap { font-size: 15px; line-height: 20px; letter-spacing: -.01em; overflow-wrap: anywhere; }
+#scheduleContainer .lesson-kind-row { display: flex; align-items: center; gap: 7px; min-height: 23px; margin: 7px 0 8px; }
+#scheduleContainer .lesson-type-name {
+  display: inline-block;
+  max-width: 100%;
+  padding: 2px 7px;
+  border-radius: 7px;
+  background: rgba(var(--accent-rgb), .08);
+  color: var(--ink-soft);
+  font-size: 11px;
+  font-weight: 600;
+  line-height: 17px;
+}
 #scheduleContainer .row-meta {
   min-width: 0;
   margin: 0;
-  font-size: 14px;
+  font-size: 12px;
   font-weight: 500;
-  line-height: 18px;
+  line-height: 17px;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
 }
-#scheduleContainer .live-tag { font-size: 10px; line-height: 22px; }
+#scheduleContainer .row-meta + .row-meta { margin-top: 4px; }
+#scheduleContainer .live-tag { font-size: 10px; line-height: 17px; }
+#scheduleContainer .lesson-live-aura, #scheduleContainer .lesson-live-orbit { border-radius: 20px; }
 #scheduleContainer .lesson-progress-container {
   position: absolute;
-  left: 86px;
+  left: 14px;
   right: 14px;
-  bottom: 6px;
+  bottom: 10px;
   width: auto;
   margin: 0;
   height: 2px;
 }
 @media (max-width: 360px) {
-  #scheduleContainer .list-row { padding-inline: 12px; gap: 10px; }
-  #scheduleContainer .row-index { flex-basis: 56px; min-width: 56px; padding-left: 8px; }
-  #scheduleContainer .row-title { font-size: 16px; }
-  #scheduleContainer .row-meta { font-size: 13px; }
-  #scheduleContainer .lesson-progress-container { left: 78px; right: 12px; }
+  #scheduleContainer .lesson-event { grid-template-columns: 50px minmax(0, 1fr); gap: 18px; }
+  #scheduleContainer .lesson-event::before { left: 56px; }
+  #scheduleContainer .lesson-event::after { left: 58px; }
+  #scheduleContainer .list-row { padding-inline: 12px; }
+  #scheduleContainer .row-index-main { font-size: 15px; }
+  #scheduleContainer .lesson-kind-row { gap: 5px; }
+  #scheduleContainer .lesson-progress-container { left: 12px; right: 12px; }
 }

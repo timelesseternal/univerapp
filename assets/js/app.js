@@ -2029,15 +2029,20 @@ if ('serviceWorker' in navigator) {
 
   let lastRenderedScreenKey = '';
 
-  function lessonTitleHtml(item) {
+  function lessonParts(item) {
     const title = String(item.sub || '');
     // Older cached schedules only contain the combined title.
     const legacy = title.match(/^(.*)\s+\(([^()]+)\)$/);
     const name = item.subjectTitle || (legacy ? legacy[1] : title);
     const type = item.lessonType ?? (legacy ? legacy[2] : '');
-    return type
-      ? '<span class="lesson-subject-name">' + escapeHtml(name) + '</span><span class="lesson-type-name">' + escapeHtml(type) + '</span>'
-      : '<span class="lesson-subject-wrap">' + escapeHtml(name) + '</span>';
+    return { name, type };
+  }
+  function lessonTitleHtml(item) {
+    return '<span class="lesson-subject-wrap">' + escapeHtml(lessonParts(item).name) + '</span>';
+  }
+  function lessonTypeHtml(item) {
+    const type = lessonParts(item).type;
+    return type ? '<span class="lesson-type-name">' + escapeHtml(type) + '</span>' : '';
   }
 
   function renderSchedule(animate = true) {
@@ -2139,21 +2144,26 @@ if ('serviceWorker' in navigator) {
       const endTime = t ? t.end : '?';
 
       rowsHtml += `
-        <div class="${rowClass}"${rowStyle}>
-          ${isActive ? '<span class="lesson-live-aura" aria-hidden="true"></span><span class="lesson-live-orbit" aria-hidden="true"></span>' : ''}
-          <div class="row-index">
+        <div class="lesson-event${isActive ? ' is-current' : ''}">
+          <div class="row-index" aria-label="${startTime} — ${endTime}">
             <span class="row-index-main">${startTime}</span>
             <span class="row-index-sub">${endTime}</span>
           </div>
+        <div class="${rowClass}"${rowStyle}>
+          ${isActive ? '<span class="lesson-live-aura" aria-hidden="true"></span><span class="lesson-live-orbit" aria-hidden="true"></span>' : ''}
           <div class="row-body">
             <div class="row-top">
               <span class="row-title" title="${escapeHtml(item.sub)}">${lessonTitleHtml(item)}</span>
+            </div>
+            <div class="lesson-kind-row">
+              ${lessonTypeHtml(item)}
               ${isActive ? '<span class="live-tag"><span class="live-dot pulse-live-tag"></span>сейчас</span>' : ''}
             </div>
-            <div class="row-meta">${item.teacher}</div>
+            <div class="row-meta">${escapeHtml(item.teacher || '')}</div>
             <div class="row-meta row-meta-room">${formatRoomLabel(item)}</div>
             ${progressBarHtml}
           </div>
+        </div>
         </div>
       `;
     });
