@@ -1,5 +1,5 @@
 // Public app shell only; student data and video ranges bypass this cache.
-const CACHE_NAME = 'univer-shell-v57';
+const CACHE_NAME = 'univer-shell-v59';
 const FONT_PATHS = new Set([
   '/assets/fonts/manrope/cyrillic-ext.woff2',
   '/assets/fonts/manrope/cyrillic.woff2',

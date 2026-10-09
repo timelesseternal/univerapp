@@ -32,39 +32,56 @@
   function draw() {
     ctx.fillStyle = palette.base;
     ctx.fillRect(0, 0, width, height);
-    const rgba = alpha => `rgba(${palette.rgb}, ${alpha})`;
-    for (let i = 0; i < 3; i++) {
-      const x = width * (.5 + .42 * Math.sin(time * .09 + i * 2.3));
-      const y = height * (.5 + .4 * Math.cos(time * .07 + i * 1.7));
-      const radius = Math.max(width, height) * .65;
-      const glow = ctx.createRadialGradient(x, y, 0, x, y, radius);
-      glow.addColorStop(0, rgba(palette.dark ? .23 : .13));
-      glow.addColorStop(1, rgba(0));
-      ctx.fillStyle = glow;
-      ctx.fillRect(0, 0, width, height);
-    }
+    const accent = palette.rgb.split(',').map(Number);
+    const silver = accent.map(value => Math.round(palette.dark ? 205 + value * .18 : 35 + value * .28)).join(', ');
+    const rgba = alpha => `rgba(${silver}, ${alpha})`;
+    const glow = ctx.createRadialGradient(width * .6, height * .45, 0,
+      width * .6, height * .45, Math.max(width, height) * .65);
+    glow.addColorStop(0, `rgba(${palette.rgb}, ${palette.dark ? .07 : .04})`);
+    glow.addColorStop(1, `rgba(${palette.rgb}, 0)`);
+    ctx.fillStyle = glow;
+    ctx.fillRect(0, 0, width, height);
     ctx.lineCap = 'round';
     ctx.lineJoin = 'round';
-    for (let ribbon = 0; ribbon < 3; ribbon++) {
-      const phase = time * .12 + ribbon * 2;
-      for (let layer = 3; layer >= 1; layer--) {
-        const gradient = ctx.createLinearGradient(0, height, width, 0);
-        gradient.addColorStop(0, rgba(0));
-        gradient.addColorStop(.45, rgba((palette.dark ? .08 : .045) / layer));
-        gradient.addColorStop(.75, rgba((palette.dark ? .14 : .07) / layer));
-        gradient.addColorStop(1, rgba(0));
-        ctx.strokeStyle = gradient;
-        ctx.lineWidth = Math.max(width, height) * .045 * layer;
-        ctx.beginPath();
-        for (let step = 0; step <= 48; step++) {
-          const u = step / 48;
-          const x = width * (u * 1.2 - .1);
-          const y = height * (.85 - .7 * u + .16 * Math.sin(u * 5 + phase)
-            + .06 * Math.cos(u * 9 - phase * .7));
-          if (step) ctx.lineTo(x, y); else ctx.moveTo(x, y);
-        }
-        ctx.stroke();
+    const pixel = width / Math.max(1, window.innerWidth);
+    // One continuous field keeps the lines parallel while the folds change shape.
+    for (let line = 0; line < 34; line++) {
+      const u = line / 33;
+      const highlight = .5 + .32 * Math.sin(time * .24 + u * 5);
+      const gradient = ctx.createLinearGradient(0, 0, 0, height);
+      gradient.addColorStop(0, rgba(.015));
+      gradient.addColorStop(highlight - .13, rgba(palette.dark ? .07 : .045));
+      gradient.addColorStop(highlight, rgba(palette.dark ? .68 : .28));
+      gradient.addColorStop(highlight + .13, rgba(palette.dark ? .07 : .045));
+      gradient.addColorStop(1, rgba(.015));
+      ctx.strokeStyle = gradient;
+      ctx.beginPath();
+      for (let step = 0; step <= 96; step++) {
+        const v = step / 96;
+        const spread = .64 + .09 * Math.sin(v * 7 - time * .25);
+        const x = width * (.46 + .35 * (v - .5) + (u - .5) * spread
+          + .085 * Math.sin(v * 9 - time * .36)
+          + .05 * Math.sin(v * 17 + time * .27 + u * .6));
+        const y = height * (v * 1.1 - .05);
+        if (step) ctx.lineTo(x, y); else ctx.moveTo(x, y);
       }
+      ctx.globalAlpha = .15;
+      ctx.lineWidth = Math.max(.8, 3.2 * pixel);
+      ctx.stroke();
+      ctx.globalAlpha = 1;
+      ctx.lineWidth = Math.max(.45, .9 * pixel);
+      ctx.stroke();
+    }
+    // Deterministic specks shimmer gently, without random flicker between frames.
+    for (let dot = 0; dot < 64; dot++) {
+      const seed = Math.sin(dot * 127.1 + 19.7) * 43758.5453;
+      const other = Math.sin(dot * 311.7 + 47.3) * 19341.592;
+      const x = width * ((seed - Math.floor(seed)) * .94 + .03 + .008 * Math.sin(time * .16 + dot));
+      const y = height * ((other - Math.floor(other)) * .94 + .03 + .006 * Math.cos(time * .14 + dot));
+      const shine = .04 + .16 * Math.pow(.5 + .5 * Math.sin(time * .7 + dot * 2.1), 3);
+      ctx.fillStyle = rgba(shine);
+      const size = Math.max(.6, (dot % 5 === 0 ? 1.5 : .8) * pixel);
+      ctx.fillRect(x, y, size, size);
     }
   }
   function allowed() {
