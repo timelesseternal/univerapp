@@ -1,4 +1,4 @@
-/* Low-resolution procedural aurora. No video, network requests or loop reset. */
+/* Procedural metallic folds with moving specular highlights. No video or loop reset. */
 (() => {
   'use strict';
   const surface = document.querySelector('.aurora-backdrop');
@@ -30,60 +30,73 @@
     if (!document.hidden && !suspended) draw();
   }
   function draw() {
-    ctx.fillStyle = palette.base;
+    ctx.fillStyle = palette.dark ? '#020304' : palette.base;
     ctx.fillRect(0, 0, width, height);
-    const accent = palette.rgb.split(',').map(Number);
     const silver = palette.dark ? '238, 240, 241' : '47, 53, 59';
     const rgba = alpha => `rgba(${silver}, ${alpha})`;
     const glow = ctx.createRadialGradient(width * .6, height * .45, 0,
       width * .6, height * .45, Math.max(width, height) * .65);
-    glow.addColorStop(0, `rgba(${palette.rgb}, ${palette.dark ? .07 : .04})`);
+    glow.addColorStop(0, `rgba(${palette.rgb}, ${palette.dark ? .018 : .025})`);
     glow.addColorStop(1, `rgba(${palette.rgb}, 0)`);
     ctx.fillStyle = glow;
     ctx.fillRect(0, 0, width, height);
     ctx.lineCap = 'round';
     ctx.lineJoin = 'round';
     const pixel = width / Math.max(1, window.innerWidth);
-    // One continuous field keeps the lines parallel while the folds change shape.
-    for (let line = 0; line < 30; line++) {
-      const u = line / 29;
-      const highlight = .28 + .32 * u + .085 * Math.sin(time * .5 + u * 3);
-      const band = .18 + .82 * Math.exp(-Math.pow((u - .42 - .12 * Math.sin(time * .18)) / .3, 2));
+    // The ribs fan out from the upper-left and fold at different heights.
+    // A narrow moving light exposes only the crests; the rest falls into black.
+    for (let line = 0; line < 19; line++) {
+      const u = line / 18;
+      const bend = .395 - .10 * u + .095 * Math.exp(-Math.pow((u - .48) / .21, 2))
+        + .008 * Math.sin(u * 9) + .014 * Math.sin(time * .42 + u * 1.6);
+      const release = .57 - .09 * u + .022 * Math.sin(time * .31 + 1);
       const gradient = ctx.createLinearGradient(0, 0, 0, height);
-      gradient.addColorStop(0, rgba(.015));
-      gradient.addColorStop(highlight - .10, rgba(palette.dark ? .07 : .045));
-      gradient.addColorStop(highlight, rgba((palette.dark ? .92 : .38) * band));
-      gradient.addColorStop(highlight + .10, rgba(palette.dark ? .07 : .045));
-      gradient.addColorStop(1, rgba(.015));
+      for (let stop = 0; stop <= 100; stop++) {
+        const v = stop / 100;
+        const crest = Math.exp(-Math.pow((v - bend - .006) / .026, 2));
+        const reflection = Math.exp(-Math.pow((v - bend - .070) / .085, 2));
+        const upper = Math.exp(-Math.pow((v - .035 - u * .26) / .035, 2));
+        const tail = Math.exp(-Math.pow((v - .87 - .05 * Math.sin(u * 6 + time * .2)) / .085, 2));
+        const variation = .65 + .35 * Math.pow(Math.sin(u * 11 + 1), 2);
+        const light = .002 + (crest + reflection * .22) * variation
+          + upper * .30 * Math.exp(-Math.pow((u - .22) / .2, 2))
+          + tail * .48 * Math.exp(-Math.pow((u - .61) / .065, 2));
+        gradient.addColorStop(v, rgba(Math.min(1, light) * (palette.dark ? 1 : .40)));
+      }
       ctx.strokeStyle = gradient;
       ctx.beginPath();
-      for (let step = 0; step <= 96; step++) {
-        const v = step / 96;
-        const spread = .77 + .08 * Math.sin(v * 4 - time * .24);
-        const shoulder = Math.exp(-Math.pow((v - .34 - .025 * Math.sin(time * .35)) / .17, 2));
-        const waist = Math.exp(-Math.pow((v - .60 - .04 * Math.cos(time * .27)) / .15, 2));
-        const x = width * (.12 + .48 * v + (u - .5) * spread
-          + .17 * shoulder - .11 * waist
-          + .04 * Math.sin(v * 12 - time * .6 + u * .7));
-        const y = height * (v * 1.1 - .05);
+      for (let step = 0; step <= 160; step++) {
+        const v = step / 160;
+        const fan = (u - .5) * .34 * Math.sin(Math.PI * v);
+        const fold = .055 * Math.tanh((v - bend) / .032)
+          - .053 * Math.tanh((v - release) / .049);
+        const ripple = .010 * Math.sin(v * 17 + u * 2 - time * .38);
+        const x = width * (.05 + .27 * u + (.56 + .19 * u) * v + fan + fold + ripple);
+        const y = height * v;
         if (step) ctx.lineTo(x, y); else ctx.moveTo(x, y);
       }
-      ctx.globalAlpha = .15;
-      ctx.lineWidth = Math.max(.8, 4 * pixel);
+      ctx.globalAlpha = .035;
+      ctx.lineWidth = Math.max(2, 11 * pixel);
+      ctx.stroke();
+      ctx.globalAlpha = .13;
+      ctx.lineWidth = Math.max(1, 4.5 * pixel);
+      ctx.stroke();
+      ctx.globalAlpha = .40;
+      ctx.lineWidth = Math.max(.7, 2.3 * pixel);
       ctx.stroke();
       ctx.globalAlpha = 1;
-      ctx.lineWidth = Math.max(.45, 1.15 * pixel);
+      ctx.lineWidth = Math.max(.5, 1.25 * pixel);
       ctx.stroke();
     }
     // Deterministic specks shimmer gently, without random flicker between frames.
-    for (let dot = 0; dot < 64; dot++) {
+    for (let dot = 0; dot < 160; dot++) {
       const seed = Math.sin(dot * 127.1 + 19.7) * 43758.5453;
       const other = Math.sin(dot * 311.7 + 47.3) * 19341.592;
       const x = width * ((seed - Math.floor(seed)) * .94 + .03 + .008 * Math.sin(time * .16 + dot));
       const y = height * ((other - Math.floor(other)) * .94 + .03 + .006 * Math.cos(time * .14 + dot));
-      const shine = .04 + .16 * Math.pow(.5 + .5 * Math.sin(time * .7 + dot * 2.1), 3);
+      const shine = .08 + .38 * Math.pow(.5 + .5 * Math.sin(time * .7 + dot * 2.1), 3);
       ctx.fillStyle = rgba(shine);
-      const size = Math.max(.6, (dot % 5 === 0 ? 1.5 : .8) * pixel);
+      const size = Math.max(.6, (dot % 7 === 0 ? 2 : 1) * pixel);
       ctx.fillRect(x, y, size, size);
     }
   }
