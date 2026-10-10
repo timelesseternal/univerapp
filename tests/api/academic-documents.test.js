@@ -39,7 +39,8 @@ test('hidden marks and deleted subjects are not exposed; mismatched identity is 
   const result = normalizeTranscript(data); assert.equal(result.periods[0].rows.length, 1);
   assert.equal(result.periods[0].rows[0].percent, null); assert.equal(result.periods[0].rows[0].letter, '');
   data.transcript.studentID = 8; assert.throws(() => normalizeTranscript(data), /invalid_transcript/);
-  data.transcript.studentID = 7; data.hasReadAccess = false; assert.throws(() => normalizeTranscript(data));
+  data.transcript.studentID = 7; data.hasReadAccess = false;
+  assert.equal(normalizeTranscript(data).periods[0].rows.length, 1);
 });
 const session = Buffer.from(JSON.stringify({ sid: 'sid', token: 'token', cookie: 'cookie' })).toString('base64');
 const response = () => ({ setHeader(k,v) { (this.headers ||= {})[k] = v; }, status(code) { this.code = code; return this; }, json(data) { this.body = data; } });

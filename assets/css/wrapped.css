@@ -15,7 +15,7 @@ body.wrapped-open{overflow:hidden}
 .wrapped-stage{flex:1;min-height:0;overflow:auto;border-radius:28px;touch-action:pan-y}
 .wrapped-story{position:relative;min-height:100%;padding:clamp(24px,6vw,40px);overflow:hidden;background:var(--paper-2);isolation:isolate}
 .wrapped-story-content{position:relative;z-index:1;display:flex;min-height:100%;flex-direction:column;align-items:flex-start}
-.wrapped-art{position:absolute;inset:0;overflow:hidden;opacity:.4;z-index:-1;pointer-events:none}
+.wrapped-art{position:absolute;inset:-12px;overflow:hidden;opacity:.35;filter:blur(6px);z-index:-1;pointer-events:none}
 .wrapped-art i{position:absolute;width:460px;height:460px;right:-230px;top:20%;border:36px solid var(--accent);border-radius:50%;animation:recap-drift 14s ease-in-out infinite alternate}
 .wrapped-art i:nth-child(2){width:340px;height:340px;right:-170px;top:28%;border-width:8px;animation-delay:-5s}
 .wrapped-art i:nth-child(3){width:620px;height:620px;right:-310px;top:8%;border-width:2px;animation-delay:-9s}

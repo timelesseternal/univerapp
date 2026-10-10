@@ -4,7 +4,9 @@ const amount = (value, max = 10000) => { const n = numeric(value); return Number
 
 export function normalizeTranscript(data) {
   const studentID = Number(data?.student?.personID);
-  if (!Number.isSafeInteger(studentID) || studentID <= 0 || data.hasReadAccess === false) throw new Error('invalid_transcript');
+  // Platonus returns hasReadAccess=false even on a student's populated own
+  // transcript. Ownership comes from the self-only route and matching IDs.
+  if (!Number.isSafeInteger(studentID) || studentID <= 0) throw new Error('invalid_transcript');
   if (data.transcript?.studentID && Number(data.transcript.studentID) !== studentID) throw new Error('invalid_transcript');
   const periods = new Map();
   const categories = { courses: 'Дисциплины', practices: 'Практика', researches: 'Исследования', finalExams: 'Итоговая аттестация', diplomas: 'Дипломная работа', academicDifferenceSubjects: 'Академическая разница', additionalSubjects: 'Дополнительные дисциплины', rewritableSubjects: 'Перезачёт' };
