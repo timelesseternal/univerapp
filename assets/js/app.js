@@ -874,6 +874,8 @@ if ('serviceWorker' in navigator) {
         </button>
       </nav>
 
+      <button type="button" class="profile-update-btn" onclick="updateApplication(this)">Обновить приложение</button>
+      <p id="appUpdateStatus" class="profile-update-status" role="status"></p>
       <button class="profile-logout-btn" onclick="confirmLogout()">Выйти из аккаунта</button>
     `;
 
