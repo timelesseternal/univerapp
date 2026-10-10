@@ -4,6 +4,8 @@
       const root = document.documentElement;
       const systemTheme = window.matchMedia ? window.matchMedia('(prefers-color-scheme: dark)') : null;
       const telegram = window.Telegram?.WebApp?.initData ? window.Telegram.WebApp : null;
+      const standalone = !telegram && (window.navigator?.standalone || window.matchMedia?.('(display-mode: standalone)').matches);
+      if (standalone) root.classList.add('standalone-app');
       let preference = null;
       try {
         const saved = localStorage.getItem(storageKey);
@@ -19,6 +21,8 @@
         else root.removeAttribute('data-theme');
         root.style.colorScheme = mode;
         const background = dark ? '#070809' : '#f0f2f7';
+        root.style.setProperty('--system-bar-bg', background);
+        root.style.backgroundColor = background;
         const themeMeta = document.querySelector('meta[name="theme-color"]');
         if (themeMeta) themeMeta.setAttribute('content', background);
         document.querySelectorAll('.appearance-toggle').forEach(button => {

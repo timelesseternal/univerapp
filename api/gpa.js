@@ -6,7 +6,7 @@
 
 import { getSessionFromRequest, buildPlatonusHeaders } from './_lib/platonus.js';
 import { enrichStudentStudy, fetchStudyDetails } from './_lib/student-study.js';
-import { syncOwnStudyProfile } from './_lib/chat.js';
+import { syncOwnStudyProfile, restoreVerifiedStudyProfile } from './_lib/chat.js';
 import { waitUntil } from '@vercel/functions';
 
 export default async function handler(req, res) {
@@ -34,7 +34,7 @@ export default async function handler(req, res) {
       res.status(200).json(data);
       return;
     }
-    const student = await enrichStudentStudy(session, data, studyDetails);
+    const student = await restoreVerifiedStudyProfile(await enrichStudentStudy(session, data, studyDetails));
     res.status(200).json(student);
     waitUntil(syncOwnStudyProfile(req, student).catch(() => {}));
   } catch (err) {

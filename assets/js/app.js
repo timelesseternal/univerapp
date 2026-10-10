@@ -813,6 +813,13 @@ if ('serviceWorker' in navigator) {
     }
     return null;
   }
+  function mergeStudentProfile(student) {
+    const previous = platonusStudent;
+    if (!previous || Number(previous.studentID) !== Number(student.studentID)) return student;
+    const group = studentGroup(student) || studentGroup(previous);
+    const course = studentCourse(student) || studentCourse(previous);
+    return { ...student, ...(group ? { studentGroupName: group } : {}), ...(course ? { courseNumber: course } : {}) };
+  }
   function renderProfile(animate = true) {
     const container = document.getElementById('profileContainer');
     if (!platonusStudent) {
@@ -1024,8 +1031,8 @@ if ('serviceWorker' in navigator) {
 
       const gpaPromise = platonusFetch(cachedID ? '/api/gpa' : '/api/gpa?summary=1').then(gpa => {
         ensureAuthGeneration(generation);
-        platonusStudent = gpa;
-        csSet('platonus_student', JSON.stringify(gpa));
+        platonusStudent = mergeStudentProfile(gpa);
+        csSet('platonus_student', JSON.stringify(platonusStudent));
         if (currentSection === 'profile') renderProfile(false);
         if (!cachedID) refreshStudyProfile();
         return gpa;
@@ -1130,8 +1137,8 @@ if ('serviceWorker' in navigator) {
     if (studyProfileRequest?.generation === generation) return studyProfileRequest.work;
     const work = platonusFetch('/api/gpa').then(student => {
       if (generation !== authGeneration) return;
-      platonusStudent = student;
-      csSet('platonus_student', JSON.stringify(student));
+      platonusStudent = mergeStudentProfile(student);
+      csSet('platonus_student', JSON.stringify(platonusStudent));
       if (currentSection === 'profile') renderProfile(false);
       saveCachedStudentData();
     }).catch(() => {});
@@ -1143,6 +1150,7 @@ if ('serviceWorker' in navigator) {
   function refreshVisibleAcademicData() {
     if (document.hidden || !platonusSession) return;
     const info = liveScheduleWeekInfo;
+    if (currentSection === 'profile' && platonusStudent && !studentGroup(platonusStudent)) refreshStudyProfile();
     if (info?.selectedStudyYear && info?.selectedTerm) {
       if (currentSection === 'grades') fetchJournal(info.selectedStudyYear, info.selectedTerm);
       if (currentSection === 'umkd') fetchUmkd(info.selectedStudyYear, info.selectedTerm);

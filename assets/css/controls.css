@@ -1,5 +1,13 @@
 /* Keep all three header controls at the same height; adjust only this value. */
 :root { --header-control-height: 40px; }
+/* Paint the transparent iOS status area with the current theme, without a blur. */
+.standalone-app::before { content:""; position:fixed; top:0; left:0; right:0; height:env(safe-area-inset-top,0px); background:var(--system-bar-bg,var(--paper)); pointer-events:none; z-index:1001; }
+/* Keep foreground controls crisp; background softness belongs to its own layer. */
+#sectionSchedule :is(.status-bar, .header-right-top, .today-btn, .appearance-toggle, .theme-btn, .weather-widget),
+.chat-thread-header, .chat-page-header {
+  -webkit-backdrop-filter: none;
+  backdrop-filter: none;
+}
 .header-right-top > :is(.today-btn, .appearance-toggle, .theme-btn) {
   box-sizing: border-box;
   height: var(--header-control-height);

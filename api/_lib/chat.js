@@ -89,7 +89,7 @@ export async function startSession(req, res, defer = waitUntil) {
   // Academic fields come only from authenticated Platonus responses for this student.
   defer((async () => {
     try {
-      const study = verifiedStudyProfile(await enrichStudentStudy(session, student, studyDetails));
+      const study = verifiedStudyProfile(await restoreVerifiedStudyProfile(await enrichStudentStudy(session, student, studyDetails)));
       await rpc('chat_sync_student_profile', { p_user_id: profile.id, ...study });
     } catch { /* Profile refresh must not delay or prevent opening conversations. */ }
   })());
@@ -124,6 +124,22 @@ export async function readPeerProfile(userID, conversationID) {
 
 // Refresh only the signed-in student's profile from a verified Platonus response.
 // The GPA route also runs for existing chat sessions, unlike chat bootstrap.
+export async function restoreVerifiedStudyProfile(student) {
+  // Only call after Platonus has authenticated this studentID; never use request query/body identity.
+  const studentID = Number(student?.studentID);
+  const fields = verifiedStudyProfile(student);
+  if (!Number.isSafeInteger(studentID) || studentID <= 0 || (fields.p_group && fields.p_course)) return student;
+  try {
+    const rows = await database(`chat_profiles?select=student_id,study_group,study_course&student_id=eq.${studentID}&limit=1`, { method: 'GET', timeoutMs: 2000 });
+    const existing = rows?.[0];
+    if (Number(existing?.student_id) !== studentID) return student;
+    const saved = verifiedStudyProfile({ studentGroupName: existing.study_group, courseNumber: existing.study_course });
+    return { ...student,
+      ...(!fields.p_group && saved.p_group ? { studentGroupName: saved.p_group } : {}),
+      ...(!fields.p_course && saved.p_course ? { courseNumber: saved.p_course } : {}) };
+  } catch { return student; }
+}
+
 export async function syncOwnStudyProfile(req, student) {
   if (!readToken(req)) return;
   const studentID = Number(student?.studentID);

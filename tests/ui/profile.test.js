@@ -12,3 +12,11 @@ test('study details accept named groups and valid courses without treating a cal
   assert.equal(context.studentGroup({}),null);
   assert.equal(context.escapeHtml('<b>Группа</b>'),'&lt;b&gt;Группа&lt;/b&gt;');
 });
+
+test('an incomplete refresh preserves this students group but never reuses another accounts group',()=>{
+  context.platonusStudent={studentID:23,studentGroupName:'DS-24-1к',courseNumber:3,academicGpa:3};
+  const refreshed=context.mergeStudentProfile({studentID:23,academicGpa:3.45,courseNumber:3});
+  assert.equal(refreshed.studentGroupName,'DS-24-1к');assert.equal(refreshed.academicGpa,3.45);
+  assert.equal(context.mergeStudentProfile({studentID:24}).studentGroupName,undefined);
+  assert.equal(context.mergeStudentProfile({studentID:23,groupName:'DS-24-2к'}).studentGroupName,'DS-24-2к');
+});

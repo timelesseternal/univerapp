@@ -1,7 +1,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import handler from '../../api/chat.js';
-import { COOKIE_NAME, tokenHash, startSession, syncOwnStudyProfile } from '../../api/_lib/chat.js';
+import { COOKIE_NAME, tokenHash, startSession, syncOwnStudyProfile, restoreVerifiedStudyProfile } from '../../api/_lib/chat.js';
 
 const user = '11111111-1111-4111-8111-111111111111';
 const conversation = '22222222-2222-4222-8222-222222222222';
@@ -24,6 +24,30 @@ async function call({ method = 'GET', action = 'inbox', headers = {}, query = {}
   return res;
 }
 const reply = (data, status = 200) => ({ ok: status < 400, status, json: async () => data });
+
+test('a verified student recovers saved study details across devices without replacing fresh fields',async t=>{
+  let calls=0;
+  setup(t,async url=>{
+    calls++;assert.ok(url.includes('student_id=eq.23'));
+    return reply([{student_id:23,study_group:'DS-24-1к',study_course:3}]);
+  });
+  assert.deepEqual(await restoreVerifiedStudyProfile({studentID:23,academicGpa:3.45,courseNumber:4}),
+    {studentID:23,academicGpa:3.45,courseNumber:4,studentGroupName:'DS-24-1к'});
+  assert.deepEqual(await restoreVerifiedStudyProfile({studentID:23,studentGroupName:'Новая',courseNumber:4}),
+    {studentID:23,studentGroupName:'Новая',courseNumber:4});
+  assert.equal(calls,1);
+});
+
+test('saved study recovery ignores mismatched identity and an unavailable database',async t=>{
+  let failure=false;
+  setup(t,async()=>{
+    if(failure)throw new Error('offline');
+    return reply([{student_id:24,study_group:'Чужая',study_course:2}]);
+  });
+  const student={studentID:23,academicGpa:3.45};
+  assert.deepEqual(await restoreVerifiedStudyProfile(student),student);
+  failure=true;assert.deepEqual(await restoreVerifiedStudyProfile(student),student);
+});
 
 test('an existing cookie resumes the same student without contacting Platonus', async t => {
   setup(t, async url => {
