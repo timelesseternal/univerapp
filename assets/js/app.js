@@ -889,7 +889,7 @@ if ('serviceWorker' in navigator) {
           <span class="profile-tile-title">Экзамены</span><span class="profile-tile-caption">Расписание сессии</span>
           <svg aria-hidden="true" class="profile-tile-arrow" viewBox="0 0 24 24"><path d="m9 6 6 6-6 6"/></svg>
         </button>
-        <button type="button" class="profile-study-tile" onclick="switchSection('calendar')">
+        <button type="button" class="profile-study-tile" onclick="switchSection('calendar')" aria-label="Академический календарь">
           <span class="profile-tile-icon"><svg aria-hidden="true" viewBox="0 0 24 24"><rect x="4" y="5" width="16" height="16" rx="3"/><path d="M8 3v4m8-4v4M4 11h16m-11 4h2m3 0h2m-7 3h2"/></svg></span>
           <span class="profile-tile-title">Академический календарь</span><span class="profile-tile-caption">Семестр, РК и сессия</span>
           <svg aria-hidden="true" class="profile-tile-arrow" viewBox="0 0 24 24"><path d="m9 6 6 6-6 6"/></svg>
