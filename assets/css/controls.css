@@ -1,5 +1,5 @@
 /* Keep all three header controls at the same height; adjust only this value. */
-:root { --header-control-height: 40px; }
+:root { --header-control-height: 40px; --card-gap: 12px; --space-section: var(--card-gap); }
 /* Paint the transparent iOS status area with the current theme, without a blur. */
 .standalone-app::before { content:""; position:fixed; top:0; left:0; right:0; height:env(safe-area-inset-top,0px); background:var(--system-bar-bg,var(--paper)); pointer-events:none; z-index:1001; }
 /* Keep foreground controls crisp; background softness belongs to its own layer. */
@@ -35,7 +35,7 @@
   grid-template-columns: minmax(0, 1fr) auto;
   align-items: center;
   gap: 4px 8px;
-  margin-bottom: 10px;
+  margin-bottom: var(--card-gap);
   padding-bottom: 0;
 }
 #sectionSchedule :is(.status-info-left, .header-right-block) { display: contents; }
@@ -77,14 +77,14 @@
   text-overflow: ellipsis;
   border-radius: 12px;
 }
-#sectionSchedule .week-stepper { margin-bottom: 6px; padding: 2px; }
+#sectionSchedule .week-stepper { margin-bottom: var(--card-gap); padding: 2px; }
 #sectionSchedule .week-step-btn { width: 36px; height: 36px; }
 #sectionSchedule .week-step-label { font-size: 14px; }
-#sectionSchedule .days-grid { margin-top: 0; margin-bottom: 8px; }
+#sectionSchedule .days-grid { margin-top: 0; margin-bottom: var(--card-gap); }
 #sectionSchedule .day-btn { padding-block: 8px; }
 
 /* Times sit outside the cards on a single continuous timeline. */
-#scheduleContainer .list-card { display: grid; gap: 12px; }
+#scheduleContainer .list-card { display: grid; gap: var(--card-gap); }
 #scheduleContainer .lesson-event {
   position: relative;
   display: grid;
@@ -191,3 +191,15 @@
   #scheduleContainer .row-index-main { font-size: 15px; }
   #scheduleContainer .lesson-kind-row { gap: 5px; }
 }
+
+/* One spacing rhythm for screen cards; internal text spacing stays compact. */
+#profileContainer { display:grid; gap:var(--card-gap); min-width:0; }
+#profileContainer > * { min-width:0; margin:0; }
+#profileContainer .profile-study-tiles { gap:var(--card-gap); }
+#profileContainer .profile-update-status:empty { display:none; }
+#profileContainer .profile-update-status { color:var(--text-secondary); }
+.grade-card, .grade-card:not(:last-child), .gpa-card, .notice-panel { margin-bottom:var(--card-gap); }
+#gradesContainer > .grade-card:last-child { margin-bottom:0; }
+.chat-peer-profile-hero, .chat-page-header, .chat-status { margin-bottom:var(--card-gap); }
+.profile-back, .navigation-back { margin-bottom:var(--card-gap); }
+.grade-title { display:block; min-width:0; max-width:100%; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; overflow-wrap:normal; }

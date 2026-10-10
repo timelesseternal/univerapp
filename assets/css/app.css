@@ -1867,7 +1867,6 @@
   background:radial-gradient(ellipse at 20% 0%,rgba(var(--accent-rgb),.2),transparent 75%),var(--surface-bg);
   box-shadow:var(--surface-shadow); margin-bottom:12px;
 }
-.profile-greeting { color:var(--ink-soft); font-size:12px; }
 #profileContainer .profile-avatar { width:88px; height:88px; border-radius:50%; display:grid; place-items:center; font-size:28px; border:4px solid var(--glass-bg); box-shadow:0 8px 24px rgba(var(--accent-rgb),.15); }
 #profileContainer .profile-header-info { width:100%; flex:initial; }
 #profileContainer .profile-name { font-size:clamp(20px,5vw,26px); letter-spacing:-.025em; }
@@ -1915,7 +1914,6 @@
 .gpa-ring-track { stroke:var(--line); }
 .gpa-ring-progress { stroke:url(#gpaRingGradient); stroke-linecap:round; }
 .gpa-ring-number { position:absolute; text-align:center; font-size:25px; line-height:1.2; font-weight:800; color:var(--ink); letter-spacing:-.035em; }
-.gpa-ring-number small { display:block; margin-top:4px; font-size:11px; font-weight:500; letter-spacing:0; color:var(--ink-soft); }
 @media(max-width:360px) { .gpa-ring { width:96px; height:96px; } .gpa-ring-copy > .gpa-label { font-size:14px; } }
 
 .profile-study-tiles { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:10px; margin-bottom:14px; }
@@ -1971,9 +1969,10 @@
 .umkd-subject-row > span:first-child, .umkd-item > span:first-child { flex:1 1 0; }
 svg.umkd-arrow, .profile-gpa-arrow { width:20px; height:20px; flex:0 0 20px; display:block; }
 .umkd-document-action { display:flex; align-items:center; gap:6px; flex-shrink:0; color:var(--ink-soft); font-size:12px; }
-.tab-refresh-icon { display:none; position:absolute; inset:0; width:24px; height:24px; }
+.tab-refresh-icon { display:none; position:absolute; inset:0; width:100%; height:100%; transform-box:view-box; transform-origin:50% 50%; }
 .tab-refreshing .bottom-tab-icon { opacity:0!important; }
-.tab-refreshing .tab-refresh-icon { display:block; animation:tabRefreshTurn .7s cubic-bezier(.25,.6,.3,1) 1; }
+.tab-refreshing .tab-refresh-icon { display:block; animation:tabRefreshTurn .7s linear 1 both; }
+.tab-refreshing .bottom-tab-icon { transition:none; }
 @keyframes tabRefreshTurn { from { transform:rotate(0deg); } to { transform:rotate(360deg); } }
 @media(prefers-reduced-motion:reduce) { .tab-refreshing .tab-refresh-icon { animation:none; } }
 

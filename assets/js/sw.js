@@ -1,11 +1,13 @@
 // Public app shell only; student data and video ranges bypass this cache.
-const CACHE_NAME = 'univer-shell-v76';
+const CACHE_NAME = 'univer-shell-v78';
 const FONT_PATHS = new Set([
   '/assets/fonts/manrope/cyrillic-ext.woff2',
   '/assets/fonts/manrope/cyrillic.woff2',
   '/assets/fonts/manrope/latin.woff2',
 ]);
 const SHELL_PATHS = new Set(['/', '/index.html', '/manifest.webmanifest', '/assets/icons/apple-touch-icon.png', '/assets/icons/icon-192.png', '/assets/icons/icon-512.png', '/assets/css/app.css', '/assets/css/background.css', '/assets/css/typography.css', '/assets/css/chat.css', '/assets/css/motion.css', '/assets/css/controls.css', '/assets/js/appearance.js', '/assets/js/app.js', '/assets/js/updates.js', '/assets/js/chat.js', '/assets/js/background.js', ...FONT_PATHS]);
+SHELL_PATHS.add('/assets/css/wrapped.css');
+SHELL_PATHS.add('/assets/js/wrapped.js');
 
 self.addEventListener('message', event => {
   if (event.data?.type !== 'REFRESH_SHELL' || !event.ports?.[0]) return;

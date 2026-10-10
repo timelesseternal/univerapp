@@ -184,6 +184,7 @@ if ('serviceWorker' in navigator) {
     if (!entry || !entry.weekInfo) return;
     const key = weekCacheKey(entry.weekInfo.studyYear, entry.weekInfo.term, entry.weekInfo.week);
     weekScheduleCache[key] = entry;
+    window.UniverWrapped?.capture({ student: platonusStudent, period: entry.weekInfo, entry });
 
     // Если это «настоящая текущая» неделя, держим её снимок актуальным.
     // Иначе список пар показывал одно, а плашка «идёт пара / без пар» — другое.
@@ -776,7 +777,7 @@ if ('serviceWorker' in navigator) {
 
     return `
       <div class="grade-card row-enter" style="animation-delay:${Math.min(index, 8) * 0.04}s;">
-        <div class="grade-title">${cleanTitle}</div>
+        <div class="grade-title" title="${escapeHtml(cleanTitle)}">${escapeHtml(cleanTitle)}</div>
         <div class="grade-tutor">${subj.tutorList || ''}</div>
         <div class="grade-body">
           <div class="grade-ring-wrap">
@@ -847,7 +848,6 @@ if ('serviceWorker' in navigator) {
         <span class="masthead-eyebrow">Профиль</span>
       </div>
       <div class="profile-header profile-hero">
-        <span class="profile-greeting">Рады видеть тебя</span>
         <div class="profile-avatar">${escapeHtml(initials || '?')}</div>
         <div class="profile-header-info">
           <div class="profile-name">${escapeHtml(s.studentName || 'Студент')}</div>
@@ -859,7 +859,7 @@ if ('serviceWorker' in navigator) {
 <details class="gpa-card profile-gpa" id="profileGpaDetails" ${gpaExpanded ? 'open' : ''}>
         <summary class="gpa-ring-summary" aria-label="Академический GPA ${gpaText} из 4: раскрыть остальные показатели">
           <span class="gpa-ring-copy"><span class="gpa-label">Академический GPA</span><span class="gpa-ring-hint">${hasAcademicGpa ? 'Шкала от 0 до 4,0' : 'Показатель пока недоступен'}</span><span class="gpa-ring-more">Все показатели <svg aria-hidden="true" class="action-icon profile-gpa-arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m9 6 6 6-6 6"/></svg></span></span>
-          <span class="gpa-ring" aria-hidden="true"><svg viewBox="0 0 120 120"><defs><linearGradient id="gpaRingGradient" x1="0" y1="0" x2="1" y2="1"><stop offset="0%" stop-color="var(--accent)"/><stop offset="100%" stop-color="var(--ink-soft)"/></linearGradient></defs><circle class="gpa-ring-track" cx="60" cy="60" r="51"/><circle class="gpa-ring-progress" cx="60" cy="60" r="51" pathLength="100" stroke-dasharray="${gpaProgress} 100"/></svg><span class="gpa-ring-number">${gpaText}<small>из 4,0</small></span></span>
+          <span class="gpa-ring" aria-hidden="true"><svg viewBox="0 0 120 120"><defs><linearGradient id="gpaRingGradient" x1="0" y1="0" x2="1" y2="1"><stop offset="0%" stop-color="var(--accent)"/><stop offset="100%" stop-color="var(--ink-soft)"/></linearGradient></defs><circle class="gpa-ring-track" cx="60" cy="60" r="51"/><circle class="gpa-ring-progress" cx="60" cy="60" r="51" pathLength="100" stroke-dasharray="${gpaProgress} 100"/></svg><span class="gpa-ring-number">${gpaText}</span></span>
         </summary>
         <div class="profile-gpa-extra">
         <div class="gpa-row"><span class="gpa-label">Научный GPA</span><span class="gpa-value">${s.scientificGpa ?? '—'}</span></div>
@@ -881,6 +881,7 @@ if ('serviceWorker' in navigator) {
         </button>
       </nav>
 
+      <button type="button" class="wrapped-launch" onclick="openSemesterWrapped()"><span class="wrapped-launch-kicker">UNIVER · RECAP</span><span class="wrapped-launch-title">Твой семестр в историях <span aria-hidden="true">↗</span></span><span class="wrapped-launch-caption">Твой ритм. Твои предметы. Твои результаты.</span></button>
       <button type="button" class="profile-update-btn" onclick="updateApplication(this)">Обновить приложение</button>
       <p id="appUpdateStatus" class="profile-update-status" role="status"></p>
       <button class="profile-logout-btn" onclick="confirmLogout()">Выйти из аккаунта</button>
@@ -919,6 +920,22 @@ if ('serviceWorker' in navigator) {
     swapContent(container, html, animate);
   }
 
+  function openSemesterWrapped() {
+    const period = trueCurrentWeekInfo || liveScheduleWeekInfo;
+    if (!platonusStudent || !window.UniverWrapped) return;
+    if (!period) {
+      const caption = document.querySelector('.wrapped-launch-caption');
+      if (caption) caption.textContent = 'Расписание ещё загружается. Попробуй открыть итоги чуть позже.';
+      return;
+    }
+    Object.values(weekScheduleCache).forEach(entry => {
+      if (Number(entry.weekInfo?.studyYear) === Number(period.studyYear) && Number(entry.weekInfo?.term) === Number(period.term)) {
+        window.UniverWrapped.capture({ student: platonusStudent, period, entry });
+      }
+    });
+    window.UniverWrapped.open({ student: platonusStudent, period });
+  }
+
   function renderCurrentSection() {
     if (currentSection === 'profile') renderProfile(false);
     else if (currentSection === 'grades') renderGrades(false);
@@ -950,6 +967,7 @@ if ('serviceWorker' in navigator) {
         if (generation === authGeneration) {
           liveJournalData = journal;
           journalSnapshot = { key, at: Date.now() };
+          window.UniverWrapped?.capture({ student: platonusStudent, period: { studyYear: year, term }, journal });
           gradesLoadFailed = false;
           if (currentSection === 'grades') renderGrades(false);
           saveCachedStudentData();
@@ -1032,6 +1050,7 @@ if ('serviceWorker' in navigator) {
       const gpaPromise = platonusFetch(cachedID ? '/api/gpa' : '/api/gpa?summary=1').then(gpa => {
         ensureAuthGeneration(generation);
         platonusStudent = mergeStudentProfile(gpa);
+        window.UniverWrapped?.capture({ student: platonusStudent, period: trueCurrentWeekInfo || liveScheduleWeekInfo });
         csSet('platonus_student', JSON.stringify(platonusStudent));
         if (currentSection === 'profile') renderProfile(false);
         if (!cachedID) refreshStudyProfile();
@@ -1138,6 +1157,7 @@ if ('serviceWorker' in navigator) {
     const work = platonusFetch('/api/gpa').then(student => {
       if (generation !== authGeneration) return;
       platonusStudent = mergeStudentProfile(student);
+      window.UniverWrapped?.capture({ student: platonusStudent, period: trueCurrentWeekInfo || liveScheduleWeekInfo });
       csSet('platonus_student', JSON.stringify(platonusStudent));
       if (currentSection === 'profile') renderProfile(false);
       saveCachedStudentData();
@@ -2016,6 +2036,11 @@ if ('serviceWorker' in navigator) {
     button.setAttribute('aria-busy', 'true');
     haptic('light');
     const reduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    // Complete one visual turn even when the data request takes longer.
+    const turn = new Promise(resolve => setTimeout(() => {
+      button.classList.remove('tab-refreshing');
+      resolve();
+    }, reduced ? 0 : 700));
     if (section !== 'chat') window.scrollTo({ top: 0, behavior: reduced ? 'auto' : 'smooth' });
     try {
       const refreshData = async () => {
@@ -2031,7 +2056,7 @@ if ('serviceWorker' in navigator) {
         }
         if (generation === authGeneration && currentSection === section) renderCurrentSection();
       };
-      await Promise.allSettled([refreshData(), new Promise(resolve => setTimeout(resolve, reduced ? 0 : 700))]);
+      await Promise.allSettled([refreshData(), turn]);
     } catch (error) {
       // Keep the last rendered data; each loader presents its own failure state.
     } finally {
