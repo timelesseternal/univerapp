@@ -6,15 +6,16 @@ const source = fs.readFileSync(new URL('../../assets/js/background.js', import.m
 function setup({ reduced = false, saveData = false, available = true } = {}) {
   const events = new Map(), pages = new Map(), frames = new Map();
   const colors = [], created = [];
-  let paints = 0, frameID = 0, observer;
+  let paints = 0, frameID = 0, observer, bodyObserver;
+  const bodyClasses = new Set();
   const ctx = { fillRect() { paints++; }, beginPath() {}, lineTo() {}, moveTo() {}, stroke() {},
     createRadialGradient() { return { addColorStop(_, color) { colors.push(color); } }; },
     createLinearGradient() { return { addColorStop(_, color) { colors.push(color); } }; } };
-  const classList = () => ({ add() {} });
+  const classList = () => ({ add() {}, contains() { return false; } });
   const canvas = { getContext: () => available ? ctx : null, setAttribute() {} };
   const surface = { children: [], classList: classList(), appendChild(item) { this.children.push(item); } };
   const root = { dark: true, getAttribute() { return this.dark ? 'dark' : null; } };
-  const document = { hidden: false, documentElement: root, body: { classList: classList() },
+  const document = { hidden: false, documentElement: root, body: { classList: { add() {}, contains: name => bodyClasses.has(name) } },
     querySelector: () => surface, createElement(tag) { created.push(tag); return canvas; },
     addEventListener(name, fn) { events.set(name, fn); } };
   const motion = { matches: reduced, addEventListener(name, fn) { this.change = fn; } };
@@ -26,11 +27,12 @@ function setup({ reduced = false, saveData = false, available = true } = {}) {
     cancelAnimationFrame(id) { frames.delete(id); } };
   vm.runInNewContext(source, { window, document, navigator: { connection, hardwareConcurrency: 8 },
     getComputedStyle: () => ({ getPropertyValue: name => name === '--accent-rgb' ? accent : '#0b1115' }),
-    MutationObserver: class { constructor(fn) { observer = fn; } observe() {} } });
+    MutationObserver: class { constructor(fn) { this.callback = fn; } observe(target) { if (target === root) observer = this.callback; else bodyObserver = this.callback; } } });
   return { canvas, created, surface, frames, document, root, motion, window, events, pages, colors,
     get paints() { return paints; }, start: () => pages.get('univer-ready')?.(),
     step(timestamp) { const [id, callback] = [...frames][0]; frames.delete(id); callback(timestamp); },
-    appearance(rgb) { accent = rgb; observer(); } };
+    appearance(rgb) { accent = rgb; observer(); },
+    wrapped(open) { if (open) bodyClasses.add('wrapped-open'); else bodyClasses.delete('wrapped-open'); bodyObserver(); } };
 }
 
 test('travelling ribs move over time and remain continuous across successive waves', () => {
@@ -108,4 +110,16 @@ test('unavailable Canvas leaves the CSS fallback intact', () => {
   const env = setup({ available: false });
   assert.equal(env.surface.children.length, 0);
   assert.equal(env.frames.size, 0);
+});
+
+test('opaque recap pauses the background and closing it resumes animation', () => {
+  const env = setup(); env.start(); env.step(0); env.step(40);
+  const before = env.paints;
+  env.wrapped(true);
+  assert.equal(env.frames.size, 0);
+  assert.equal(env.paints, before);
+  env.wrapped(false);
+  assert.equal(env.frames.size, 1);
+  env.step(500000); env.step(500040);
+  assert.ok(env.paints > before);
 });

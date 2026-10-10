@@ -135,7 +135,7 @@ test('peer avatar opens the verified profile and back returns to the conversatio
   assert.equal(ui.elements.get('chatThread').hidden, false);
   await settle();
 });
-test('returning to the messages tab fetches the latest page and scrolls to the newest message', async () => {
+test('returning to the messages tab preserves history, fetches the latest page and scrolls to the newest message', async () => {
   let histories = 0;
   const historyURLs = [];
   const latest = { ...message, id: '99', text: 'Последнее сообщение', createdAt: '2026-10-09T10:00:00Z' };
@@ -151,7 +151,7 @@ test('returning to the messages tab fetches the latest page and scrolls to the n
   ui.api.onSection('profile');
   ui.elements.get('chatMessages').scrollTop = 0;
   ui.api.onSection('chat'); await settle();
-  assert.deepEqual(messageTexts(ui), ['Последнее сообщение']);
+  assert.deepEqual(messageTexts(ui), ['История', 'Последнее сообщение']);
   assert.ok(historyURLs.every(url => !url.includes('after=') && !url.includes('before=')));
   assert.equal(ui.elements.get('chatMessages').scrollTop, ui.elements.get('chatMessages').scrollHeight);
 });

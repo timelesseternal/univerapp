@@ -14,6 +14,11 @@
   const frameInterval = navigator.hardwareConcurrency <= 4 ? 1000 / 24 : 1000 / 30;
   let ready = false, suspended = false, frame = null, previous = null, time = 0;
   let palette, width = 1, height = 1;
+  const specks = Array.from({ length: 160 }, (_, dot) => {
+    const seed = Math.sin(dot * 127.1 + 19.7) * 43758.5453;
+    const other = Math.sin(dot * 311.7 + 47.3) * 19341.592;
+    return { x: seed - Math.floor(seed), y: other - Math.floor(other) };
+  });
   function colors() {
     const style = getComputedStyle(document.documentElement);
     const rgb = style.getPropertyValue('--accent-rgb').trim() || '92, 150, 140';
@@ -58,27 +63,31 @@
     const wavelength = .94;
     const travel = (time * .034) % wavelength;
     const peak = (distance, spread) => Math.exp(-Math.pow(distance / spread, 2));
+    const upperLight = .10 + .38 * Math.pow(Math.sin(time * .55), 2);
+    const upperPosition = .04 + .025 * Math.sin(time * .7 + 2);
     for (let line = 0; line < 19; line++) {
       const u = line / 18;
       const bend = .395 - .10 * u + .095 * Math.exp(-Math.pow((u - .48) / .21, 2))
         + .008 * Math.sin(u * 9);
       const release = bend + .165 - .045 * u;
+      const variation = .65 + .35 * Math.pow(Math.sin(u * 11 + 1), 2);
+      const tailStrength = .52 * peak(u - .61, .075);
+      const upperStrength = upperLight * peak(u - .22, .2);
+      const tailPosition = .87 + .05 * Math.sin(u * 6);
+      const upperFoldStrength = peak(u - .15, .2);
       const gradient = ctx.createLinearGradient(0, 0, 0, height);
       for (let stop = 0; stop <= 100; stop++) {
         const v = stop / 100;
-        const variation = .65 + .35 * Math.pow(Math.sin(u * 11 + 1), 2);
         let light = .003;
         for (let wave = -2; wave <= 2; wave++) {
           const offset = travel + wave * wavelength;
           const crest = peak(v - bend - offset - .006, .025);
           const reflection = peak(v - bend - offset - .060, .072);
-          const tail = peak(v - .87 - offset - .05 * Math.sin(u * 6), .085);
+          const tail = peak(v - tailPosition - offset, .085);
           light += (crest + reflection * .18) * variation
-            + tail * .52 * peak(u - .61, .075);
+            + tail * tailStrength;
         }
-        const upperLight = .10 + .38 * Math.pow(Math.sin(time * .55), 2);
-        light += peak(v - .04 - .025 * Math.sin(time * .7 + 2), .035)
-          * upperLight * peak(u - .22, .2);
+        light += peak(v - upperPosition, .035) * upperStrength;
         gradient.addColorStop(v, rgba(Math.min(1, light) * (palette.dark ? .90 : .32)));
       }
       ctx.strokeStyle = gradient;
@@ -93,7 +102,7 @@
             - Math.tanh((v - release - offset) / .049));
         }
         fold += .025 * (Math.tanh((v - .025) / .018)
-          - Math.tanh((v - .11) / .045)) * peak(u - .15, .2);
+          - Math.tanh((v - .11) / .045)) * upperFoldStrength;
         const ripple = .010 * Math.sin((v - travel) * Math.PI * 6 / wavelength + u * 2);
         const x = width * (.05 + .27 * u + (.56 + .19 * u) * v + fan + fold + ripple);
         const y = height * v;
@@ -114,10 +123,8 @@
     }
     // Deterministic specks shimmer gently, without random flicker between frames.
     for (let dot = 0; dot < 160; dot++) {
-      const seed = Math.sin(dot * 127.1 + 19.7) * 43758.5453;
-      const other = Math.sin(dot * 311.7 + 47.3) * 19341.592;
-      const x = width * ((seed - Math.floor(seed)) * .94 + .03 + .008 * Math.sin(time * .16 + dot));
-      const y = height * ((other - Math.floor(other)) * .94 + .03 + .006 * Math.cos(time * .14 + dot));
+      const x = width * (specks[dot].x * .94 + .03 + .008 * Math.sin(time * .16 + dot));
+      const y = height * (specks[dot].y * .94 + .03 + .006 * Math.cos(time * .14 + dot));
       const shine = .04 + .28 * Math.pow(.5 + .5 * Math.sin(time * 1.1 + dot * 2.1), 3);
       ctx.fillStyle = rgba(shine * (palette.dark ? 1 : .55));
       const size = Math.max(.6, (dot % 7 === 0 ? 2 : 1) * pixel);
@@ -125,7 +132,7 @@
     }
   }
   function allowed() {
-    return ready && !suspended && !document.hidden && !motion.matches && !connection?.saveData;
+    return ready && !suspended && !document.hidden && !document.body.classList.contains('wrapped-open') && !motion.matches && !connection?.saveData;
   }
   function tick(timestamp) {
     frame = null;
@@ -153,6 +160,7 @@
     colors();
     if (!document.hidden && !suspended) draw();
   }).observe(document.documentElement, { attributes: true, attributeFilter: ['data-theme', 'style'] });
+  new MutationObserver(sync).observe(document.body, { attributes: true, attributeFilter: ['class'] });
   document.addEventListener('visibilitychange', sync);
   window.addEventListener('resize', resize, { passive: true });
   window.addEventListener('pagehide', () => { suspended = true; sync(); });

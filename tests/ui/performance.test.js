@@ -81,6 +81,7 @@ test('parallel expired requests share one relogin', async () => {
   const ctx = vm.createContext({
     API_BASE: '', platonusSession: 'old', authGeneration: 0, authStorageWork: Promise.resolve(),
     sessionCredentials: null, persistLogin: true,
+    AbortSignal,
     csGetMany: async () => ({ platonus_login: 'user', platonus_password: 'password' }),
     csSet: async () => {},
     fetch: async () => { logins++; return { ok: true, json: async () => ({ ok: true, session: 'new' }) }; },

@@ -1,6 +1,7 @@
 (() => {
   'use strict';
   const cache = new Map(), pending = new Map();
+  const painted = new WeakMap();
   const ttl = 5 * 60 * 1000;
   let epoch = 0, active = null, account = null;
   const escape = value => String(value ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
@@ -18,10 +19,16 @@
   function paint(kind, data) {
     const el = container(kind);
     if (!el) return;
+    if (painted.get(el) === data) {
+      const message = el.querySelector('.academic-feedback');
+      if (message) message.innerHTML = '';
+      return;
+    }
     // Preserve expanded periods when the background refresh returns.
     const opened = [...el.querySelectorAll('details')].map((d, i) => d.open ? i : -1);
     const hadDetails = !!el.querySelector('details');
     el.innerHTML = (kind === 'calendar' ? calendar(data) : transcript(data)) + '<div class="academic-feedback" role="status"></div>';
+    painted.set(el, data);
     if (hadDetails) [...el.querySelectorAll('details')].forEach((d, i) => { d.open = opened.includes(i); });
   }
   function feedback(kind, options, cached) {
@@ -61,6 +68,6 @@
   }
   window.univerAcademic = { open, onSection: section => { active = names[section] ? section : null; }, reset: () => {
     epoch++; active = null; account = null; cache.clear(); pending.clear();
-    for (const kind of Object.keys(names)) { const el = container(kind); if (el) { el.innerHTML = ''; delete el.dataset.academicKey; } }
+    for (const kind of Object.keys(names)) { const el = container(kind); if (el) { el.innerHTML = ''; painted.delete(el); delete el.dataset.academicKey; } }
   } };
 })();

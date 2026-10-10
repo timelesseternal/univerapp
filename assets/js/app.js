@@ -200,10 +200,7 @@ if ('serviceWorker' in navigator) {
       updateStatusBarAndLive();
     }
 
-    // Совсем пустую неделю на диск не пишем — чтобы случайный пустой ответ не залип.
-    const hasLessons = Object.values(entry.schedule || {}).some(d => Array.isArray(d) && d.length > 0);
-    if (!hasLessons) return;
-
+    // Persist confirmed empty weeks too: cancelled lessons must replace old ones.
     csSet(`platonus_week_${key}`, JSON.stringify(entry)).catch(() => {
       // не критично — просто не сохранится между визитами, в памяти всё равно есть
     });
@@ -213,7 +210,12 @@ if ('serviceWorker' in navigator) {
     try {
       const raw = await csGet(`platonus_week_${key}`);
       if (!raw) return null;
-      return JSON.parse(raw);
+      const entry = JSON.parse(raw);
+      if (!entry || !entry.schedule || typeof entry.schedule !== 'object' || Array.isArray(entry.schedule)
+        || !entry.lessonTimes || typeof entry.lessonTimes !== 'object' || !entry.weekInfo
+        || Object.values(entry.schedule).some(day => !Array.isArray(day))
+        || weekCacheKey(entry.weekInfo.studyYear, entry.weekInfo.term, entry.weekInfo.week) !== key) return null;
+      return entry;
     } catch (e) {
       return null;
     }
@@ -530,6 +532,7 @@ if ('serviceWorker' in navigator) {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ login, password }),
+        signal: AbortSignal.timeout(20000),
       });
       const data = await resp.json();
       if (generation !== authGeneration) return;
@@ -666,6 +669,7 @@ if ('serviceWorker' in navigator) {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ login, password }),
+        signal: AbortSignal.timeout(20000),
       });
       const data = await resp.json();
       if (generation !== authGeneration) return false;
@@ -686,6 +690,7 @@ if ('serviceWorker' in navigator) {
     let resp = await fetch(`${API_BASE}${path}`, {
       headers: { 'x-session': requestSession },
       cache: 'no-store',
+      signal: AbortSignal.timeout(35000),
     });
 
     ensureAuthGeneration(generation);
@@ -696,6 +701,7 @@ if ('serviceWorker' in navigator) {
         resp = await fetch(`${API_BASE}${path}`, {
           headers: { 'x-session': platonusSession },
           cache: 'no-store',
+          signal: AbortSignal.timeout(35000),
         });
       } else {
         logout();
@@ -1934,9 +1940,13 @@ if ('serviceWorker' in navigator) {
       return;
     }
 
+    // Lock before storage awaits, so rapid taps cannot launch duplicate steps.
+    weekStepBusy = true;
+    updateWeekStepperUI();
     const persisted = await loadPersistedWeekEntry(key);
     if (generation !== authGeneration) return;
     if (persisted) {
+      weekStepBusy = false;
       weekScheduleCache[key] = persisted;
       applyWeekCacheEntry(persisted);
       detectToday();
@@ -2325,7 +2335,7 @@ if ('serviceWorker' in navigator) {
     liveUmkdData.records.forEach((rec, index) => {
       itemsHtml += `
         <div class="umkd-subject-row row-enter" style="animation-delay:${Math.min(index, 8) * 0.04}s;" onclick="selectUmkdSubject(${index})">
-          <span>${rec.subjectName}</span>
+          <span>${escapeHtml(rec.subjectName)}</span>
           <svg aria-hidden="true" class="action-icon umkd-arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m9 6 6 6-6 6"/></svg>
         </div>
       `;
@@ -2364,9 +2374,10 @@ if ('serviceWorker' in navigator) {
     currentUmkdSubjectName = rec.subjectName || '';
 
     let bodyHtml;
-    if (rec.umkdID && rec.umkdID > 0) {
+    const documentID = Number(rec.umkdID);
+    if (Number.isSafeInteger(documentID) && documentID > 0) {
       bodyHtml = UMKD_FILE_TYPES.map(type => `
-        <div class="umkd-item" onclick="openUmkdFile(${type.id}, ${rec.umkdID})">
+        <div class="umkd-item" onclick="openUmkdFile(${type.id}, ${documentID})">
           <span>${type.label}</span>
           <span class="umkd-document-action"><span>PDF</span><svg aria-hidden="true" class="action-icon umkd-arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m9 6 6 6-6 6"/></svg></span>
         </div>
@@ -2378,8 +2389,8 @@ if ('serviceWorker' in navigator) {
     swapContent(container, `
       <button type="button" class="profile-back navigation-back" onclick="renderUmkdSubjects()"><svg aria-hidden="true" class="action-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m14 6-6 6 6 6"/></svg><span>Назад</span></button>
       <span class="masthead-eyebrow" style="margin-bottom:10px; display:block;">УМКД</span>
-      <div class="notice-title" style="margin-bottom:6px;">${rec.subjectName}</div>
-      <div class="row-meta" style="margin-bottom:12px;">${rec.tutorName || ''}</div>
+      <div class="notice-title" style="margin-bottom:6px;">${escapeHtml(rec.subjectName)}</div>
+      <div class="row-meta" style="margin-bottom:12px;">${escapeHtml(rec.tutorName || '')}</div>
       <div class="list-card">${bodyHtml}</div>
     `, true);
   }
@@ -2398,12 +2409,29 @@ if ('serviceWorker' in navigator) {
     pdfJsLoadPromise = new Promise((resolve, reject) => {
       const script = document.createElement('script');
       script.src = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js';
+      const timer = setTimeout(() => fail(), 12000);
+      const cleanup = () => {
+        clearTimeout(timer);
+        script.onload = null;
+        script.onerror = null;
+      };
+      const fail = () => {
+        cleanup();
+        script.remove();
+        reject(new Error('pdfjs_load_failed'));
+      };
       script.onload = () => {
+        if (!window.pdfjsLib?.GlobalWorkerOptions) { fail(); return; }
+        cleanup();
         window.pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
         resolve();
       };
-      script.onerror = () => reject(new Error('pdfjs_load_failed'));
+      script.onerror = fail;
       document.head.appendChild(script);
+    });
+    pdfJsLoadPromise = pdfJsLoadPromise.catch(error => {
+      pdfJsLoadPromise = null;
+      throw error;
     });
     return pdfJsLoadPromise;
   }

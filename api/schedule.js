@@ -24,6 +24,7 @@ async function fetchPlatonusSchedule(studentID, session, overrides) {
     {
       method: 'POST',
       headers: buildPlatonusHeaders(session),
+      signal: AbortSignal.timeout(12000),
       body: JSON.stringify(body),
     }
   );

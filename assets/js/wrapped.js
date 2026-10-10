@@ -123,7 +123,7 @@
     if (!dialog) {
       dialog = document.createElement('dialog');
       dialog.className = 'wrapped-dialog'; dialog.setAttribute('aria-label', 'Твой семестр в историях');
-      dialog.innerHTML = '<div class="wrapped-shell"><header class="wrapped-header"><span>UNILINK RECAP</span><button type="button" class="wrapped-close" aria-label="Закрыть истории">✕</button></header><nav class="wrapped-progress" aria-label="Истории семестра"></nav><div class="wrapped-stage" aria-live="polite"></div><footer class="wrapped-footer"><button type="button" class="wrapped-prev" aria-label="Предыдущая история">←</button><span class="wrapped-count"></span><button type="button" class="wrapped-next" aria-label="Следующая история">→</button></footer></div>';
+      dialog.innerHTML = '<div class="wrapped-shell"><header class="wrapped-header"><span>UNILINK RECAP</span><button type="button" class="wrapped-close" aria-label="Закрыть истории"><svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="m6 6 12 12M18 6 6 18"/></svg></button></header><nav class="wrapped-progress" aria-label="Истории семестра"></nav><div class="wrapped-stage" aria-live="polite"></div><footer class="wrapped-footer"><button type="button" class="wrapped-prev" aria-label="Предыдущая история">←</button><span class="wrapped-count"></span><button type="button" class="wrapped-next" aria-label="Следующая история">→</button></footer></div>';
       document.body.append(dialog);
       dialog.addEventListener('click', e => {
         if (e.target.closest('.wrapped-close')) close();

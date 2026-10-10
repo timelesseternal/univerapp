@@ -150,6 +150,7 @@
     status(labels[error.message] || 'Не удалось подключиться. Проверьте интернет и повторите попытку.', true);
   }
   async function request(action, { method = 'GET', params = {}, body, headers = {} } = {}) {
+    const epoch = state.epoch;
     const query = new URLSearchParams({ action, ...params });
     let response;
     try {
@@ -162,7 +163,7 @@
     } catch { throw new Error('chat_unavailable'); }
     const data = await response.json().catch(() => ({}));
     if (!response.ok) {
-      if (data.error === 'chat_session_expired') state.profile = null;
+      if (data.error === 'chat_session_expired' && !stale(epoch)) state.profile = null;
       throw new Error(data.error || 'chat_unavailable');
     }
     return data;
@@ -204,6 +205,9 @@
   function drawInbox(conversations, ownID = state.profile?.id) {
     state.inbox = conversations;
     updateBadge(conversations.reduce((total, conversation) => total + Math.max(0, Number(conversation.unread) || 0), 0));
+    const renderKey = JSON.stringify([ownID, new Date().toDateString(), conversations]);
+    if (state.inboxRenderKey === renderKey) { warmConversations(conversations); return; }
+    state.inboxRenderKey = renderKey;
     const list = byID('chatInbox');
     list.replaceChildren();
     if (!conversations.length) {
@@ -333,7 +337,8 @@
     if (!params.after) state.hasOlder = data.hasMore;
     const newIDs = new Set(data.messages.filter(message => !state.messages.has(message.id)).map(message => message.id));
     let changed = newIDs.size > 0;
-    if (initial) state.messages.clear();
+    // Initial fetches contain the latest page, not the complete conversation.
+    // Merge it so refreshes cannot discard loaded history or a just-sent message.
     for (const message of data.messages) {
       state.messages.set(message.id, message);
       if (message.senderID === state.profile.id && state.pending.delete(message.clientID)) changed = true;
@@ -608,6 +613,7 @@
     state.previewOwnerID = null;
     state.canResume = false;
     state.inbox = [];
+    state.inboxRenderKey = null;
     warming.clear();
     state.conversation = null;
     state.messages.clear();

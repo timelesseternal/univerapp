@@ -7,13 +7,14 @@
 // scope at the end of this function.
 
 export default async function handler(req, res) {
+  res.setHeader('Cache-Control', 'no-store');
   if (req.method !== 'POST') {
     res.status(405).json({ error: 'method_not_allowed' });
     return;
   }
 
   const { login, password } = req.body || {};
-  if (!login || !password) {
+  if (typeof login !== 'string' || !login.trim() || typeof password !== 'string' || !password) {
     res.status(400).json({ error: 'missing_credentials' });
     return;
   }
@@ -26,6 +27,7 @@ export default async function handler(req, res) {
         'Content-Type': 'application/json; charset=UTF-8',
         Accept: 'application/json, text/plain, */*',
       },
+      signal: AbortSignal.timeout(12000),
       body: JSON.stringify({
         login,
         password,
@@ -47,7 +49,11 @@ export default async function handler(req, res) {
     return;
   }
 
-  if (data.login_status !== 'success') {
+  if (!platonusResp.ok) {
+    res.status(platonusResp.status === 401 || platonusResp.status === 403 ? 401 : 502).json({ error: platonusResp.status === 401 || platonusResp.status === 403 ? 'invalid_credentials' : 'platonus_unreachable' });
+    return;
+  }
+  if (data?.login_status !== 'success') {
     res.status(401).json({ error: 'invalid_credentials' });
     return;
   }
@@ -64,6 +70,10 @@ export default async function handler(req, res) {
   const cookie = setCookie.map((c) => c.split(';')[0]).join('; ');
 
   const session = { sid: data.sid, token: data.auth_token, cookie };
+  if (!session.sid || !session.token || !session.cookie) {
+    res.status(502).json({ error: 'platonus_bad_response' });
+    return;
+  }
   const sessionToken = Buffer.from(JSON.stringify(session)).toString('base64');
 
   res.status(200).json({

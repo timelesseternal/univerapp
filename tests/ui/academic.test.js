@@ -18,7 +18,11 @@ test('academic screen shares in-flight loads and reuses the warm account cache',
   const first = ui.api.open('calendar', options), second = ui.api.open('calendar', options);
   assert.equal(calls, 1); resolve(data(7)); await Promise.all([first, second]);
   assert.match(ui.nodes.calendarContainer.innerHTML, /14 декабря/);
+  let replacements = 0;
+  const rendered = ui.nodes.calendarContainer.innerHTML;
+  Object.defineProperty(ui.nodes.calendarContainer, 'innerHTML', { get: () => rendered, set: () => { replacements++; } });
   await ui.api.open('calendar', options); assert.equal(calls, 1);
+  assert.equal(replacements, 0, 'warm reopening preserves the existing DOM');
 });
 test('an off-screen response is cached and rendered on reopening without another request', async () => {
   const ui = setup(); let resolve, calls = 0;

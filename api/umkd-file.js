@@ -31,7 +31,7 @@ export default async function handler(req, res) {
   try {
     const r = await fetch(
       `https://platonus.kstu.kz/downloadPdfUmkd?fileTypeID=${encodeURIComponent(fileTypeID)}&umkdid=${encodeURIComponent(umkdid)}`,
-      { headers: buildPlatonusHeaders(session) }
+      { headers: buildPlatonusHeaders(session), signal: AbortSignal.timeout(20000) }
     );
 
     if (r.status === 401 || r.status === 403) {
