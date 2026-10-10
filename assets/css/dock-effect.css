@@ -1,0 +1,9 @@
+/* A reversible experiment: only the part approaching the dock dissolves. */
+.dock-dissolve{
+  -webkit-mask-image:linear-gradient(to bottom,#000 0px,#000 var(--dock-fade-start),transparent var(--dock-fade-end));
+  mask-image:linear-gradient(to bottom,#000 0px,#000 var(--dock-fade-start),transparent var(--dock-fade-end));
+  scale:var(--dock-spread,1) 1;
+  translate:var(--dock-shift,0px) 0;
+  transform-origin:center top;
+}
+@media(prefers-reduced-motion:reduce){.dock-dissolve{-webkit-mask-image:none;mask-image:none;scale:none;translate:none}}
