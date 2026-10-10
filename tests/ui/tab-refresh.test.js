@@ -44,7 +44,9 @@ test('all four active tabs invoke their data loader', async () => {
   }
 });
 test('tapping another tab navigates without refreshing the old screen', async () => {
-  const ui = setup('schedule'); await ui.context.tapTab('profile');
+  const ui = setup('schedule'); const running = ui.context.tapTab('profile');
   assert.deepEqual(ui.calls, [['switch', 'profile']]);
+  assert.equal(ui.classes.has('tab-refreshing'), true);
+  ui.finishTurn(); await running;
   assert.equal(ui.classes.size, 0);
 });

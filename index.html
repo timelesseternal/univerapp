@@ -30,6 +30,7 @@
   <link rel="stylesheet" href="./assets/css/motion.css">
   <link rel="stylesheet" href="./assets/css/controls.css">
   <link rel="stylesheet" href="./assets/css/wrapped.css">
+  <link rel="stylesheet" href="./assets/css/academic.css">
 </head>
 <body class="login-screen">
 
@@ -158,6 +159,8 @@
     <div class="app-section" id="sectionExams" style="display:none;"><button type="button" class="profile-back navigation-back" onclick="switchSection('profile')"><svg aria-hidden="true" class="action-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m14 6-6 6 6 6"/></svg><span>Назад</span></button><div class="section-inner" id="examsContainer"></div></div>
     <div class="app-section" id="sectionGrades" style="display:none;"><div class="section-inner" id="gradesContainer"></div></div>
     <div class="app-section" id="sectionProfile" style="display:none;"><div class="section-inner" id="profileContainer"></div></div>
+    <section class="app-section" id="sectionCalendar" style="display:none;" aria-label="Академический календарь"><button type="button" class="profile-back navigation-back" onclick="switchSection('profile')"><svg aria-hidden="true" class="action-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m14 6-6 6 6 6"/></svg><span>Назад</span></button><div class="academic-container" id="calendarContainer"></div></section>
+    <section class="app-section" id="sectionTranscript" style="display:none;" aria-label="Транскрипт"><button type="button" class="profile-back navigation-back" onclick="switchSection('profile')"><svg aria-hidden="true" class="action-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m14 6-6 6 6 6"/></svg><span>Назад</span></button><div class="academic-container" id="transcriptContainer"></div></section>
     <section class="app-section chat-section" id="sectionChat" style="display:none;" aria-label="Личные сообщения">
       <header class="chat-page-header">
         <span class="masthead-eyebrow">На связи</span>
@@ -237,6 +240,7 @@
 </nav>
 
 <script defer src="./assets/js/wrapped.js"></script>
+<script defer src="./assets/js/academic.js"></script>
 <script defer src="./assets/js/app.js"></script>
 <script defer src="./assets/js/updates.js"></script>
 <script defer src="./assets/js/chat.js"></script>

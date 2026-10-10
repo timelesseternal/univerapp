@@ -592,6 +592,7 @@ if ('serviceWorker' in navigator) {
       if (!useCloudStorage()) lsSafe(() => localStorage.removeItem(key));
     });
     const chatLogout = window.univerChat ? window.univerChat.logout() : Promise.resolve();
+    window.univerAcademic?.reset();
     authStorageWork = Promise.all([
       authStorageWork.catch(() => {}).then(() => Promise.all(keys.map(csRemove))), chatLogout,
     ]);
@@ -879,6 +880,16 @@ if ('serviceWorker' in navigator) {
           <span class="profile-tile-title">Экзамены</span><span class="profile-tile-caption">Расписание сессии</span>
           <svg aria-hidden="true" class="profile-tile-arrow" viewBox="0 0 24 24"><path d="m9 6 6 6-6 6"/></svg>
         </button>
+        <button type="button" class="profile-study-tile" onclick="switchSection('calendar')">
+          <span class="profile-tile-icon"><svg aria-hidden="true" viewBox="0 0 24 24"><rect x="4" y="5" width="16" height="16" rx="3"/><path d="M8 3v4m8-4v4M4 11h16m-11 4h2m3 0h2m-7 3h2"/></svg></span>
+          <span class="profile-tile-title">Академический календарь</span><span class="profile-tile-caption">Семестр, РК и сессия</span>
+          <svg aria-hidden="true" class="profile-tile-arrow" viewBox="0 0 24 24"><path d="m9 6 6 6-6 6"/></svg>
+        </button>
+        <button type="button" class="profile-study-tile" onclick="switchSection('transcript')">
+          <span class="profile-tile-icon"><svg aria-hidden="true" viewBox="0 0 24 24"><path d="M14 3H6a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V9Z"/><path d="M14 3v6h6M8 13h8m-8 4h5"/></svg></span>
+          <span class="profile-tile-title">Транскрипт</span><span class="profile-tile-caption">Оценки за всё обучение</span>
+          <svg aria-hidden="true" class="profile-tile-arrow" viewBox="0 0 24 24"><path d="m9 6 6 6-6 6"/></svg>
+        </button>
       </nav>
 
       <button type="button" class="wrapped-launch" onclick="openSemesterWrapped()"><span class="wrapped-launch-kicker">UNIVER · RECAP</span><span class="wrapped-launch-title">Твой семестр в историях <span aria-hidden="true">↗</span></span><span class="wrapped-launch-caption">Твой ритм. Твои предметы. Твои результаты.</span></button>
@@ -941,6 +952,11 @@ if ('serviceWorker' in navigator) {
     else if (currentSection === 'grades') renderGrades(false);
     else if (currentSection === 'schedule') renderSchedule(false);
     else if (currentSection === 'umkd' && selectedUmkdSubject === null) renderUmkdSubjects(false);
+    else if (['calendar', 'transcript'].includes(currentSection)) openAcademicSection(currentSection);
+  }
+
+  function openAcademicSection(section) {
+    window.univerAcademic?.open(section, { student: platonusStudent, fetch: platonusFetch });
   }
 
   function retryLiveLoad() {
@@ -2026,21 +2042,32 @@ if ('serviceWorker' in navigator) {
   }
 
   const refreshingTabs = new Set();
+  const tabTurns = new Map();
+  function animateTabRefresh(section) {
+    if (tabTurns.has(section)) return tabTurns.get(section);
+    const button = document.getElementById('section-' + section);
+    const reduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    if (!reduced) button.classList.add('tab-refreshing');
+    const turn = new Promise(resolve => setTimeout(() => {
+      if (tabTurns.get(section) === turn) {
+        button.classList.remove('tab-refreshing');
+        tabTurns.delete(section);
+      }
+      resolve();
+    }, reduced ? 0 : 980));
+    tabTurns.set(section, turn);
+    return turn;
+  }
   async function tapTab(section) {
-    if (section !== currentSection) { switchSection(section); return; }
+    if (section !== currentSection) { switchSection(section); return animateTabRefresh(section); }
     if (refreshingTabs.has(section)) return;
     refreshingTabs.add(section);
     const button = document.getElementById('section-' + section);
     const generation = authGeneration;
-    button.classList.add('tab-refreshing');
     button.setAttribute('aria-busy', 'true');
     haptic('light');
     const reduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-    // Complete one visual turn even when the data request takes longer.
-    const turn = new Promise(resolve => setTimeout(() => {
-      button.classList.remove('tab-refreshing');
-      resolve();
-    }, reduced ? 0 : 700));
+    const turn = animateTabRefresh(section);
     if (section !== 'chat') window.scrollTo({ top: 0, behavior: reduced ? 'auto' : 'smooth' });
     try {
       const refreshData = async () => {
@@ -2061,7 +2088,6 @@ if ('serviceWorker' in navigator) {
       // Keep the last rendered data; each loader presents its own failure state.
     } finally {
       refreshingTabs.delete(section);
-      button.classList.remove('tab-refreshing');
       button.removeAttribute('aria-busy');
     }
   }
@@ -2071,9 +2097,13 @@ if ('serviceWorker' in navigator) {
     haptic('light');
     currentSection = section;
     if (window.univerChat) window.univerChat.onSection(section);
+    window.univerAcademic?.onSection(section);
 
-    document.querySelectorAll('.bottom-tab-btn').forEach(btn => btn.classList.remove('active'));
-    const profileChild = ['umkd', 'exams'].includes(section);
+    document.querySelectorAll('.bottom-tab-btn').forEach(btn => {
+      btn.classList.remove('active', 'tab-refreshing');
+      tabTurns.delete(btn.id.replace('section-', ''));
+    });
+    const profileChild = ['umkd', 'exams', 'calendar', 'transcript'].includes(section);
     const activeBtn = document.getElementById(`section-${profileChild ? 'profile' : section}`);
     activeBtn.classList.add('active');
     updateTabIndicator();
@@ -2084,6 +2114,8 @@ if ('serviceWorker' in navigator) {
     document.getElementById('sectionGrades').style.display = section === 'grades' ? 'block' : 'none';
     document.getElementById('sectionProfile').style.display = section === 'profile' ? 'block' : 'none';
     document.getElementById('sectionChat').style.display = section === 'chat' ? 'block' : 'none';
+    document.getElementById('sectionCalendar').style.display = section === 'calendar' ? 'block' : 'none';
+    document.getElementById('sectionTranscript').style.display = section === 'transcript' ? 'block' : 'none';
 
     if (section === 'schedule') {
       renderSchedule(false);
@@ -2097,6 +2129,8 @@ if ('serviceWorker' in navigator) {
       renderGrades(false);
     } else if (section === 'profile') {
       renderProfile(false);
+    } else if (['calendar', 'transcript'].includes(section)) {
+      openAcademicSection(section);
     }
     refreshVisibleAcademicData();
   }

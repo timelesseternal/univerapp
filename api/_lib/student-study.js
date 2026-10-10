@@ -1,5 +1,14 @@
 import { buildPlatonusHeaders } from './platonus.js';
 
+export const TRANSCRIPT_FILTERS = { courseNumber: [], includeMoveOrder: false,
+  includeSubjectAcademicDifference: false, includeSubjectAdditional: false,
+  includeSubjectCodes: false, includeSubjectUnderStudy: true, languageID: 0,
+  printVersionID: 0, showAchievements: false, showAllRecords: false,
+  showDeletedRecords: false, showFxRetakesWithMarker: true,
+  showRetakeSubjectsWithStar: true, showRetakenRecords: true,
+  showRewritableDisciplines: false, showViolations: false, splitByDegrees: false,
+  term: -1, transcriptLoadDegreeID: 0 };
+
 export function parseTranscriptStudy(data, studentID) {
   const student = data?.student;
   if (!Number.isSafeInteger(Number(studentID)) || Number(studentID) <= 0 ||
@@ -38,14 +47,7 @@ export async function fetchStudyDetails(session) {
   try {
     const response = await fetch('https://platonus.kstu.kz/rest/transcript/load/ru/0', {
       method: 'POST', headers: buildPlatonusHeaders(session),
-      body: JSON.stringify({ courseNumber: [], includeMoveOrder: false,
-        includeSubjectAcademicDifference: false, includeSubjectAdditional: false,
-        includeSubjectCodes: false, includeSubjectUnderStudy: true, languageID: 0,
-        printVersionID: 0, showAchievements: false, showAllRecords: false,
-        showDeletedRecords: false, showFxRetakesWithMarker: true,
-        showRetakeSubjectsWithStar: true, showRetakenRecords: true,
-        showRewritableDisciplines: false, showViolations: false, splitByDegrees: false,
-        term: -1, transcriptLoadDegreeID: 0 }),
+      body: JSON.stringify(TRANSCRIPT_FILTERS),
       signal: AbortSignal.timeout(5000),
     });
     if ([401, 403].includes(response.status)) return null;
