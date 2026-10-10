@@ -18,8 +18,8 @@
 .transcript-period summary{list-style:none;display:flex;justify-content:space-between;align-items:center;gap:12px;font-size:14px;font-weight:800;cursor:pointer;min-height:32px}
 .transcript-period summary::-webkit-details-marker{display:none}
 .period-gpa{display:flex;align-items:center;gap:9px;color:var(--accent);white-space:nowrap;font-size:12px}
-.academic-chevron{font-size:20px;transition:transform .2s}
-.transcript-period[open] .academic-chevron{transform:rotate(180deg)}
+.academic-chevron{width:20px;height:20px;flex:0 0 20px;transform:rotate(0deg);transition:transform .2s}
+.transcript-period[open] .academic-chevron{transform:rotate(90deg)}
 .transcript-rows{margin-top:12px}
 .transcript-row{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:6px 14px;padding:13px 0;border-top:1px solid var(--line)}
 .transcript-subject h3{font-size:14px;font-weight:700;line-height:1.4;margin:0;overflow-wrap:anywhere}
@@ -28,7 +28,6 @@
 .transcript-mark strong{font-size:21px;line-height:1.2;color:var(--accent)}
 .transcript-retakes{grid-column:1/-1}
 .course-gpa{border-top:1px solid var(--line);padding-top:12px}
-.academic-source{margin:2px 0;font-size:11px;color:var(--ink-soft);text-align:center}
 .academic-feedback:empty{display:none}
 .academic-feedback{display:grid;gap:12px;font-size:13px;color:var(--ink-soft);line-height:1.5}
 .academic-feedback button{min-height:44px;justify-self:start;padding:8px 14px;border:1px solid var(--line);border-radius:12px;background:var(--paper-2);color:var(--accent);font:inherit;cursor:pointer}
