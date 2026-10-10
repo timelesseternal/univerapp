@@ -5,7 +5,7 @@ import vm from 'node:vm';
 
 const app = fs.readFileSync(new URL('../../assets/js/app.js', import.meta.url), 'utf8');
 function setup() {
-  const elements = new Map(), timers = new Map(), removed = [];
+  const elements = new Map(), timers = new Map(), removed = [], written = [];
   let timerID = 0, loads = 0;
   function element() {
     const classes = new Set();
@@ -26,7 +26,7 @@ function setup() {
   const ctx = vm.createContext({
     document, window: {}, localStorage: { removeItem() {} },
     lsSafe: fn => fn(), localCacheKey: key => key, useCloudStorage: () => false,
-    csRemove: async key => { removed.push(key); }, csSet: async () => {},
+    csRemove: async key => { removed.push(key); }, csSet: async (key,value) => { written.push([key,value]); },
     csGetMany: async () => ({ platonus_login: 'user', platonus_password: 'password' }),
     haptic() {}, closeUmkdFile() {}, switchSection() {}, updateWeekStepperUI() {},
     initIndicatorsNoAnim() {}, initTabIndicatorNoAnim() {}, requestAnimationFrame() {},
@@ -41,7 +41,7 @@ function setup() {
   vm.runInContext(app.slice(app.indexOf('  const API_BASE'), app.indexOf('  const PLT_DAY_NAMES')), ctx);
   vm.runInContext("platonusSession = 'old'; platonusStudent = { studentID: 1 };", ctx);
   return {
-    ctx, document, elements, removed,
+    ctx, document, elements, removed, written,
     read: expression => vm.runInContext(expression, ctx),
     flushTimers() { for (const fn of [...timers.values()]) fn(); timers.clear(); },
     get loads() { return loads; },
@@ -114,4 +114,33 @@ test('signing in again waits for old credential cleanup and opens the applicatio
   assert.equal(fetches, 1);
   assert.equal(env.loads, 1);
   assert.ok(!env.document.body.classList.contains('login-screen'));
+});
+
+test('remember me saves credentials and session for the next launch', async () => {
+  const env = setup();
+  env.document.getElementById('rememberLoginInput').checked = true;
+  env.document.getElementById('loginInput').value = 'user';
+  env.document.getElementById('passwordInput').value = 'password';
+  await env.ctx.submitLogin(); await env.read('authStorageWork');
+  assert.ok(env.written.some(([key,value]) => key === 'platonus_remember' && value === '1'));
+  assert.ok(env.written.some(([key,value]) => key === 'platonus_session' && value === 'new'));
+  assert.ok(env.written.some(([key,value]) => key === 'platonus_password' && value === 'password'));
+});
+
+test('without remember me old credentials are removed and silent renewal remains memory-only', async () => {
+  const env = setup();
+  env.document.getElementById('rememberLoginInput').checked = false;
+  env.document.getElementById('loginInput').value = 'user';
+  env.document.getElementById('passwordInput').value = 'password';
+  await env.ctx.submitLogin(); await env.read('authStorageWork');
+  assert.equal(env.read('platonusSession'), 'new');
+  assert.ok(env.written.some(([key,value]) => key === 'platonus_remember' && value === '0'));
+  for (const key of ['platonus_session', 'platonus_login', 'platonus_password']) {
+    assert.ok(env.removed.includes(key)); assert.ok(!env.written.some(([saved]) => saved === key));
+  }
+  env.ctx.csGetMany = () => { throw new Error('must use memory credentials'); };
+  assert.equal(await env.ctx.silentRelogin(), true);
+  assert.ok(!env.written.some(([key]) => key === 'platonus_session'));
+  env.ctx.logout(); await env.read('authStorageWork');
+  assert.equal(env.read('sessionCredentials'), null);
 });

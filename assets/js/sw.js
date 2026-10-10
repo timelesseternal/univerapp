@@ -1,5 +1,5 @@
 // Public app shell only; student data and video ranges bypass this cache.
-const CACHE_NAME = 'univer-shell-v81';
+const CACHE_NAME = 'univer-shell-v86';
 const FONT_PATHS = new Set([
   '/assets/fonts/manrope/cyrillic-ext.woff2',
   '/assets/fonts/manrope/cyrillic.woff2',
@@ -10,6 +10,7 @@ SHELL_PATHS.add('/assets/css/wrapped.css');
 SHELL_PATHS.add('/assets/js/wrapped.js');
 SHELL_PATHS.add('/assets/css/academic.css');
 SHELL_PATHS.add('/assets/js/academic.js');
+SHELL_PATHS.add('/assets/icons/icon-maskable-512.png');
 
 self.addEventListener('message', event => {
   if (event.data?.type !== 'REFRESH_SHELL' || !event.ports?.[0]) return;

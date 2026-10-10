@@ -3,14 +3,14 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-  <title>Univer</title>
+  <title>UniLink</title>
   <meta name="description" content="Расписание пар, экзаменов и материалов УМКД">
   <meta name="color-scheme" content="light dark">
 
   <meta name="theme-color" content="#F2F2F7">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-  <meta name="apple-mobile-web-app-title" content="Univer">
+  <meta name="apple-mobile-web-app-title" content="UniLink">
   <link rel="apple-touch-icon" sizes="180x180" href="./assets/icons/apple-touch-icon.png">
   <link rel="icon" type="image/png" sizes="192x192" href="./assets/icons/icon-192.png">
   <link rel="manifest" href="./manifest.webmanifest">
@@ -42,8 +42,8 @@
       <svg class="appearance-moon" aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20.9 13.1A9 9 0 0 1 10.9 3.1a9 9 0 1 0 10 10Z"/></svg>
       <svg class="appearance-sun" aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="4"/><path d="M12 2v2m0 16v2M2 12h2m16 0h2M5 5l1.4 1.4m11.2 11.2L19 19M5 19l1.4-1.4M17.6 6.4 19 5"/></svg>
     </button>
-    <div class="login-title">Univer <span class="brand-campus">KSTU</span></div>
-    <div class="login-subtitle">Войдите с логином и паролем от личного кабинета Platonus — подтянутся ваше расписание, оценки и GPA.</div>
+    <div class="login-title">UniLink</div>
+    <div class="login-subtitle">Твоя учёба в одном месте.<br>Войди через Platonus, чтобы открыть расписание, оценки и профиль.</div>
 
     <label class="login-field-label" for="loginInput">Логин</label>
     <input type="text" id="loginInput" class="login-input" autocomplete="username" placeholder="Фамилия_Имя или ID">
@@ -56,9 +56,13 @@
       </button>
     </div>
 
+    <label class="login-remember" for="rememberLoginInput">
+      <span>Запомнить меня</span>
+      <input type="checkbox" id="rememberLoginInput" checked>
+      <span class="login-remember-switch" aria-hidden="true"></span>
+    </label>
     <button class="login-submit" id="loginSubmitBtn" onclick="submitLogin()">Войти</button>
     <div class="login-error" id="loginError"></div>
-    <div class="login-hint">Логин и пароль сохраняются на этом устройстве через безопасное хранилище Telegram, чтобы не вводить их при каждом входе.</div>
   </div>
 </div>
 
@@ -165,7 +169,7 @@
       <header class="chat-page-header">
         <span class="masthead-eyebrow">На связи</span>
         <h1 class="masthead-headline">Сообщения</h1>
-        <p class="chat-description">Личные переписки со студентами Univer.</p>
+        <p class="chat-description">Личные переписки со студентами UniLink.</p>
       </header>
       <div id="chatStatus" class="chat-status" role="status" aria-live="polite" hidden></div>
       <div id="chatInboxView">

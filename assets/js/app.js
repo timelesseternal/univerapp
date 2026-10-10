@@ -154,6 +154,8 @@ if ('serviceWorker' in navigator) {
   let liveLoadInFlight = false;    // идёт загрузка свежих данных
   let authGeneration = 0;
   let authStorageWork = Promise.resolve();
+  let persistLogin = true;
+  let sessionCredentials = null;
   function ensureAuthGeneration(generation) {
     if (generation !== authGeneration) throw new Error('session_changed');
   }
@@ -506,6 +508,7 @@ if ('serviceWorker' in navigator) {
   async function submitLogin() {
     const login = document.getElementById('loginInput').value.trim();
     const password = document.getElementById('passwordInput').value;
+    const shouldRemember = document.getElementById('rememberLoginInput')?.checked ?? true;
     const btn = document.getElementById('loginSubmitBtn');
     if (btn.disabled) return;
     const generation = authGeneration;
@@ -547,10 +550,15 @@ if ('serviceWorker' in navigator) {
       authGeneration++;
       loginCompleted = true;
       platonusSession = data.session;
+      persistLogin = shouldRemember;
+      sessionCredentials = { platonus_login: login, platonus_password: password };
       authStorageWork = Promise.all([
-        csSet('platonus_session', platonusSession),
-        csSet('platonus_login', login),
-        csSet('platonus_password', password),
+        csSet('platonus_remember', shouldRemember ? '1' : '0'),
+        ...(shouldRemember ? [
+          csSet('platonus_session', platonusSession),
+          csSet('platonus_login', login),
+          csSet('platonus_password', password),
+        ] : ['platonus_session', 'platonus_login', 'platonus_password'].map(csRemove)),
       ]);
       document.getElementById('passwordInput').value = '';
 
@@ -583,6 +591,7 @@ if ('serviceWorker' in navigator) {
   function logout() {
     haptic('medium');
     authGeneration++;
+    sessionCredentials = null;
     reloginInFlight = null;
     const keys = ['platonus_session', 'platonus_student', 'platonus_login', 'platonus_password',
       META_CACHE_KEY, JOURNAL_CACHE_KEY, UMKD_CACHE_KEY];
@@ -646,7 +655,7 @@ if ('serviceWorker' in navigator) {
     const generation = authGeneration;
     await authStorageWork;
     if (generation !== authGeneration) return false;
-    const credentials = await csGetMany(['platonus_login', 'platonus_password']);
+    const credentials = sessionCredentials || await csGetMany(['platonus_login', 'platonus_password']);
     if (generation !== authGeneration) return false;
     const login = credentials.platonus_login;
     const password = credentials.platonus_password;
@@ -663,7 +672,7 @@ if ('serviceWorker' in navigator) {
       if (!resp.ok || !data.ok) return false;
 
       platonusSession = data.session;
-      authStorageWork = csSet('platonus_session', platonusSession);
+      authStorageWork = persistLogin ? csSet('platonus_session', platonusSession) : Promise.resolve();
       return true;
     } catch (e) {
       return false;
@@ -892,7 +901,7 @@ if ('serviceWorker' in navigator) {
         </button>
       </nav>
 
-      <button type="button" class="wrapped-launch" onclick="openSemesterWrapped()"><span class="wrapped-launch-kicker">UNIVER · RECAP</span><span class="wrapped-launch-title">Твой семестр в историях <span aria-hidden="true">↗</span></span><span class="wrapped-launch-caption">Твой ритм. Твои предметы. Твои результаты.</span></button>
+      <button type="button" class="wrapped-launch" onclick="openSemesterWrapped()"><span class="wrapped-launch-kicker">UNILINK · RECAP</span><span class="wrapped-launch-title">Твой семестр в историях <span aria-hidden="true">↗</span></span><span class="wrapped-launch-caption">Твой ритм. Твои предметы. Твои результаты.</span></button>
       <button type="button" class="profile-update-btn" onclick="updateApplication(this)">Обновить приложение</button>
       <p id="appUpdateStatus" class="profile-update-status" role="status"></p>
       <button class="profile-logout-btn" onclick="confirmLogout()">Выйти из аккаунта</button>
@@ -2598,7 +2607,7 @@ if ('serviceWorker' in navigator) {
 
   document.addEventListener('DOMContentLoaded', async () => {
     const generation = authGeneration;
-    const savedPromise = csGetMany(['platonus_session', 'platonus_student']);
+    const savedPromise = csGetMany(['platonus_session', 'platonus_student', 'platonus_remember']);
 
     const savedAccent = lsSafe(() => localStorage.getItem('user_accent'), null) || 'default';
     applyAccentTheme(savedAccent, false);
@@ -2635,7 +2644,9 @@ if ('serviceWorker' in navigator) {
 
     const saved = await savedPromise;
     if (generation !== authGeneration) return;
-    platonusSession = saved.platonus_session || null;
+    persistLogin = saved.platonus_remember !== '0';
+    document.getElementById('rememberLoginInput').checked = persistLogin;
+    platonusSession = persistLogin ? saved.platonus_session || null : null;
     try { platonusStudent = JSON.parse(saved.platonus_student || 'null'); }
     catch (e) { platonusStudent = null; }
 

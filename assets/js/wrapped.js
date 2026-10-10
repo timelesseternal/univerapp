@@ -97,7 +97,7 @@
         title: s.best?.subject || (gpa !== null ? 'Твой академический GPA' : 'Результаты ещё впереди'),
         text: s.best ? 'Самый высокий текущий показатель в журнале. Хорошая точка для следующей цели.' : 'Оценки дополнят эту историю, когда загрузится журнал.',
         note: s.best ? 'Текущий показатель Platonus, не итоговая оценка за экзамен.' : 'Шкала GPA: от 0 до 4.' },
-      { kind: 'final', tag: 'ЭТО ТВОЙ UNIVER RECAP', value: 'Продолжение\nза тобой.', title: student.studentName || 'Твой семестр',
+      { kind: 'final', tag: 'ЭТО ТВОЙ UNILINK RECAP', value: 'Продолжение\nза тобой.', title: student.studentName || 'Твой семестр',
         text: `${s.lessons} пар · ${s.weeks} учтённых недель · GPA ${gpa === null ? '—' : gpa.toFixed(2).replace('.', ',')}`,
         note: Math.abs(delta) >= .005 ? `GPA ${delta > 0 ? '+' : ''}${delta.toFixed(2).replace('.', ',')} с первого сохранённого замера (${base.day}).` : 'Сохрани эту главу. Следующая будет другой.' },
     ];
@@ -123,7 +123,7 @@
     if (!dialog) {
       dialog = document.createElement('dialog');
       dialog.className = 'wrapped-dialog'; dialog.setAttribute('aria-label', 'Твой семестр в историях');
-      dialog.innerHTML = '<div class="wrapped-shell"><header class="wrapped-header"><span>UNIVER RECAP</span><button type="button" class="wrapped-close" aria-label="Закрыть истории">✕</button></header><nav class="wrapped-progress" aria-label="Истории семестра"></nav><div class="wrapped-stage" aria-live="polite"></div><footer class="wrapped-footer"><button type="button" class="wrapped-prev" aria-label="Предыдущая история">←</button><span class="wrapped-count"></span><button type="button" class="wrapped-next" aria-label="Следующая история">→</button></footer></div>';
+      dialog.innerHTML = '<div class="wrapped-shell"><header class="wrapped-header"><span>UNILINK RECAP</span><button type="button" class="wrapped-close" aria-label="Закрыть истории">✕</button></header><nav class="wrapped-progress" aria-label="Истории семестра"></nav><div class="wrapped-stage" aria-live="polite"></div><footer class="wrapped-footer"><button type="button" class="wrapped-prev" aria-label="Предыдущая история">←</button><span class="wrapped-count"></span><button type="button" class="wrapped-next" aria-label="Следующая история">→</button></footer></div>';
       document.body.append(dialog);
       dialog.addEventListener('click', e => {
         if (e.target.closest('.wrapped-close')) close();
@@ -161,7 +161,7 @@
     c.strokeStyle = accent; c.lineWidth = 3;
     for (let i = 0; i < 14; i++) { c.beginPath(); c.ellipse(950, 550, 300 + i * 34, 600 + i * 25, -.5, 0, Math.PI * 2); c.stroke(); }
     c.fillStyle = '#101519'; c.fillRect(65, 820, 950, 1030);
-    c.textAlign = 'left'; c.fillStyle = accent; c.font = '700 30px Manrope, sans-serif'; c.fillText('UNIVER RECAP', 80, 130);
+    c.textAlign = 'left'; c.fillStyle = accent; c.font = '700 30px Manrope, sans-serif'; c.fillText('UNILINK RECAP', 80, 130);
     c.fillStyle = '#ffffff'; c.font = '800 120px Manrope, sans-serif'; c.fillText('Мой', 80, 340); c.fillText('семестр.', 80, 490);
     c.font = '500 32px Manrope, sans-serif'; c.fillText(`${period.studyYear} / ${Number(period.studyYear) + 1} · семестр ${period.term}`, 80, 575);
     function lines(text, y, size, color, limit = 2) {
@@ -198,7 +198,7 @@
       const blob = await new Promise(resolve => canvas.toBlob(resolve, 'image/png'));
       if (!blob) throw new Error('export_failed');
       const url = URL.createObjectURL(blob), link = document.createElement('a');
-      link.href = url; link.download = `univer-recap-${currentPeriod.studyYear}-${currentPeriod.term}.png`; link.textContent = 'Открыть карточку'; link.target = '_blank'; link.rel = 'noopener';
+      link.href = url; link.download = `unilink-recap-${currentPeriod.studyYear}-${currentPeriod.term}.png`; link.textContent = 'Открыть карточку'; link.target = '_blank'; link.rel = 'noopener';
       status.replaceChildren(link); link.click();
       const hint = document.createElement('span'); hint.textContent = ' На iPhone: открой картинку → Поделиться → Сохранить изображение.'; status.append(hint);
       setTimeout(() => URL.revokeObjectURL(url), 300000);

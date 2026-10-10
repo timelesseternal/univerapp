@@ -1,5 +1,13 @@
 /* Keep all three header controls at the same height; adjust only this value. */
 :root { --header-control-height: 40px; --card-gap: 12px; --space-section: var(--card-gap); }
+.login-remember{position:relative;display:flex;align-items:center;justify-content:space-between;gap:16px;min-height:44px;margin:0 0 10px;color:var(--ink-soft);font-size:14px;font-weight:600;cursor:pointer;-webkit-tap-highlight-color:transparent}
+.login-remember input{position:absolute;right:0;width:44px;height:44px;margin:0;opacity:0;cursor:pointer}
+.login-remember-switch{display:block;flex:0 0 42px;height:26px;padding:3px;border:1px solid var(--line);border-radius:20px;background:var(--paper-2);pointer-events:none;transition:background .18s,border-color .18s}
+.login-remember-switch::after{content:"";display:block;width:18px;height:18px;border-radius:50%;background:var(--ink-soft);transition:transform .18s,background .18s}
+.login-remember input:checked+.login-remember-switch{background:var(--accent);border-color:var(--accent)}
+.login-remember input:checked+.login-remember-switch::after{transform:translateX(16px);background:var(--accent-text)}
+.login-remember input:focus-visible+.login-remember-switch{outline:2px solid var(--accent);outline-offset:4px}
+@media(prefers-reduced-motion:reduce){.login-remember-switch,.login-remember-switch::after{transition:none}}
 /* Paint the transparent iOS status area with the current theme, without a blur. */
 .standalone-app::before { content:""; position:fixed; top:0; left:0; right:0; height:env(safe-area-inset-top,0px); background:var(--system-bar-bg,var(--paper)); pointer-events:none; z-index:1001; }
 /* Keep foreground controls crisp; background softness belongs to its own layer. */
