@@ -3,7 +3,7 @@
       const storageKey = 'user_color_mode';
       const root = document.documentElement;
       const systemTheme = window.matchMedia ? window.matchMedia('(prefers-color-scheme: dark)') : null;
-      const telegram = window.Telegram ? window.Telegram.WebApp : null;
+      const telegram = window.Telegram?.WebApp?.initData ? window.Telegram.WebApp : null;
       let preference = null;
       try {
         const saved = localStorage.getItem(storageKey);

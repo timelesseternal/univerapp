@@ -60,18 +60,30 @@
       });
     }
   }
-  const telegramApp = window.Telegram?.WebApp;
+  const telegramApp = window.Telegram?.WebApp?.initData ? window.Telegram.WebApp : null;
+  let restingViewportHeight = window.innerHeight || 0;
+  let restingViewportWidth = window.innerWidth || 0;
   let typingAt = 0, typingConversation = null, typingTimer = null, peerTypingTimer = null;
   function fitConversation() {
     const viewport = window.visualViewport;
     if (!viewport || !root.getBoundingClientRect) return;
-    const keyboard = state.visible && !!state.conversation && !state.peerProfileOpen
-      && window.innerHeight - viewport.height > 120;
+    if (window.innerWidth !== restingViewportWidth) {
+      restingViewportWidth = window.innerWidth;
+      restingViewportHeight = window.innerHeight || viewport.height;
+    }
+    const typing = document.activeElement === byID('chatText');
+    if (!typing) restingViewportHeight = window.innerHeight || viewport.height;
+    const keyboard = state.visible && !!state.conversation && !state.peerProfileOpen && typing
+      && Math.max(restingViewportHeight, window.innerHeight || 0) - viewport.height > 120;
     document.body?.classList.toggle('chat-keyboard-open', keyboard);
     if (state.visible && state.conversation) {
       const list = byID('chatMessages');
       const bottom = list.scrollHeight - list.scrollTop - list.clientHeight < 90;
-      const height = Math.max(220, viewport.height + viewport.offsetTop - root.getBoundingClientRect().top - (keyboard ? 12 : 100));
+      const viewportBottom = viewport.height + viewport.offsetTop;
+      const navTop = byID('bottomTabBar')?.getBoundingClientRect?.().top;
+      const boundary = keyboard ? viewportBottom - 12
+        : Number.isFinite(navTop) && navTop > 0 ? Math.min(viewportBottom, navTop) - 12 : viewportBottom - 112;
+      const height = Math.max(120, boundary - root.getBoundingClientRect().top);
       root.style.setProperty('--chat-height', `${height}px`);
       if (bottom) list.scrollTop = list.scrollHeight;
     }
@@ -683,6 +695,9 @@
   byID('chatText').addEventListener('blur', stopTyping);
   window.visualViewport?.addEventListener('resize', fitConversation);
   window.visualViewport?.addEventListener('scroll', fitConversation);
+  window.addEventListener?.('resize', fitConversation);
+  root.addEventListener('animationend', fitConversation);
+  byID('chatText').addEventListener('focus', fitConversation);
   byID('chatText').addEventListener('keydown', event => {
     if (event.key === 'Enter' && !event.shiftKey && !event.isComposing && window.matchMedia('(pointer: fine)').matches) {
       event.preventDefault(); byID('chatComposer').requestSubmit();

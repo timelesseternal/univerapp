@@ -1387,7 +1387,7 @@
       left: var(--layout-gutter);
       right: var(--layout-gutter);
       max-width: var(--layout-width);
-      bottom: calc(env(safe-area-inset-bottom, 0px) + 12px);
+      bottom: max(env(safe-area-inset-bottom, 0px), 12px);
       border-radius: 28px;
       padding: 5px;
     }

@@ -4,7 +4,7 @@ if ('serviceWorker' in navigator) {
     }, { once: true });
   }
 
-  const tg = window.Telegram ? window.Telegram.WebApp : null;
+  const tg = window.Telegram?.WebApp?.initData ? window.Telegram.WebApp : null;
 
   // Панель управления Telegram в fullscreen-режиме (кнопка «Закрыть»,
   // шеврон для сворачивания, «•••») рисуется самим Telegram поверх

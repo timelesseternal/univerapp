@@ -90,6 +90,30 @@ function messageTexts(ui) {
   return ui.elements.get('chatMessages').children.filter(child => child.className?.includes('chat-message'))
     .map(child => child.children[0].textContent);
 }
+
+test('the composer stays above the measured tab bar and follows the keyboard viewport',async()=>{
+  const events={},classes=new Set();
+  const viewport={height:844,offsetTop:0,addEventListener:(type,fn)=>{events[type]=fn;}};
+  const ui=setup(async url=>{
+    if(url.includes('action=session'))return reply({profile,conversations:[conversation]});
+    if(url.includes('action=inbox'))return reply({conversations:[conversation]});
+    if(url.includes('action=read'))return reply({ok:true});
+    return reply({messages:[message],hasMore:false});
+  },{window:{innerHeight:844,innerWidth:390,visualViewport:viewport}});
+  const root=ui.elements.get('sectionChat');
+  root.getBoundingClientRect=()=>({top:59});
+  root.style.setProperty=(key,value)=>{root.style[key]=value;};
+  ui.context.document.body={classList:{toggle:(key,value)=>value?classes.add(key):classes.delete(key)}};
+  ui.context.document.getElementById('bottomTabBar').getBoundingClientRect=()=>({top:736});
+  ui.api.onSection('chat');await settle();
+  await ui.elements.get('chatInbox').children[0].listeners.click();await settle();
+  assert.equal(root.style['--chat-height'],'665px');
+  ui.context.document.activeElement=ui.elements.get('chatText');
+  viewport.height=500;events.resize();
+  assert.equal(root.style['--chat-height'],'429px');assert.ok(classes.has('chat-keyboard-open'));
+  viewport.height=844;events.resize();
+  assert.equal(root.style['--chat-height'],'665px');assert.equal(classes.has('chat-keyboard-open'),false);
+});
 test('peer avatar opens the verified profile and back returns to the conversation', async () => {
   const ui = setup(async url => {
     if (url.includes('action=session')) return reply({ profile, conversations: [conversation] });

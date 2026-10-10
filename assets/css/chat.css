@@ -127,7 +127,7 @@
 .chat-person-time { align-self: flex-start; margin-top: 3px; flex-shrink: 0; color: var(--text-secondary); font-size: 10px; font-variant-numeric: tabular-nums; }
 .chat-avatar { border-radius: 50%; width: 42px; height: 42px; }
 .chat-unread { flex-shrink: 0; background: #ef4454; color: white; min-width: 17px; padding: 1px 5px; font-size: 10px; font-weight: 750; line-height: 15px; }
-.chat-thread { height: var(--chat-height, calc(100dvh - max(env(safe-area-inset-top, 0px), var(--tg-safe-area-top)) - var(--tg-content-safe-area-top) - 140px)); min-height: 220px; }
+.chat-thread { height: var(--chat-height, calc(100dvh - max(env(safe-area-inset-top, 0px), var(--tg-safe-area-top)) - var(--tg-content-safe-area-top) - max(env(safe-area-inset-bottom, 0px), 12px) - 90px)); min-height: 120px; }
 .chat-thread-header { flex-shrink: 0; padding: 4px 0 12px; border: 0; }
 .chat-peer-name { font-size: 15px; font-weight: 750; }
 .chat-back { width: 34px; min-height: 38px; background: transparent; }
@@ -147,4 +147,5 @@
 .chat-typing span:nth-child(3) { animation-delay: .3s; }
 @keyframes chatTypingDot { 0%, 65%, 100% { transform: translateY(0); opacity: .35; } 30% { transform: translateY(-3px); opacity: .9; } }
 .chat-keyboard-open .bottom-tab-bar { opacity: 0; pointer-events: none; }
+.chat-keyboard-open .tab-scroll-fade { opacity: 0; }
 @media (prefers-reduced-motion: reduce) { .chat-typing span { animation: none; opacity: .6; } }
