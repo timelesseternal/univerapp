@@ -13,7 +13,7 @@ function setup(section) {
   const context = vm.createContext({ currentSection: section, authGeneration: 1,
     document: { getElementById: () => ({ classList: { add: c => classes.add(c), remove: c => classes.delete(c) }, setAttribute: (k,v) => attrs.set(k,v), removeAttribute: k => attrs.delete(k) }) },
     window: { matchMedia: () => ({ matches: false }), scrollTo() {}, univerChat: { refreshNow: () => { calls.push('chat'); return work; } } },
-    haptic() {}, setTimeout: callback => timers.push(callback),
+    haptic() {}, scrollAppTo() {}, setTimeout: callback => timers.push(callback),
     liveScheduleWeekInfo: { selectedStudyYear: 2026, selectedTerm: 1 },
     browsedWeekInfo: { studyYear: 2026, term: 1, week: 9 }, platonusStudent: { studentID: 7 },
     fetchJournal: (...args) => { calls.push(['grades', ...args]); return work; },

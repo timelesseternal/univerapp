@@ -1436,19 +1436,22 @@ if ('serviceWorker' in navigator) {
   // мобильных (особенно в Telegram WebView) свайп внутри списка городов
   // прокручивает страницу ПОД модалкой, а не сам список.
   let bodyScrollLockY = 0;
+  function appScroller() {
+    return document.querySelector('.app-wrapper') || document.scrollingElement;
+  }
+  function scrollAppTo(options) {
+    const scroller = appScroller();
+    if (scroller?.scrollTo) scroller.scrollTo(options);
+  }
   function lockBodyScroll() {
-    bodyScrollLockY = window.scrollY || window.pageYOffset || 0;
-    document.body.style.position = 'fixed';
-    document.body.style.top = `-${bodyScrollLockY}px`;
-    document.body.style.left = '0';
-    document.body.style.right = '0';
+    const scroller = appScroller();
+    bodyScrollLockY = scroller?.scrollTop || 0;
+    scroller?.classList.add('app-scroll-locked');
   }
   function unlockBodyScroll() {
-    document.body.style.position = '';
-    document.body.style.top = '';
-    document.body.style.left = '';
-    document.body.style.right = '';
-    window.scrollTo(0, bodyScrollLockY);
+    const scroller = appScroller();
+    scroller?.classList.remove('app-scroll-locked');
+    if (scroller) scroller.scrollTop = bodyScrollLockY;
   }
 
   function openCityModal() {
@@ -2093,7 +2096,7 @@ if ('serviceWorker' in navigator) {
     haptic('light');
     const reduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
     const turn = animateTabRefresh(section);
-    if (section !== 'chat') window.scrollTo({ top: 0, behavior: reduced ? 'auto' : 'smooth' });
+    if (section !== 'chat') scrollAppTo({ top: 0, behavior: reduced ? 'auto' : 'smooth' });
     try {
       const refreshData = async () => {
         if (section === 'chat') { await window.univerChat?.refreshNow(); return; }
@@ -2140,6 +2143,7 @@ if ('serviceWorker' in navigator) {
     document.getElementById('sectionChat').style.display = section === 'chat' ? 'block' : 'none';
     document.getElementById('sectionCalendar').style.display = section === 'calendar' ? 'block' : 'none';
     document.getElementById('sectionTranscript').style.display = section === 'transcript' ? 'block' : 'none';
+    if (section === 'chat') scrollAppTo({ top: 0, behavior: 'instant' });
     // Chat must measure its height after its section becomes visible.
     if (window.univerChat) window.univerChat.onSection(section);
 
