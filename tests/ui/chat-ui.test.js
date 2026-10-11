@@ -104,15 +104,22 @@ test('the composer stays above the measured tab bar and follows the keyboard vie
   root.getBoundingClientRect=()=>({top:59});
   root.style.setProperty=(key,value)=>{root.style[key]=value;};
   ui.context.document.body={classList:{toggle:(key,value)=>value?classes.add(key):classes.delete(key)}};
-  ui.context.document.getElementById('bottomTabBar').getBoundingClientRect=()=>({top:viewport.height-108});
+  // Navigation keeps the same layout position; only the composer follows the keyboard.
+  ui.context.document.getElementById('bottomTabBar').getBoundingClientRect=()=>({top:736});
   ui.api.onSection('chat');await settle();
   await ui.elements.get('chatInbox').children[0].listeners.click();await settle();
   assert.equal(root.style['--chat-height'],'665px');
   ui.context.document.activeElement=ui.elements.get('chatText');
   viewport.height=500;events.resize();
-  assert.equal(root.style['--chat-height'],'321px');assert.ok(classes.has('chat-keyboard-open'));
+  assert.equal(root.style['--chat-height'],'429px');assert.ok(classes.has('chat-keyboard-open'));
   viewport.height=844;events.resize();
   assert.equal(root.style['--chat-height'],'665px');assert.equal(classes.has('chat-keyboard-open'),false);
+  let blurred = false;
+  ui.elements.get('chatText').blur = () => { blurred = true; ui.context.document.activeElement = null; };
+  viewport.height = 500; events.resize();
+  ui.api.onSection('profile');
+  assert.equal(blurred, true);
+  assert.equal(classes.has('chat-keyboard-open'), false);
 });
 test('peer avatar opens the verified profile and back returns to the conversation', async () => {
   const ui = setup(async url => {

@@ -81,7 +81,7 @@
       const bottom = list.scrollHeight - list.scrollTop - list.clientHeight < 90;
       const viewportBottom = viewport.height + viewport.offsetTop;
       const navTop = byID('bottomTabBar')?.getBoundingClientRect?.().top;
-      const boundary = Number.isFinite(navTop) && navTop > 0
+      const boundary = keyboard ? viewportBottom - 12 : Number.isFinite(navTop) && navTop > 0
         ? Math.min(viewportBottom, navTop) - 12 : viewportBottom - 112;
       const height = Math.max(120, boundary - root.getBoundingClientRect().top);
       root.style.setProperty('--chat-height', `${height}px`);
@@ -677,7 +677,10 @@
       });
     },
     onSection(section) {
-      if (section !== 'chat') { stopTyping(); showTyping(false); }
+      if (section !== 'chat') {
+        if (document.activeElement === byID('chatText')) byID('chatText').blur();
+        stopTyping(); showTyping(false);
+      }
       if (section !== 'chat') closePeerProfile();
       state.visible = section === 'chat';
       fitConversation();

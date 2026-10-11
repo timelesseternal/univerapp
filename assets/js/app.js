@@ -2121,7 +2121,6 @@ if ('serviceWorker' in navigator) {
     if (section === currentSection) return;
     haptic('light');
     currentSection = section;
-    if (window.univerChat) window.univerChat.onSection(section);
     window.univerAcademic?.onSection(section);
 
     document.querySelectorAll('.bottom-tab-btn').forEach(btn => {
@@ -2141,6 +2140,8 @@ if ('serviceWorker' in navigator) {
     document.getElementById('sectionChat').style.display = section === 'chat' ? 'block' : 'none';
     document.getElementById('sectionCalendar').style.display = section === 'calendar' ? 'block' : 'none';
     document.getElementById('sectionTranscript').style.display = section === 'transcript' ? 'block' : 'none';
+    // Chat must measure its height after its section becomes visible.
+    if (window.univerChat) window.univerChat.onSection(section);
 
     if (section === 'schedule') {
       renderSchedule(false);
