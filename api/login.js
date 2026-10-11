@@ -41,16 +41,16 @@ export default async function handler(req, res) {
     return;
   }
 
-  let data;
-  try {
-    data = await platonusResp.json();
-  } catch {
-    res.status(502).json({ error: 'platonus_bad_response' });
+  if (!platonusResp.ok) {
+    res.status(platonusResp.status === 401 || platonusResp.status === 403 ? 401 : 502).json({ error: platonusResp.status === 401 || platonusResp.status === 403 ? 'invalid_credentials' : 'platonus_unreachable' });
     return;
   }
 
-  if (!platonusResp.ok) {
-    res.status(platonusResp.status === 401 || platonusResp.status === 403 ? 401 : 502).json({ error: platonusResp.status === 401 || platonusResp.status === 403 ? 'invalid_credentials' : 'platonus_unreachable' });
+  let data;
+  try {
+    data = await platonusResp.json();
+  } catch (error) {
+    res.status(502).json({ error: error?.name === 'TimeoutError' || error?.name === 'AbortError' ? 'platonus_unreachable' : 'platonus_bad_response' });
     return;
   }
   if (data?.login_status !== 'success') {

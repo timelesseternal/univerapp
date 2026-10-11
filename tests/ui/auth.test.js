@@ -62,6 +62,27 @@ test('logout restores the login screen and cancels its old hide timer', () => {
   assert.equal(env.document.getElementById('passwordInput').type, 'password');
 });
 
+test('renewed Platonus requests get fresh deadlines and preserve the new session on timeout', async () => {
+  const env = setup(); const deadlines = [], calls = [];
+  env.ctx.AbortSignal = { timeout(duration) {
+    const controller = new AbortController(); deadlines.push({ controller, duration }); return controller.signal;
+  } };
+  env.ctx.fetch = async (url, options) => {
+    calls.push({ url, options });
+    if (url === '/api/login') return { ok: true, json: async () => ({ ok: true, session: 'new' }) };
+    if (calls.length === 1) return { ok: false, status: 401 };
+    return new Promise((_, reject) => options.signal.addEventListener('abort', () => reject(options.signal.reason), { once: true }));
+  };
+  const request = env.ctx.platonusFetch('/api/schedule');
+  const rejection = assert.rejects(request, error => error.name === 'TimeoutError');
+  await new Promise(setImmediate);
+  assert.deepEqual(deadlines.map(item => item.duration), [35000, 20000, 35000]);
+  assert.notEqual(calls[0].options.signal, calls[2].options.signal);
+  assert.equal(calls[2].options.headers['x-session'], 'new');
+  deadlines[2].controller.abort(new DOMException('timeout', 'TimeoutError')); await rejection;
+  assert.equal(env.read('platonusSession'), 'new');
+});
+
 test('a late response from the old account is discarded', async () => {
   const env = setup();
   let resolve;

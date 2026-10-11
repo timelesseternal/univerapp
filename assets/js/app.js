@@ -211,9 +211,15 @@ if ('serviceWorker' in navigator) {
       const raw = await csGet(`platonus_week_${key}`);
       if (!raw) return null;
       const entry = JSON.parse(raw);
+      const object = value => value !== null && typeof value === 'object' && !Array.isArray(value);
+      const time = value => typeof value === 'string' && /^(?:[01]\d|2[0-3]):[0-5]\d$/.test(value);
+      const lesson = value => object(value) && typeof value['пара'] === 'string' && typeof value.sub === 'string'
+        && (value.type === undefined || [0, 1, 2].includes(value.type))
+        && ['teacher', 'room', 'building', 'subjectTitle', 'lessonType'].every(key => value[key] === undefined || typeof value[key] === 'string');
       if (!entry || !entry.schedule || typeof entry.schedule !== 'object' || Array.isArray(entry.schedule)
-        || !entry.lessonTimes || typeof entry.lessonTimes !== 'object' || !entry.weekInfo
-        || Object.values(entry.schedule).some(day => !Array.isArray(day))
+        || !object(entry.lessonTimes) || !object(entry.weekInfo)
+        || Object.values(entry.schedule).some(day => !Array.isArray(day) || !day.every(lesson))
+        || Object.values(entry.lessonTimes).some(slot => !object(slot) || !time(slot.start) || !time(slot.end))
         || weekCacheKey(entry.weekInfo.studyYear, entry.weekInfo.term, entry.weekInfo.week) !== key) return null;
       return entry;
     } catch (e) {
@@ -2404,7 +2410,8 @@ if ('serviceWorker' in navigator) {
   // (см. setViewportZoomable) зумит уже сам отрендеренный документ.
   let pdfJsLoadPromise = null;
   function ensurePdfJsLoaded() {
-    if (window.pdfjsLib) return Promise.resolve();
+    const ready = () => !!window.pdfjsLib?.GlobalWorkerOptions && typeof window.pdfjsLib.getDocument === 'function';
+    if (ready()) return Promise.resolve();
     if (pdfJsLoadPromise) return pdfJsLoadPromise;
     pdfJsLoadPromise = new Promise((resolve, reject) => {
       const script = document.createElement('script');
@@ -2421,7 +2428,7 @@ if ('serviceWorker' in navigator) {
         reject(new Error('pdfjs_load_failed'));
       };
       script.onload = () => {
-        if (!window.pdfjsLib?.GlobalWorkerOptions) { fail(); return; }
+        if (!ready()) { fail(); return; }
         cleanup();
         window.pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
         resolve();

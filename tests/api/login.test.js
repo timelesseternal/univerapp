@@ -17,6 +17,36 @@ test('login validates credentials without contacting Platonus', async t => {
   }
 });
 
+test('HTTP login failures keep their meaning regardless of the response body', async t => {
+  for (const status of [401, 403, 503]) {
+    for (const body of [{}, '<html>login</html>', '']) {
+      t.mock.method(globalThis, 'fetch', async () => ({ ok: false, status,
+        json: async () => { if (typeof body === 'string') throw new SyntaxError('not JSON'); return body; } }));
+      const res = response(); await handler({ method: 'POST', body: { login: 'student', password: 'password' } }, res);
+      assert.equal(res.code, status === 503 ? 502 : 401);
+      assert.equal(res.body.error, status === 503 ? 'platonus_unreachable' : 'invalid_credentials');
+      assert.equal(res.body.session, undefined); assert.equal(res.headers['Cache-Control'], 'no-store');
+    }
+  }
+});
+
+test('successful login requires every session component and retains all cookies', async t => {
+  const data = { login_status: 'success', sid: 'sid', auth_token: 'token' };
+  for (const missing of ['sid', 'auth_token', 'cookie', 'json']) {
+    const payload = { ...data }; delete payload[missing];
+    t.mock.method(globalThis, 'fetch', async () => ({ ok: true, status: 200,
+      json: async () => { if (missing === 'json') throw new SyntaxError('invalid'); return payload; },
+      headers: { getSetCookie: () => missing === 'cookie' ? [] : ['sid=1; HttpOnly'] } }));
+    const res = response(); await handler({ method: 'POST', body: { login: 'student', password: 'password' } }, res);
+    assert.equal(res.code, 502); assert.equal(res.body.error, 'platonus_bad_response'); assert.equal(res.body.session, undefined);
+  }
+  t.mock.method(globalThis, 'fetch', async () => ({ ok: true, status: 200, json: async () => data,
+    headers: { getSetCookie: () => ['sid=1; HttpOnly', 'auth=2; Expires=Wed, 21 Oct 2026 00:00:00 GMT'] } }));
+  const res = response(); await handler({ method: 'POST', body: { login: 'student', password: 'password' } }, res);
+  assert.equal(res.code, 200);
+  assert.equal(JSON.parse(Buffer.from(res.body.session, 'base64').toString()).cookie, 'sid=1; auth=2');
+});
+
 test('login rejects upstream errors and incomplete sessions, issues a complete session', async t => {
   const original = globalThis.fetch;
   t.after(() => { globalThis.fetch = original; });

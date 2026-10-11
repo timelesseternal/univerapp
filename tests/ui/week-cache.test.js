@@ -24,6 +24,28 @@ test('a confirmed empty week overwrites a previously saved lesson', async () => 
   assert.ok(await context.loadPersistedWeekEntry('7-2026-1-7'));
 });
 
+test('cached lesson and time contents are validated before use', async () => {
+  const { context, storage } = setup();
+  const lesson = { пара: '1', sub: 'Математика', type: 0, teacher: '', room: '', building: '' };
+  const valid = { ...entry(), schedule: { Понедельник: [lesson] }, lessonTimes: { 1: { start: '08:00', end: '09:50' } } };
+  for (const invalid of [
+    { ...valid, lessonTimes: [] },
+    ...[null, 'lesson', {}, { ...lesson, sub: {} }, { ...lesson, пара: null }, { ...lesson, type: 3 }]
+      .map(value => ({ ...valid, schedule: { Понедельник: [value] } })),
+    ...[null, {}, { start: '25:00', end: '09:50' }, { start: 8, end: '09:50' }]
+      .map(value => ({ ...valid, lessonTimes: { 1: value } })),
+  ]) {
+    storage.set('platonus_week_7-2026-1-7', JSON.stringify(invalid));
+    assert.equal(await context.loadPersistedWeekEntry('7-2026-1-7'), null, JSON.stringify(invalid));
+  }
+  for (const info of [valid.weekInfo, { studyYear: '2026', term: '1', week: '7' }]) {
+    storage.set('platonus_week_7-2026-1-7', JSON.stringify({ ...valid, weekInfo: info }));
+    assert.ok(await context.loadPersistedWeekEntry('7-2026-1-7'));
+  }
+  context.platonusStudent = { studentID: 8 };
+  assert.equal(await context.loadPersistedWeekEntry('7-2026-1-7'), null);
+});
+
 test('broken or mismatched cached weeks are ignored', async () => {
   const { context, storage } = setup();
   for (const invalid of ['not JSON', 'null', JSON.stringify({ ...entry(), schedule: { Понедельник: {} } }), JSON.stringify({ ...entry(), weekInfo: { studyYear: 2026, term: 1, week: 8 } })]) {

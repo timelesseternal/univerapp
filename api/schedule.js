@@ -94,6 +94,7 @@ export default async function handler(req, res) {
   let firstData;
   try {
     firstData = JSON.parse(first.rawText);
+    if (!firstData || typeof firstData !== 'object' || Array.isArray(firstData)) throw new Error('invalid_schedule');
   } catch (err) {
     res.status(502).json({ error: 'platonus_bad_json', detail: first.rawText.slice(0, 300) });
     return;
@@ -118,27 +119,39 @@ export default async function handler(req, res) {
       isDefinedNumber(retryOverrides.week);
 
     if (hasRetryValues) {
+      let second;
       try {
-        const second = await fetchPlatonusSchedule(studentID, session, retryOverrides);
-        if (second.status >= 200 && second.status < 300) {
-          const secondData = JSON.parse(second.rawText);
-          secondData._debug = {
-            retried: true,
-            retryOverrides,
-            rawSelectedWeek,
-            secondHasLessons: hasAnyLesson(secondData),
-          };
-          res.status(200).json(secondData);
-          return;
-        }
+        second = await fetchPlatonusSchedule(studentID, session, retryOverrides);
       } catch (err) {
-        // Игнорируем — просто вернём первый (пустой) ответ ниже.
+        // An unconfirmed empty response must not replace a saved week.
+        res.status(502).json({ error: 'platonus_unreachable', detail: String(err && err.message || err) });
+        return;
       }
+      if (second.status === 401 || second.status === 403) {
+        res.status(401).json({ error: 'session_expired' });
+        return;
+      }
+      if (second.status < 200 || second.status >= 300) {
+        res.status(502).json({ error: 'platonus_bad_status', platonusStatus: second.status, detail: second.rawText.slice(0, 300) });
+        return;
+      }
+      let secondData;
+      try {
+        secondData = JSON.parse(second.rawText);
+        if (!secondData || typeof secondData !== 'object' || Array.isArray(secondData)) throw new Error('invalid_schedule');
+      }
+      catch {
+        res.status(502).json({ error: 'platonus_bad_json', detail: second.rawText.slice(0, 300) });
+        return;
+      }
+      secondData._debug = { retried: true, retryOverrides, rawSelectedWeek, secondHasLessons: hasAnyLesson(secondData) };
+      res.status(200).json(secondData);
+      return;
     }
 
     firstData._debug = {
       retried: false,
-      reasonNotRetried: hasRetryValues ? 'retry_request_failed' : 'no_metadata_values',
+      reasonNotRetried: 'no_metadata_values',
       metaSelected: {
         studyYear: firstData.selectedStudyYear,
         term: firstData.selectedTerm,

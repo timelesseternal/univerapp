@@ -81,8 +81,8 @@
       const bottom = list.scrollHeight - list.scrollTop - list.clientHeight < 90;
       const viewportBottom = viewport.height + viewport.offsetTop;
       const navTop = byID('bottomTabBar')?.getBoundingClientRect?.().top;
-      const boundary = keyboard ? viewportBottom - 12
-        : Number.isFinite(navTop) && navTop > 0 ? Math.min(viewportBottom, navTop) - 12 : viewportBottom - 112;
+      const boundary = Number.isFinite(navTop) && navTop > 0
+        ? Math.min(viewportBottom, navTop) - 12 : viewportBottom - 112;
       const height = Math.max(120, boundary - root.getBoundingClientRect().top);
       root.style.setProperty('--chat-height', `${height}px`);
       if (bottom) list.scrollTop = list.scrollHeight;
@@ -324,13 +324,15 @@
       });
     }
   }
-  async function refreshMessages({ older = false, initial = false } = {}) {
+  async function refreshMessages({ older = false, initial = false, after } = {}) {
     if (!state.conversation) return;
     const epoch = state.epoch, id = state.conversation.id;
     const messages = orderedMessages();
     const params = { conversationID: id };
     if (older && messages.length) params.before = messages[0].id;
-    else if (!initial && messages.length) params.after = messages.at(-1).id;
+    // Catch up from the cached boundary, including on reopening. A latest page
+    // can skip messages between the cache and that page after a long absence.
+    else if (messages.length) params.after = after || messages.at(-1).id;
     const data = await request('messages', { params });
     if (stale(epoch) || state.conversation?.id !== id) return;
     showTyping(data.peerTyping === true && state.visible && !state.peerProfileOpen);
@@ -346,7 +348,11 @@
     rememberHistory();
     if (changed || initial || older) drawMessages({ scroll: initial ? 'bottom' : older ? 'older' : 'keep',
       newIDs: initial || older ? new Set() : newIDs });
-    if (params.after && data.hasMore) await refreshMessages();
+    // Continue from this response, not a newer message concurrently sent locally.
+    if (params.after && data.hasMore && data.messages.length) {
+      await refreshMessages({ initial, after: data.messages.at(-1).id });
+    }
+    if (stale(epoch) || state.conversation?.id !== id) return;
     if (state.visible && !state.peerProfileOpen && !document.hidden && state.conversation?.id===id) {
       const through = orderedMessages().at(-1)?.id;
       if (through && state.readThrough.get(id)!==through) {

@@ -104,13 +104,13 @@ test('the composer stays above the measured tab bar and follows the keyboard vie
   root.getBoundingClientRect=()=>({top:59});
   root.style.setProperty=(key,value)=>{root.style[key]=value;};
   ui.context.document.body={classList:{toggle:(key,value)=>value?classes.add(key):classes.delete(key)}};
-  ui.context.document.getElementById('bottomTabBar').getBoundingClientRect=()=>({top:736});
+  ui.context.document.getElementById('bottomTabBar').getBoundingClientRect=()=>({top:viewport.height-108});
   ui.api.onSection('chat');await settle();
   await ui.elements.get('chatInbox').children[0].listeners.click();await settle();
   assert.equal(root.style['--chat-height'],'665px');
   ui.context.document.activeElement=ui.elements.get('chatText');
   viewport.height=500;events.resize();
-  assert.equal(root.style['--chat-height'],'429px');assert.ok(classes.has('chat-keyboard-open'));
+  assert.equal(root.style['--chat-height'],'321px');assert.ok(classes.has('chat-keyboard-open'));
   viewport.height=844;events.resize();
   assert.equal(root.style['--chat-height'],'665px');assert.equal(classes.has('chat-keyboard-open'),false);
 });
@@ -152,8 +152,95 @@ test('returning to the messages tab preserves history, fetches the latest page a
   ui.elements.get('chatMessages').scrollTop = 0;
   ui.api.onSection('chat'); await settle();
   assert.deepEqual(messageTexts(ui), ['История', 'Последнее сообщение']);
-  assert.ok(historyURLs.every(url => !url.includes('after=') && !url.includes('before=')));
+  assert.equal(historyURLs[0].includes('after='), false);
+  assert.ok(historyURLs[1].includes('after=1'));
   assert.equal(ui.elements.get('chatMessages').scrollTop, ui.elements.get('chatMessages').scrollHeight);
+});
+
+test('returning after a long absence fills every history page without gaps or duplicates', async () => {
+  const histories = [], acknowledgements = [];
+  let total = 50;
+  const messages = Array.from({ length: 250 }, (_, i) => ({ ...message, id: String(i + 1), text: `Сообщение ${i + 1}` }));
+  const ui = setup(async (url, options) => {
+    if (url.includes('action=session')) return reply({ profile, conversations: [conversation] });
+    if (url.includes('action=inbox')) return reply({ conversations: [conversation] });
+    if (url.includes('action=read')) { acknowledgements.push(JSON.parse(options.body).throughID); return reply({ ok: true }); }
+    const params = new URL(url, 'https://example.test').searchParams;
+    histories.push(params);
+    const after = params.get('after');
+    const available = messages.slice(0, total);
+    const page = after ? available.filter(item => BigInt(item.id) > BigInt(after)).slice(0, 100) : available.slice(-50);
+    return reply({ messages: page, hasMore: after ? Number(page.at(-1)?.id || after) < total : total > 50 });
+  });
+  ui.api.onSection('chat'); await settle();
+  await ui.elements.get('chatInbox').children[0].listeners.click();
+  ui.api.onSection('profile'); total = 250;
+  ui.api.onSection('chat'); await ui.api.refreshNow(); await settle();
+  assert.deepEqual(messageTexts(ui), messages.map(item => item.text));
+  assert.deepEqual(histories.slice(1, 3).map(params => params.get('after')), ['50', '150']);
+  assert.ok(histories.slice(3).every(params => params.get('after') === '250'));
+  assert.equal(acknowledgements.at(-1), '250');
+  assert.equal(ui.elements.get('chatOlder').hidden, true, 'complete cached history stays complete after catching up');
+});
+
+test('a delayed history response preserves an already confirmed send', async () => {
+  let finishHistory, reads = 0;
+  const sent = { ...message, id: '2', senderID: 'me', text: 'Привет', clientID: 'retry-id' };
+  const ui = setup(async (url, options) => {
+    if (url.includes('action=session')) return reply({ profile, conversations: [conversation] });
+    if (url.includes('action=inbox')) return reply({ conversations: [conversation] });
+    if (url.includes('action=messages') && options.method === 'POST') return reply({ message: sent });
+    if (url.includes('action=read') || url.includes('action=typing')) return reply({ ok: true });
+    if (++reads === 1) return reply({ messages: [message], hasMore: false });
+    return new Promise(resolve => { finishHistory = resolve; });
+  });
+  ui.api.onSection('chat'); await settle();
+  await ui.elements.get('chatInbox').children[0].listeners.click();
+  const refresh = ui.api.refreshNow(); await settle();
+  ui.elements.get('chatText').value = 'Привет';
+  await ui.elements.get('chatComposer').listeners.submit({ preventDefault() {} });
+  finishHistory(reply({ messages: [message], hasMore: false })); await refresh;
+  assert.deepEqual(messageTexts(ui), ['История', 'Привет']);
+});
+
+test('a concurrent send cannot move the cursor past undelivered history pages', async () => {
+  let finishPage, catchingUp = false;
+  const cursors = [];
+  const history = Array.from({ length: 250 }, (_, i) => ({ ...message, id: String(i + 1), text: `Сообщение ${i + 1}` }));
+  const sent = { ...message, id: '301', senderID: 'me', text: 'Привет', clientID: 'retry-id' };
+  const ui = setup(async (url, options) => {
+    if (url.includes('action=session')) return reply({ profile, conversations: [conversation] });
+    if (url.includes('action=inbox')) return reply({ conversations: [conversation] });
+    if (url.includes('action=read') || url.includes('action=typing')) return reply({ ok: true });
+    if (options.method === 'POST') return reply({ message: sent });
+    if (!catchingUp) return reply({ messages: [history[0]], hasMore: false });
+    const after = new URL(url, 'https://example.test').searchParams.get('after'); cursors.push(after);
+    if (after === '1') return new Promise(resolve => { finishPage = () => resolve(reply({ messages: history.slice(1, 101), hasMore: true })); });
+    const page = [...history, sent].filter(item => BigInt(item.id) > BigInt(after)).slice(0, 100);
+    return reply({ messages: page, hasMore: page.at(-1)?.id !== '301' });
+  });
+  ui.api.onSection('chat'); await settle();
+  await ui.elements.get('chatInbox').children[0].listeners.click();
+  catchingUp = true; const refresh = ui.api.refreshNow(); await settle();
+  ui.elements.get('chatText').value = 'Привет';
+  await ui.elements.get('chatComposer').listeners.submit({ preventDefault() {} });
+  finishPage(); await refresh;
+  assert.deepEqual(cursors, ['1', '101', '201']);
+  assert.deepEqual(messageTexts(ui), [...history.map(item => item.text), 'Привет']);
+});
+
+test('unchanged inbox refresh preserves its DOM and logout resets the render cache', async () => {
+  const ui = setup(async (url, options) => {
+    if (options.method === 'DELETE') return reply({ ok: true });
+    return reply(url.includes('action=session') ? { profile, conversations: [conversation] } : { conversations: [conversation] });
+  });
+  ui.api.onSection('chat'); await settle();
+  const original = ui.elements.get('chatInbox').children[0];
+  await ui.api.refreshNow();
+  assert.equal(ui.elements.get('chatInbox').children[0], original);
+  await ui.api.logout(); ui.api.onSection('chat'); await settle();
+  const restored = ui.elements.get('chatInbox').children[0];
+  assert.ok(restored); assert.notEqual(restored, original);
 });
 test('bootstrap supplies the inbox in one browser request', async () => {
   let calls = 0;

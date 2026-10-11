@@ -19,7 +19,7 @@ function setup({ reduced = false, saveData = false, available = true } = {}) {
     querySelector: () => surface, createElement(tag) { created.push(tag); return canvas; },
     addEventListener(name, fn) { events.set(name, fn); } };
   const motion = { matches: reduced, addEventListener(name, fn) { this.change = fn; } };
-  const connection = { saveData, addEventListener() {} };
+  const connection = { saveData, addEventListener(name, fn) { this.change = fn; } };
   let accent = '40, 180, 150';
   const window = { innerWidth: 1920, innerHeight: 1080,
     matchMedia: () => motion, addEventListener(name, fn) { pages.set(name, fn); },
@@ -28,7 +28,7 @@ function setup({ reduced = false, saveData = false, available = true } = {}) {
   vm.runInNewContext(source, { window, document, navigator: { connection, hardwareConcurrency: 8 },
     getComputedStyle: () => ({ getPropertyValue: name => name === '--accent-rgb' ? accent : '#0b1115' }),
     MutationObserver: class { constructor(fn) { this.callback = fn; } observe(target) { if (target === root) observer = this.callback; else bodyObserver = this.callback; } } });
-  return { canvas, created, surface, frames, document, root, motion, window, events, pages, colors,
+  return { canvas, created, surface, frames, document, root, motion, connection, window, events, pages, colors,
     get paints() { return paints; }, start: () => pages.get('univer-ready')?.(),
     step(timestamp) { const [id, callback] = [...frames][0]; frames.delete(id); callback(timestamp); },
     appearance(rgb) { accent = rgb; observer(); },
@@ -60,6 +60,24 @@ test('travelling ribs move over time and remain continuous across successive wav
   const boundary = .94 / .034;
   const before = capture(boundary - .001), after = capture(boundary + .001);
   assert.ok(before.every((point, i) => Math.abs(point[0] - after[i][0]) < .1));
+});
+
+test('closing recap resumes one animation loop only after all restrictions are lifted', () => {
+  for (const restriction of ['hidden', 'motion', 'saveData', 'pagehide']) {
+    const env = setup(); env.start(); env.wrapped(true);
+    if (restriction === 'hidden') { env.document.hidden = true; env.events.get('visibilitychange')(); }
+    if (restriction === 'motion') { env.motion.matches = true; env.motion.change(); }
+    if (restriction === 'saveData') { env.connection.saveData = true; env.connection.change(); }
+    if (restriction === 'pagehide') env.pages.get('pagehide')();
+    env.wrapped(false); env.wrapped(false);
+    assert.equal(env.frames.size, 0, restriction);
+    if (restriction === 'hidden') { env.document.hidden = false; env.events.get('visibilitychange')(); }
+    if (restriction === 'motion') { env.motion.matches = false; env.motion.change(); }
+    if (restriction === 'saveData') { env.connection.saveData = false; env.connection.change(); }
+    if (restriction === 'pagehide') env.pages.get('pageshow')();
+    env.wrapped(false); env.wrapped(false); env.appearance('80, 90, 100'); env.pages.get('resize')();
+    assert.equal(env.frames.size, 1, restriction);
+  }
 });
 test('code background draws without video and caps its pixel budget before animation starts', () => {
   const env = setup();
