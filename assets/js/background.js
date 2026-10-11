@@ -13,7 +13,7 @@
   const connection = navigator.connection;
   const frameInterval = navigator.hardwareConcurrency <= 4 ? 1000 / 24 : 1000 / 30;
   let ready = false, suspended = false, frame = null, previous = null, time = 0;
-  let palette, width = 1, height = 1;
+  let palette, width = 1, height = 1, landscape = false;
   const specks = Array.from({ length: 160 }, (_, dot) => {
     const seed = Math.sin(dot * 127.1 + 19.7) * 43758.5453;
     const other = Math.sin(dot * 311.7 + 47.3) * 19341.592;
@@ -39,6 +39,7 @@
   function resize() {
     const viewportWidth = Math.max(1, window.innerWidth);
     const viewportHeight = Math.max(1, window.innerHeight);
+    landscape = viewportWidth >= 900 && viewportWidth / viewportHeight >= 1.15;
     const scale = Math.min(1, 720 / viewportWidth, 900 / viewportHeight,
       Math.sqrt(240000 / (viewportWidth * viewportHeight)));
     width = canvas.width = Math.max(1, Math.round(viewportWidth * scale));
@@ -65,8 +66,15 @@
     const peak = (distance, spread) => Math.exp(-Math.pow(distance / spread, 2));
     const upperLight = .10 + .38 * Math.pow(Math.sin(time * .55), 2);
     const upperPosition = .04 + .025 * Math.sin(time * .7 + 2);
+    // Desktop uses two edge ribbons in the reference aspect ratio. Scaling both
+    // axes together keeps the folds intact instead of stretching them sideways.
+    const ribbonHeight = landscape ? Math.min(height * 1.25, width * .72) : height;
+    const ribbonWidth = landscape ? ribbonHeight * 720 / 1280 : width;
+    const ribbonTop = landscape ? (height - ribbonHeight) / 2 : 0;
     for (let line = 0; line < 19; line++) {
-      const u = line / 18;
+      const right = landscape && line >= 9;
+      const u = landscape ? (right ? (line - 9) / 9 : line / 8) : line / 18;
+      const ribbonTravel = travel + (right ? wavelength * .28 : 0);
       const bend = .395 - .10 * u + .095 * Math.exp(-Math.pow((u - .48) / .21, 2))
         + .008 * Math.sin(u * 9);
       const release = bend + .165 - .045 * u;
@@ -75,12 +83,12 @@
       const upperStrength = upperLight * peak(u - .22, .2);
       const tailPosition = .87 + .05 * Math.sin(u * 6);
       const upperFoldStrength = peak(u - .15, .2);
-      const gradient = ctx.createLinearGradient(0, 0, 0, height);
+      const gradient = ctx.createLinearGradient(0, ribbonTop, 0, ribbonTop + ribbonHeight);
       for (let stop = 0; stop <= 100; stop++) {
         const v = stop / 100;
         let light = .003;
         for (let wave = -2; wave <= 2; wave++) {
-          const offset = travel + wave * wavelength;
+          const offset = ribbonTravel + wave * wavelength;
           const crest = peak(v - bend - offset - .006, .025);
           const reflection = peak(v - bend - offset - .060, .072);
           const tail = peak(v - tailPosition - offset, .085);
@@ -97,15 +105,17 @@
         const fan = (u - .5) * .34 * Math.sin(Math.PI * v);
         let fold = 0;
         for (let wave = -2; wave <= 2; wave++) {
-          const offset = travel + wave * wavelength;
+          const offset = ribbonTravel + wave * wavelength;
           fold += .055 * (Math.tanh((v - bend - offset) / .032)
             - Math.tanh((v - release - offset) / .049));
         }
         fold += .025 * (Math.tanh((v - .025) / .018)
           - Math.tanh((v - .11) / .045)) * upperFoldStrength;
-        const ripple = .010 * Math.sin((v - travel) * Math.PI * 6 / wavelength + u * 2);
-        const x = width * (.05 + .27 * u + (.56 + .19 * u) * v + fan + fold + ripple);
-        const y = height * v;
+        const ripple = .010 * Math.sin((v - ribbonTravel) * Math.PI * 6 / wavelength + u * 2);
+        const ribbonX = ribbonWidth * (.05 + .27 * u + (.56 + .19 * u) * v + fan + fold + ripple);
+        const edge = landscape ? width * .025 + ribbonWidth * .04 : 0;
+        const x = right ? width + edge - ribbonX : ribbonX - edge;
+        const y = ribbonTop + ribbonHeight * v;
         if (step) ctx.lineTo(x, y); else ctx.moveTo(x, y);
       }
       ctx.globalAlpha = .035;

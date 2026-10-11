@@ -35,7 +35,7 @@ function setup({ reduced = false, saveData = false, available = true } = {}) {
     wrapped(open) { if (open) bodyClasses.add('wrapped-open'); else bodyClasses.delete('wrapped-open'); bodyObserver(); } };
 }
 
-test('travelling ribs move over time and remain continuous across successive waves', () => {
+function recordPaths(viewportWidth = 390, viewportHeight = 844) {
   const paths = [];
   // A standalone recorder avoids asserting a particular artistic shape.
   const ctx = { fillRect() {}, beginPath() {}, moveTo(x, y) { paths.push([x, y]); },
@@ -43,22 +43,47 @@ test('travelling ribs move over time and remain continuous across successive wav
     createRadialGradient: () => ({ addColorStop() {} }),
     createLinearGradient: () => ({ addColorStop() {} }) };
   const noop = () => {};
-  const window = { innerWidth: 390, innerHeight: 844, addEventListener: noop,
+  const canvas = { getContext: () => ctx, setAttribute: noop };
+  const window = { innerWidth: viewportWidth, innerHeight: viewportHeight, addEventListener: noop,
     matchMedia: () => ({ matches: true, addEventListener: noop }) };
   vm.runInNewContext(source.replace(/\}\)\(\);\s*$/,
     'window.renderAt = value => { time = value; draw(); };})();'), {
     window, navigator: {}, document: { hidden: false,
       querySelector: () => ({ appendChild: noop, classList: { add: noop } }),
-      createElement: () => ({ getContext: () => ctx, setAttribute: noop }),
+      createElement: () => canvas,
       documentElement: { getAttribute: () => 'dark' }, body: { classList: { add: noop } },
       addEventListener: noop }, getComputedStyle: () => ({ getPropertyValue: () => '' }),
     MutationObserver: class { observe() {} }
   });
   const capture = t => { paths.length = 0; window.renderAt(t); return paths.slice(); };
+  return { capture, canvas };
+}
+
+test('travelling ribs move over time and remain continuous across successive waves', () => {
+  const { capture } = recordPaths();
   const start = capture(0), later = capture(3.5);
   assert.ok(start.some((point, i) => Math.abs(point[0] - later[i][0]) > 5));
   const boundary = .94 / .034;
   const before = capture(boundary - .001), after = capture(boundary + .001);
+  assert.ok(before.every((point, i) => Math.abs(point[0] - after[i][0]) < .1));
+});
+
+test('wide-screen folds keep their proportions on wider monitors and leave the centre clear', () => {
+  const narrow = recordPaths(1920, 1080), wide = recordPaths(2560, 1080);
+  const first = narrow.capture(7), second = wide.capture(7);
+  assert.equal(first.length, second.length);
+  assert.equal(first.length, 19 * 161, 'desktop keeps the same rendering budget');
+  assert.ok(first.every(([x]) => x < narrow.canvas.width * .46 || x > narrow.canvas.width * .54));
+  // Compare the shape after removing edge placement and uniform scale.
+  for (let i = 0; i < first.length; i++) {
+    const origin = Math.floor(i / 161) * 161;
+    assert.ok(Math.abs((first[i][0] - first[origin][0]) / narrow.canvas.height
+      - (second[i][0] - second[origin][0]) / wide.canvas.height) < 1e-12);
+    assert.ok(Math.abs((first[i][1] - first[origin][1]) / narrow.canvas.height
+      - (second[i][1] - second[origin][1]) / wide.canvas.height) < 1e-12);
+  }
+  const boundary = .94 / .034;
+  const before = wide.capture(boundary - .001), after = wide.capture(boundary + .001);
   assert.ok(before.every((point, i) => Math.abs(point[0] - after[i][0]) < .1));
 });
 
