@@ -109,6 +109,12 @@
 }
 
 .chat-profile-trigger { padding:0; border:1px solid var(--glass-border); font:inherit; font-weight:700; cursor:pointer; }
+.chat-profile-loading { display:grid; place-items:center; min-height:160px; color:var(--accent); }
+.chat-profile-loading svg { width:38px; height:38px; }
+.chat-profile-loading-track { opacity:.16; }
+.chat-profile-loading-arrow { transform-box:view-box; transform-origin:16px 16px; animation:profileLoadingTurn 1.1s linear infinite; }
+@keyframes profileLoadingTurn { to { transform:rotate(360deg); } }
+@media(prefers-reduced-motion:reduce) { .chat-profile-loading-arrow { animation:none; } }
 .chat-profile-trigger:focus-visible { outline:2px solid var(--accent); outline-offset:3px; }
 .chat-peer-profile-hero { display:flex; flex-direction:column; align-items:center; gap:12px; padding:24px 16px; margin-bottom:12px; text-align:center; border:1px solid var(--glass-border); border-radius:26px; background:radial-gradient(ellipse at 20% 0%,rgba(var(--accent-rgb),.2),transparent 75%),var(--surface-bg); }
 .chat-peer-profile-hero .profile-avatar { display:grid; place-items:center; width:72px; height:72px; border-radius:50%; font-size:24px; }

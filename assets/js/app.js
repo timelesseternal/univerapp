@@ -977,7 +977,9 @@ if ('serviceWorker' in navigator) {
   }
 
   function openAcademicSection(section) {
-    window.univerAcademic?.open(section, { student: platonusStudent, fetch: platonusFetch });
+    const term = trueCurrentWeekInfo?.term || liveScheduleWeekInfo?.selectedTerm || (new Date().getMonth() >= 8 ? 1 : 2);
+    window.univerAcademic?.open(section, { student: platonusStudent, fetch: platonusFetch,
+      currentPeriod: { course: platonusStudent ? studentCourse(platonusStudent) : null, term } });
   }
 
   function retryLiveLoad() {

@@ -11,6 +11,23 @@ function setup() {
   return { api: context.window.univerAcademic, nodes };
 }
 const data = id => ({ studentID: id, year: '2026–2027', semesters: [{ name: 'Осенний семестр', groups: [{ name: 'Сессия', rows: [{ label: 'Сессия', value: '14 декабря–2 января' }] }] }] });
+
+test('transcript opens the current course and term rather than the final future period',async()=>{
+  for(const term of [1,2]){
+    const ui=setup();
+    const periods=[1,2,3].flatMap(course=>[1,2].map(term=>({course,term,rows:[],gpa:0,courseGpa:0})));
+    await ui.api.open('transcript',{student:{studentID:7},currentPeriod:{course:3,term},fetch:async()=>({studentID:7,periods})});
+    const html=ui.nodes.transcriptContainer.innerHTML;
+    const opened=[...html.matchAll(/<details[^>]*\sopen><summary><span>([^<]+)/g)].map(match=>match[1]);
+    assert.deepEqual(opened,[`3 курс · ${term} семестр`]);
+  }
+});
+
+test('an unknown current period never defaults to a future semester',async()=>{
+  const ui=setup();
+  await ui.api.open('transcript',{student:{studentID:7},fetch:async()=>({studentID:7,periods:[{course:3,term:2,rows:[]}]})});
+  assert.doesNotMatch(ui.nodes.transcriptContainer.innerHTML,/<details[^>]*\sopen>/);
+});
 test('academic screen shares in-flight loads and reuses the warm account cache', async () => {
   const ui = setup(); let calls = 0, resolve;
   const waiting = new Promise(r => { resolve = r; });
