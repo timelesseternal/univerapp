@@ -82,13 +82,20 @@
     if (state.visible && state.conversation) {
       const list = byID('chatMessages');
       const bottom = list.scrollHeight - list.scrollTop - list.clientHeight < 90;
-      const viewportBottom = viewport.height + viewport.offsetTop;
-      const navTop = byID('bottomTabBar')?.getBoundingClientRect?.().top;
-      const boundary = keyboard ? viewportBottom - 12 : Number.isFinite(navTop) && navTop > 0
-        ? Math.min(viewportBottom, navTop) - 12 : viewportBottom - 112;
-      const threadTop = byID('chatThread')?.getBoundingClientRect?.().top;
-      const height = Math.max(120, boundary - (Number.isFinite(threadTop) ? threadTop : root.getBoundingClientRect().top));
-      root.style.setProperty('--chat-height', `${height}px`);
+      if (keyboard) {
+        // Anchor the entire thread to the visible viewport. Measuring its old
+        // position here feeds Safari's focus pan back into the next layout.
+        root.style.setProperty('--chat-viewport-top', `${Math.max(0, viewport.offsetTop || 0)}px`);
+        root.style.setProperty('--chat-viewport-height', `${Math.max(120, viewport.height - 12)}px`);
+      } else {
+        const viewportBottom = viewport.height + (viewport.offsetTop || 0);
+        const navTop = byID('bottomTabBar')?.getBoundingClientRect?.().top;
+        const boundary = Number.isFinite(navTop) && navTop > 0
+          ? Math.min(viewportBottom, navTop) - 12 : viewportBottom - 112;
+        const threadTop = byID('chatThread')?.getBoundingClientRect?.().top;
+        const height = Math.max(120, boundary - (Number.isFinite(threadTop) ? threadTop : root.getBoundingClientRect().top));
+        root.style.setProperty('--chat-height', `${height}px`);
+      }
       if (bottom) list.scrollTop = list.scrollHeight;
     }
   }
@@ -712,11 +719,16 @@
   byID('chatComposer').addEventListener('submit', send);
   byID('chatText').addEventListener('input', () => { resizeComposer(); publishTyping(); });
   byID('chatText').addEventListener('blur', () => { stopTyping(); fitConversation(); });
-  window.visualViewport?.addEventListener('resize', fitConversation);
-  window.visualViewport?.addEventListener('scroll', fitConversation);
-  window.addEventListener?.('resize', fitConversation);
-  root.addEventListener('animationend', fitConversation);
-  byID('chatText').addEventListener('focus', fitConversation);
+  let fitFrame = 0;
+  function scheduleConversationFit() {
+    if (!window.requestAnimationFrame) { fitConversation(); return; }
+    if (!fitFrame) fitFrame = window.requestAnimationFrame(() => { fitFrame = 0; fitConversation(); });
+  }
+  window.visualViewport?.addEventListener('resize', scheduleConversationFit);
+  window.visualViewport?.addEventListener('scroll', scheduleConversationFit);
+  window.addEventListener?.('resize', scheduleConversationFit);
+  root.addEventListener('animationend', scheduleConversationFit);
+  byID('chatText').addEventListener('focus', scheduleConversationFit);
   byID('chatText').addEventListener('keydown', event => {
     if (event.key === 'Enter' && !event.shiftKey && !event.isComposing && window.matchMedia('(pointer: fine)').matches) {
       event.preventDefault(); byID('chatComposer').requestSubmit();

@@ -114,15 +114,28 @@ test('the composer stays above the measured tab bar and follows the keyboard vie
   ui.elements.get('chatText').listeners.focus();
   assert.equal(classes.has('chat-keyboard-open'),false); // Desktop/hardware keyboard focus.
   viewport.height=500;events.resize();
-  assert.equal(root.style['--chat-height'],'413px');assert.ok(classes.has('chat-keyboard-open'));
+  assert.equal(root.style['--chat-viewport-height'],'488px');assert.ok(classes.has('chat-keyboard-open'));
+  assert.equal(root.style['--chat-viewport-top'],'0px');
+  ui.elements.get('chatThread').getBoundingClientRect=()=>({top:-180}); // Safari's focus pan.
   viewport.offsetTop=30;events.scroll();
-  assert.equal(root.style['--chat-height'],'443px');
+  assert.equal(root.style['--chat-viewport-height'],'488px');
+  assert.equal(root.style['--chat-viewport-top'],'30px');
+  ui.elements.get('chatThread').getBoundingClientRect=()=>({top:75});
+  const frames=[];
+  ui.context.window.requestAnimationFrame=fn=>{frames.push(fn);return frames.length;};
+  viewport.height=480;events.resize();
+  viewport.height=470;events.scroll();
+  assert.equal(frames.length,1);
+  frames.shift()();
+  assert.equal(root.style['--chat-viewport-height'],'458px'); // Read the latest, settled metrics.
+  delete ui.context.window.requestAnimationFrame;
+  viewport.height=500;events.resize();
   viewport.offsetTop=0;
   ui.context.document.activeElement=null;
   ui.context.window.innerHeight=500; // Android may resize the layout viewport too.
   ui.elements.get('chatText').listeners.blur();
   assert.ok(classes.has('chat-keyboard-open')); // Sending/blur must not flash the tabs.
-  assert.equal(root.style['--chat-height'],'413px');
+  assert.equal(root.style['--chat-viewport-height'],'488px');
   ui.context.window.innerHeight=844;
   viewport.height=844;events.resize();
   assert.equal(root.style['--chat-height'],'649px');assert.equal(classes.has('chat-keyboard-open'),false);

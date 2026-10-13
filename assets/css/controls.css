@@ -22,6 +22,24 @@ html, body { height:100%; min-height:0; overflow:hidden; overscroll-behavior:non
 /* Keep its layout rectangle for chat sizing while the software keyboard is open. */
 .chat-keyboard-open #bottomTabBar,
 .chat-keyboard-open .tab-scroll-fade { visibility:hidden; pointer-events:none; }
+/* A keyboard-open thread is independent of the page's scroll and entrance transforms. */
+.chat-keyboard-open #sectionChat, .chat-keyboard-open #chatThread { animation:none; transform:none; }
+.chat-keyboard-open .app-shell > .app-wrapper { overflow:hidden; }
+.chat-keyboard-open #chatThread {
+  position:fixed;
+  top:var(--chat-viewport-top, 0px);
+  bottom:auto;
+  left:0;
+  right:0;
+  width:calc(100% - var(--layout-gutter) * 2);
+  max-width:var(--layout-width);
+  height:var(--chat-viewport-height);
+  min-height:0;
+  margin:0 auto;
+  padding-top:calc(8px + max(env(safe-area-inset-top, 0px), var(--tg-safe-area-top)) + var(--tg-content-safe-area-top));
+  z-index:501;
+}
+.ios-native-viewport .chat-keyboard-open #chatThread { padding-top:8px; }
 .login-remember{position:relative;display:flex;align-items:center;justify-content:space-between;gap:16px;min-height:44px;margin:0 0 10px;color:var(--ink-soft);font-size:14px;font-weight:600;cursor:pointer;-webkit-tap-highlight-color:transparent}
 .login-remember input{position:absolute;right:0;width:44px;height:44px;margin:0;opacity:0;cursor:pointer}
 .login-remember-switch{display:block;flex:0 0 42px;height:26px;padding:3px;border:1px solid var(--line);border-radius:20px;background:var(--paper-2);pointer-events:none;transition:background .18s,border-color .18s}
