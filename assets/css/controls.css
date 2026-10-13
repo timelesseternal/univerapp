@@ -19,6 +19,9 @@ html, body { height:100%; min-height:0; overflow:hidden; overscroll-behavior:non
   margin-inline:auto;
   margin-block: 0;
 }
+/* Keep its layout rectangle for chat sizing while the software keyboard is open. */
+.chat-keyboard-open #bottomTabBar,
+.chat-keyboard-open .tab-scroll-fade { visibility:hidden; pointer-events:none; }
 .login-remember{position:relative;display:flex;align-items:center;justify-content:space-between;gap:16px;min-height:44px;margin:0 0 10px;color:var(--ink-soft);font-size:14px;font-weight:600;cursor:pointer;-webkit-tap-highlight-color:transparent}
 .login-remember input{position:absolute;right:0;width:44px;height:44px;margin:0;opacity:0;cursor:pointer}
 .login-remember-switch{display:block;flex:0 0 42px;height:26px;padding:3px;border:1px solid var(--line);border-radius:20px;background:var(--paper-2);pointer-events:none;transition:background .18s,border-color .18s}

@@ -63,6 +63,7 @@
   const telegramApp = window.Telegram?.WebApp?.initData ? window.Telegram.WebApp : null;
   let restingViewportHeight = window.innerHeight || 0;
   let restingViewportWidth = window.innerWidth || 0;
+  let keyboardVisible = false;
   let typingAt = 0, typingConversation = null, typingTimer = null, peerTypingTimer = null;
   function fitConversation() {
     const viewport = window.visualViewport;
@@ -72,9 +73,11 @@
       restingViewportHeight = window.innerHeight || viewport.height;
     }
     const typing = document.activeElement === byID('chatText');
-    if (!typing) restingViewportHeight = window.innerHeight || viewport.height;
-    const keyboard = state.visible && !!state.conversation && !state.peerProfileOpen && typing
+    if (!typing && !keyboardVisible) restingViewportHeight = window.innerHeight || viewport.height;
+    const keyboard = state.visible && !!state.conversation && !state.peerProfileOpen && (typing || keyboardVisible)
+      && Math.abs((viewport.scale || 1) - 1) < 0.01
       && Math.max(restingViewportHeight, window.innerHeight || 0) - viewport.height > 120;
+    keyboardVisible = keyboard;
     document.body?.classList.toggle('chat-keyboard-open', keyboard);
     if (state.visible && state.conversation) {
       const list = byID('chatMessages');
@@ -83,7 +86,8 @@
       const navTop = byID('bottomTabBar')?.getBoundingClientRect?.().top;
       const boundary = keyboard ? viewportBottom - 12 : Number.isFinite(navTop) && navTop > 0
         ? Math.min(viewportBottom, navTop) - 12 : viewportBottom - 112;
-      const height = Math.max(120, boundary - root.getBoundingClientRect().top);
+      const threadTop = byID('chatThread')?.getBoundingClientRect?.().top;
+      const height = Math.max(120, boundary - (Number.isFinite(threadTop) ? threadTop : root.getBoundingClientRect().top));
       root.style.setProperty('--chat-height', `${height}px`);
       if (bottom) list.scrollTop = list.scrollHeight;
     }
@@ -707,7 +711,7 @@
   });
   byID('chatComposer').addEventListener('submit', send);
   byID('chatText').addEventListener('input', () => { resizeComposer(); publishTyping(); });
-  byID('chatText').addEventListener('blur', stopTyping);
+  byID('chatText').addEventListener('blur', () => { stopTyping(); fitConversation(); });
   window.visualViewport?.addEventListener('resize', fitConversation);
   window.visualViewport?.addEventListener('scroll', fitConversation);
   window.addEventListener?.('resize', fitConversation);

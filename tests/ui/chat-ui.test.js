@@ -103,19 +103,32 @@ test('the composer stays above the measured tab bar and follows the keyboard vie
   const root=ui.elements.get('sectionChat');
   root.getBoundingClientRect=()=>({top:59});
   root.style.setProperty=(key,value)=>{root.style[key]=value;};
+  ui.context.document.getElementById('chatThread').getBoundingClientRect=()=>({top:75});
   ui.context.document.body={classList:{toggle:(key,value)=>value?classes.add(key):classes.delete(key)}};
-  // Navigation keeps the same layout position; only the composer follows the keyboard.
+  // Hidden navigation retains its rectangle; the composer follows the keyboard.
   ui.context.document.getElementById('bottomTabBar').getBoundingClientRect=()=>({top:736});
   ui.api.onSection('chat');await settle();
   await ui.elements.get('chatInbox').children[0].listeners.click();await settle();
-  assert.equal(root.style['--chat-height'],'665px');
+  assert.equal(root.style['--chat-height'],'649px');
   ui.context.document.activeElement=ui.elements.get('chatText');
+  ui.elements.get('chatText').listeners.focus();
+  assert.equal(classes.has('chat-keyboard-open'),false); // Desktop/hardware keyboard focus.
   viewport.height=500;events.resize();
-  assert.equal(root.style['--chat-height'],'429px');assert.ok(classes.has('chat-keyboard-open'));
+  assert.equal(root.style['--chat-height'],'413px');assert.ok(classes.has('chat-keyboard-open'));
+  viewport.offsetTop=30;events.scroll();
+  assert.equal(root.style['--chat-height'],'443px');
+  viewport.offsetTop=0;
+  ui.context.document.activeElement=null;
+  ui.context.window.innerHeight=500; // Android may resize the layout viewport too.
+  ui.elements.get('chatText').listeners.blur();
+  assert.ok(classes.has('chat-keyboard-open')); // Sending/blur must not flash the tabs.
+  assert.equal(root.style['--chat-height'],'413px');
+  ui.context.window.innerHeight=844;
   viewport.height=844;events.resize();
-  assert.equal(root.style['--chat-height'],'665px');assert.equal(classes.has('chat-keyboard-open'),false);
+  assert.equal(root.style['--chat-height'],'649px');assert.equal(classes.has('chat-keyboard-open'),false);
   let blurred = false;
   ui.elements.get('chatText').blur = () => { blurred = true; ui.context.document.activeElement = null; };
+  ui.context.document.activeElement=ui.elements.get('chatText');
   viewport.height = 500; events.resize();
   ui.api.onSection('profile');
   assert.equal(blurred, true);
