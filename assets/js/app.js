@@ -2464,9 +2464,10 @@ if ('serviceWorker' in navigator) {
   function setViewportZoomable(zoomable) {
     const meta = document.querySelector('meta[name="viewport"]');
     if (!meta) return;
+    const fit = document.documentElement.classList.contains('ios-native-viewport') ? 'auto' : 'cover';
     meta.setAttribute('content', zoomable
-      ? 'width=device-width, initial-scale=1.0, viewport-fit=cover'
-      : 'width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover');
+      ? `width=device-width, initial-scale=1.0, viewport-fit=${fit}`
+      : `width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=${fit}`);
   }
 
   // ==================================================================
