@@ -11,6 +11,37 @@
     monitoring: false, badgeTimer: null, badgeBusy: false, peerProfileOpen: false, peerProfileVersion: 0,
     inbox: [], previewKey: null, previewOwnerID: null, canResume: false };
   const warming = new Set();
+  const presenceClientID = crypto.randomUUID();
+  let presenceSequence = 0, presenceTimer = null, peerPresenceTimer = null;
+  function publishPresence(active = true) {
+    clearTimeout(presenceTimer);
+    if (!state.profile || (active && document.hidden)) return;
+    const epoch = state.epoch, sequence = ++presenceSequence;
+    request('presence', {method:'POST',body:{active,clientID:presenceClientID,sequence},keepalive:!active})
+      .catch(() => {}) // An older database must not interrupt messages.
+      .finally(() => {
+        if (!stale(epoch) && sequence === presenceSequence && active && !document.hidden && state.monitoring)
+          presenceTimer = setTimeout(() => publishPresence(), 20000);
+      });
+  }
+  function peerStatus(presence) {
+    clearTimeout(peerPresenceTimer);
+    const caption = byID('chatPeerStatus');
+    const seen = Date.parse(presence?.lastSeen);
+    const age = Date.now() - seen;
+    const online = presence?.online === true && Number.isFinite(seen) && age < 45000;
+    caption.classList.toggle?.('peer-online', online);
+    if (online) {
+      caption.textContent = 'В сети';
+      peerPresenceTimer = setTimeout(() => peerStatus({...presence,online:false}), Math.max(1000,45000-age));
+    } else if (Number.isFinite(seen)) {
+      const date = new Date(seen), today = new Date(), yesterday = new Date();
+      yesterday.setDate(today.getDate()-1);
+      const day = date.toDateString() === today.toDateString() ? 'сегодня'
+        : date.toDateString() === yesterday.toDateString() ? 'вчера' : date.toLocaleDateString('ru-RU');
+      caption.textContent = `Был(а) в сети ${day} в ${date.toLocaleTimeString('ru-RU',{hour:'2-digit',minute:'2-digit'})}`;
+    } else caption.textContent = 'Статус неизвестен';
+  }
   function previewKey() {
     const id = typeof platonusStudent !== 'undefined' && Number(platonusStudent?.studentID);
     return Number.isSafeInteger(id) && id > 0 ? `univer-chat-preview-${id}` : null;
@@ -160,13 +191,13 @@
     if (error.message === 'session_changed') return;
     status(labels[error.message] || 'Не удалось подключиться. Проверьте интернет и повторите попытку.', true);
   }
-  async function request(action, { method = 'GET', params = {}, body, headers = {} } = {}) {
+  async function request(action, { method = 'GET', params = {}, body, headers = {}, keepalive = false } = {}) {
     const epoch = state.epoch;
     const query = new URLSearchParams({ action, ...params });
     let response;
     try {
       response = await fetch(`/api/chat?${query}`, {
-        method, credentials: 'same-origin', cache: 'no-store',
+        method, credentials: 'same-origin', cache: 'no-store', keepalive,
         headers: { ...headers, ...(body ? { 'Content-Type': 'application/json' } : {}) },
         body: body ? JSON.stringify(body) : undefined,
         signal: AbortSignal.timeout(action === 'session' && method === 'POST' ? 22000 : 12000),
@@ -203,6 +234,7 @@
       }
       if (stale(epoch) || generation !== authGeneration) throw new Error('session_changed');
       state.profile = data.profile;
+      if (state.monitoring) publishPresence();
       if (Array.isArray(data.conversations)) {
         drawInbox(data.conversations);
         state.inboxAt = Date.now();
@@ -347,6 +379,7 @@
     const data = await request('messages', { params });
     if (stale(epoch) || state.conversation?.id !== id) return;
     showTyping(data.peerTyping === true && state.visible && !state.peerProfileOpen);
+    peerStatus(data.peerPresence);
     if (!params.after) state.hasOlder = data.hasMore;
     const newIDs = new Set(data.messages.filter(message => !state.messages.has(message.id)).map(message => message.id));
     let changed = newIDs.size > 0;
@@ -462,6 +495,7 @@
     saveDraft();
     rememberHistory();
     state.conversation = conversation;
+    peerStatus(null);
     const cached = state.history.get(conversation.id);
     state.messages = new Map((cached?.messages || []).map(message => [message.id, message]));
     state.hasOlder = cached?.hasOlder || false;
@@ -617,6 +651,7 @@
     }
   }
   function reset() {
+    clearTimeout(presenceTimer); peerStatus(null);
     stopTyping(); showTyping(false);
     closePeerProfile();
     state.epoch++;
@@ -739,10 +774,12 @@
     }
   });
   document.addEventListener('visibilitychange', () => {
+    if (state.profile && state.monitoring) publishPresence(!document.hidden);
     if (document.hidden) { stopTyping(); showTyping(false); }
     clearTimeout(state.timer);
     clearTimeout(state.badgeTimer);
     if (!document.hidden && state.visible) refresh();
     else if (!document.hidden) refreshBadge();
   });
+  window.addEventListener?.('pagehide', () => publishPresence(false));
 })();

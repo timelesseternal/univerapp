@@ -73,6 +73,7 @@
 .chat-peer-info { min-width: 0; }
 .chat-peer-name { font-size: var(--text-body); font-weight: 750; line-height: 1.35; overflow-wrap: anywhere; margin: 0 0 3px; }
 .chat-peer-caption { font-size: var(--text-xs); }
+.chat-peer-caption { display:block; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
 .chat-older { align-self: center; flex-shrink: 0; font-size: var(--text-xs); }
 .chat-messages { flex: 1; min-height: 0; overflow-y: auto; overscroll-behavior: contain; padding: 18px 2px; display: flex; flex-direction: column; gap: 8px; }
 .chat-date { text-align: center; color: var(--text-secondary); font-size: var(--text-xs); margin: 10px 0; }
@@ -136,6 +137,7 @@
 .chat-thread { height: var(--chat-height, calc(100dvh - max(env(safe-area-inset-top, 0px), var(--tg-safe-area-top)) - var(--tg-content-safe-area-top) - max(env(safe-area-inset-bottom, 0px), 12px) - 90px)); min-height: 120px; }
 .chat-thread-header { flex-shrink: 0; padding: 4px 0 12px; border: 0; }
 .chat-peer-name { font-size: 15px; font-weight: 750; }
+.chat-peer-caption.peer-online { color:var(--accent); }
 .chat-back { width: 34px; min-height: 38px; background: transparent; }
 .chat-messages { padding: 16px 2px 20px; gap: 5px; scroll-padding-block: 20px; -webkit-mask-image: linear-gradient(to bottom, transparent, black 14px, black calc(100% - 16px), transparent); mask-image: linear-gradient(to bottom, transparent, black 14px, black calc(100% - 16px), transparent); }
 .chat-message { max-width: 84%; padding: 8px 11px 6px; border-radius: 17px 17px 17px 5px; transform-origin: bottom left; }

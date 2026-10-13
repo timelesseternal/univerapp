@@ -42,6 +42,14 @@ export default async function handler(req, res) {
       res.status(200).json({ profile: { id: person.id, name: person.display_name }, conversations: await rpc('chat_inbox', { p_user_id: userID }) });
     } else if (action === 'telegram' && req.method === 'POST') {
       res.status(200).json({ linked: await linkTelegram(userID,req.body?.initData) });
+    } else if (action === 'presence' && req.method === 'POST') {
+      if (typeof req.body?.active !== 'boolean') throw new ChatError(400, 'invalid_chat_request');
+      const clientID = uuid(req.body?.clientID);
+      const sequence = req.body?.sequence;
+      if (!Number.isInteger(sequence) || sequence < 1 || sequence > 2147483647) throw new ChatError(400, 'invalid_chat_request');
+      const token = readToken(req);
+      await rpc('chat_touch_presence', { p_user_id:userID, p_token_hash:tokenHash(token), p_client_id:clientID, p_active:req.body.active, p_sequence:sequence });
+      res.status(200).json({ ok:true });
     } else if (action === 'typing' && req.method === 'POST') {
       if (typeof req.body?.typing !== 'boolean') throw new ChatError(400, 'invalid_chat_request');
       await rpc('chat_set_typing', { p_user_id: userID, p_conversation_id: uuid(req.body?.conversationID), p_typing: req.body.typing });
@@ -73,13 +81,14 @@ export default async function handler(req, res) {
       }
       if (before && after) throw new ChatError(400, 'invalid_chat_request');
       const conversationID = uuid(req.query.conversationID);
-      const [messages, peerTyping] = await Promise.all([
+      const [messages, peerTyping, peerPresence] = await Promise.all([
         rpc('chat_read_messages', {
           p_user_id: userID, p_conversation_id: conversationID, p_before: before || null, p_after: after || null,
         }),
         rpc('chat_peer_typing', { p_user_id: userID, p_conversation_id: conversationID }, { timeoutMs: 600 }).catch(() => false),
+        rpc('chat_peer_presence', { p_user_id:userID, p_conversation_id:conversationID }, { timeoutMs:600 }).catch(() => null),
       ]);
-      res.status(200).json({ ...messages, peerTyping: peerTyping === true });
+      res.status(200).json({ ...messages, peerTyping: peerTyping === true, peerPresence });
       waitUntil(processNotifications(userID,'delete'));
     } else if (action === 'messages' && req.method === 'POST') {
       const text = typeof req.body?.text === 'string' ? req.body.text.trim() : '';

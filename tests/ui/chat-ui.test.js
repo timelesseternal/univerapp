@@ -277,7 +277,7 @@ test('unchanged inbox refresh preserves its DOM and logout resets the render cac
 });
 test('bootstrap supplies the inbox in one browser request', async () => {
   let calls = 0;
-  const ui = setup(async () => { calls++; return reply({ profile, conversations: [conversation] }); });
+  const ui = setup(async url => { if(!url.includes('action=presence')) calls++; return reply({ profile, conversations: [conversation] }); });
   ui.api.onSection('chat');
   await settle();
   assert.equal(calls, 1);
@@ -286,7 +286,7 @@ test('bootstrap supplies the inbox in one browser request', async () => {
 
 test('returning to a recently loaded inbox displays it without another network request', async () => {
   let calls = 0;
-  const ui = setup(async () => { calls++; return reply({ profile, conversations: [conversation] }); });
+  const ui = setup(async url => { if(!url.includes('action=presence')) calls++; return reply({ profile, conversations: [conversation] }); });
   ui.api.onLogin(); await settle();
   ui.api.onSection('chat'); await settle();
   ui.api.onSection('profile');
@@ -295,6 +295,40 @@ test('returning to a recently loaded inbox displays it without another network r
   assert.equal(ui.elements.get('chatInbox').children.length, 1);
   await ui.api.refreshNow();
   assert.equal(calls, 2);
+});
+
+test('peer presence displays online, expires locally and formats last visit without inventing a status',async()=>{
+  let presence={online:true,lastSeen:new Date().toISOString()};
+  const ui=setup(async url=>{
+    if(url.includes('action=session'))return reply({profile,conversations:[conversation]});
+    if(url.includes('action=inbox'))return reply({conversations:[conversation]});
+    if(url.includes('action=messages'))return reply({messages:[message],hasMore:false,peerPresence:presence});
+    return reply({ok:true});
+  });
+  ui.api.onSection('chat');await settle();await ui.elements.get('chatInbox').children[0].listeners.click();await settle();
+  assert.equal(ui.elements.get('chatPeerStatus').textContent,'В сети');
+  const expiry=[...ui.timers.values()].find(timer=>timer.delay>40000&&timer.delay<=45000);
+  assert.ok(expiry);expiry.fn();
+  assert.match(ui.elements.get('chatPeerStatus').textContent,/Был\(а\) в сети сегодня в/);
+  presence=null;await ui.api.refreshNow();
+  assert.equal(ui.elements.get('chatPeerStatus').textContent,'Статус неизвестен');
+});
+
+test('presence heartbeats pause while hidden, resume on return and stop at logout',async()=>{
+  const activity=[];
+  const ui=setup(async(url,options)=>{
+    if(url.includes('action=presence'))activity.push({...JSON.parse(options.body),keepalive:options.keepalive});
+    return reply(url.includes('action=session')?{profile,conversations:[]}:{ok:true,conversations:[]});
+  });
+  ui.api.onLogin();await settle();
+  assert.equal(activity[0].active,true);
+  const timer=[...ui.timers.values()].find(timer=>timer.delay===20000);assert.ok(timer);
+  ui.context.document.hidden=true;ui.context.document.listeners.visibilitychange();await settle();
+  assert.equal(activity.at(-1).active,false);assert.equal(activity.at(-1).keepalive,true);
+  assert.equal([...ui.timers.values()].some(timer=>timer.delay===20000),false);
+  ui.context.document.hidden=false;ui.context.document.listeners.visibilitychange();await settle();
+  assert.equal(activity.at(-1).active,true);assert.ok(activity.at(-1).sequence>activity[0].sequence);
+  await ui.api.logout();assert.equal(ui.timers.size,0);
 });
 
 test('reopening a thread displays memory history before a slow response, logout discards it', async () => {
@@ -466,7 +500,7 @@ test('unread badge updates on the home screen and late counts cannot survive log
 test('badge polling pauses while hidden and hides the badge when the unread count becomes zero',async()=>{
   let calls=0;
   const ui=setup(async(url)=>{
-    calls++;
+    if(!url.includes('action=presence'))calls++;
     return reply(url.includes('action=session')?{profile,conversations:[{...conversation,unread:105}]}:{conversations:[]});
   });
   ui.api.onLogin();await settle();

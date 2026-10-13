@@ -141,17 +141,32 @@ test('typing identity comes from the cookie and rejects malformed activity', asy
   assert.equal(invalid.code, 400);
 });
 
+test('presence identity and session are server-derived; invalid activity is rejected',async t=>{
+  let payload;
+  setup(t,async(url,options)=>{
+    if(url.includes('/chat_sessions?'))return reply([{user_id:user}]);
+    assert.ok(url.endsWith('/rpc/chat_touch_presence'));payload=JSON.parse(options.body);return reply(null);
+  });
+  const headers={cookie:`${COOKIE_NAME}=${'a'.repeat(64)}`};
+  const result=await call({method:'POST',action:'presence',headers,body:{active:true,clientID:client,sequence:1,userID:conversation,token:'forged'}});
+  assert.equal(result.code,200);
+  assert.deepEqual(payload,{p_user_id:user,p_token_hash:tokenHash('a'.repeat(64)),p_client_id:client,p_active:true,p_sequence:1});
+  for(const body of [{active:'true',clientID:client,sequence:1},{active:true,clientID:client,sequence:0}])
+    assert.equal((await call({method:'POST',action:'presence',headers,body})).code,400);
+});
+
 test('messages remain available before the optional typing migration is applied', async t => {
   setup(t, async url => {
     if (url.includes('/chat_sessions?')) return reply([{ user_id: user }]);
     if (url.endsWith('/rpc/chat_read_messages')) return reply({ messages: [], hasMore: false });
     if (url.endsWith('/rpc/chat_peer_typing')) return reply({ code: 'PGRST202' }, 404);
+    if (url.endsWith('/rpc/chat_peer_presence')) return reply({ code: 'PGRST202' }, 404);
     return reply([]);
   });
   const result = await call({ action: 'messages', query: { conversationID: conversation },
     headers: { cookie: `${COOKIE_NAME}=${'a'.repeat(64)}` } });
   assert.equal(result.code, 200);
-  assert.deepEqual(result.body, { messages: [], hasMore: false, peerTyping: false });
+  assert.deepEqual(result.body, { messages: [], hasMore: false, peerTyping: false, peerPresence:null });
 });
 
 test('slow Platonus transcript refresh does not delay the inbox and still syncs verified study details', async t => {

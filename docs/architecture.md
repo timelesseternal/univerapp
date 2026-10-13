@@ -12,7 +12,7 @@ univerapp/
 │   └── media/                # Видео фона
 ├── api/                      # Обработчики Vercel
 │   └── _lib/                 # Platonus, чат и Telegram
-├── supabase/migrations/      # SQL-миграции по порядку: 001 → 002 → 003
+├── supabase/migrations/      # SQL-миграции по порядку: 001 → 002 → 003 → 004 → 005
 ├── tests/
 │   ├── ui/                   # Интерфейс и браузерная логика
 │   ├── api/                  # Серверные запросы и уведомления
