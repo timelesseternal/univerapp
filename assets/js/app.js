@@ -944,7 +944,7 @@ if ('serviceWorker' in navigator) {
     } else if (gradesLoadFailed) {
       html += '<div class="notice-panel"><div class="notice-title">Не удалось загрузить оценки</div><div class="notice-hint">Проверьте интернет. Загрузка повторится автоматически.</div></div>';
     } else if (subjects) {
-      html += '<div class="notice-panel"><div class="notice-title">Оценок пока нет</div><div class="notice-hint">Platonus вернул пустой журнал за выбранный семестр.</div></div>';
+      html += '<div class="notice-panel" role="status"><div class="notice-hint">Загружаем оценки… Данные обновляются автоматически.</div></div>';
     } else {
       html += '<div class="notice-panel"><div class="notice-hint">Оценки по предметам загружаются…</div></div>';
     }
@@ -997,11 +997,20 @@ if ('serviceWorker' in navigator) {
     const generation = authGeneration;
     const key = `${generation}-${studentID}-${year}-${term}`;
     if (journalRequest?.key === key) return journalRequest.work;
-    if (!force && journalSnapshot?.key === key && Date.now() - journalSnapshot.at < 30000) return Promise.resolve(liveJournalData);
+    if (!force && journalSnapshot?.key === key && Date.now() - journalSnapshot.at < (journalSnapshot.empty ? 5000 : 30000)) return Promise.resolve(liveJournalData);
     const journalWork = studentID ? platonusFetch(`/api/grades?studentID=${studentID}&year=${year}&term=${term}`)
       .then(journal => {
         if (!Array.isArray(journal)) throw new Error('invalid_journal');
         if (generation === authGeneration) {
+          if (!journal.length) {
+            // Platonus can temporarily return []: retry on the next visible refresh,
+            // without erasing the same semester's cards or persisting an empty journal.
+            if (journalSnapshot && journalSnapshot.key !== key) liveJournalData = null;
+            journalSnapshot = { key, at: Date.now(), empty: true };
+            gradesLoadFailed = false;
+            if (currentSection === 'grades') renderGrades(false);
+            return null;
+          }
           liveJournalData = journal;
           journalSnapshot = { key, at: Date.now() };
           window.UniverWrapped?.capture({ student: platonusStudent, period: { studyYear: year, term }, journal });

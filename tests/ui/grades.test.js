@@ -10,9 +10,34 @@ function setup(journal,failed=false){
   vm.runInContext(source.slice(source.indexOf('  function renderGrades('),source.indexOf('  function renderCurrentSection(')),ctx);
   return {ctx,element};
 }
-test('an empty journal displays an explanation without a manual refresh button',()=>{
+test('an empty journal displays automatic loading without a Platonus warning or refresh button',()=>{
   const ui=setup([]);ui.ctx.renderGrades(false);
-  assert.match(ui.element.innerHTML,/Оценок пока нет/);assert.doesNotMatch(ui.element.innerHTML,/retryGrades|<button/);
+  assert.match(ui.element.innerHTML,/обновляются автоматически/);assert.doesNotMatch(ui.element.innerHTML,/Platonus|пустой|Оценок пока нет|retryGrades|<button/);
+});
+
+test('empty journals retry promptly and never overwrite cached grades or recap with emptiness',async()=>{
+  let now=0,calls=0,saves=0,captures=0;
+  const saved=[{subjectName:'Предмет'}];
+  const responses=[[],saved,[]];
+  const ctx=vm.createContext({Date:{now:()=>now},window:{UniverWrapped:{capture(){captures++;}}},
+    platonusStudent:{studentID:7},authGeneration:1,currentSection:'grades',gradesLoadFailed:false,
+    liveJournalData:saved,platonusFetch:async()=>{calls++;return responses.shift();},renderGrades(){},saveCachedStudentData(){saves++;}});
+  vm.runInContext(source.slice(source.indexOf('  let journalRequest'),source.indexOf('  function retryGrades')),ctx);
+  assert.equal(await ctx.fetchJournal(2026,1),null);
+  assert.equal(ctx.liveJournalData,saved);assert.equal(saves,0);assert.equal(captures,0);
+  await ctx.fetchJournal(2026,1);assert.equal(calls,1);
+  now=15000;await ctx.fetchJournal(2026,1);assert.equal(calls,2);assert.equal(saves,1);
+  now=45000;assert.equal(await ctx.fetchJournal(2026,1),null);
+  assert.equal(ctx.liveJournalData,saved);assert.equal(saves,1);assert.equal(captures,1);
+});
+
+test('an empty response for another semester cannot keep the previous semester cards',async()=>{
+  const ctx=vm.createContext({window:{},platonusStudent:{studentID:7},authGeneration:1,currentSection:'grades',
+    liveJournalData:null,platonusFetch:async path=>path.includes('term=1')?[{subjectName:'Первый семестр'}]:[],
+    renderGrades(){},saveCachedStudentData(){}});
+  vm.runInContext(source.slice(source.indexOf('  let journalRequest'),source.indexOf('  function retryGrades')),ctx);
+  await ctx.fetchJournal(2026,1);await ctx.fetchJournal(2026,2);
+  assert.equal(ctx.liveJournalData,null);
 });
 test('a failed refresh preserves cached cards and announces automatic retry',()=>{
   const ui=setup([{}],true);ui.ctx.renderGrades(false);
