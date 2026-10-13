@@ -42,3 +42,15 @@ test('logout consumes private navigation without invoking old chat actions',()=>
   const app=setup();app.node('sectionChat').shown=true;app.node('chatThread').shown=true;app.observer();
   app.logout();app.pop();assert.deepEqual(app.actions,[]);assert.equal(app.history.state.unilinkNavigation.depth,0);
 });
+
+test('city and accent pickers do not participate in native back history',()=>{
+  const app=setup();
+  for(const id of ['cityModal','accentModal']){
+    const modal=app.node(id);
+    modal.shown=true;modal.classList.contains=()=>true;modal.querySelector=()=>app.node(id+'Cancel');
+    app.observer();
+    assert.equal(app.stack.length,1);assert.deepEqual(app.actions,[]);
+    modal.shown=false;modal.classList.contains=()=>false;app.observer();
+    assert.equal(app.history.state.unilinkNavigation.depth,0);
+  }
+});

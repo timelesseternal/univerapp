@@ -27,10 +27,6 @@
     }
     if (visible(byID('umkdFileOverlay')) && byID('umkdFileOverlay').classList.contains('active'))
       add('pdf', byID('umkdFileOverlay').querySelector('.navigation-back'));
-    for (const id of ['cityModal','accentModal']) {
-      const modal = byID(id);
-      if (modal?.classList.contains('active')) add(id, modal.querySelector('.cancel'));
-    }
     const close = document.querySelector('dialog[open] .wrapped-close');
     if (close) add('recap', close);
     const logout = byID('logoutDialog');
