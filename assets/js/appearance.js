@@ -6,6 +6,16 @@
       const telegram = window.Telegram?.WebApp?.initData ? window.Telegram.WebApp : null;
       const standalone = !telegram && (window.navigator?.standalone || window.matchMedia?.('(display-mode: standalone)').matches);
       if (standalone) root.classList.add('standalone-app');
+      // Let iOS own the status/home-indicator regions. Overlay mode can shift
+      // the whole web view upward while retaining the smaller viewport height.
+      const ios = /iPhone|iPad|iPod/.test(window.navigator?.userAgent || '')
+        || (window.navigator?.platform === 'MacIntel' && window.navigator?.maxTouchPoints > 1);
+      if (standalone && (window.navigator?.standalone || ios)) {
+        root.classList.add('ios-native-viewport');
+        const viewport = document.querySelector('meta[name="viewport"]');
+        const content = viewport?.getAttribute('content');
+        if (content) viewport.setAttribute('content', content.replace(/viewport-fit\s*=\s*cover/i, 'viewport-fit=auto'));
+      }
       let preference = null;
       try {
         const saved = localStorage.getItem(storageKey);

@@ -29,6 +29,11 @@ html, body { height:100%; min-height:0; overflow:hidden; overscroll-behavior:non
 @media(prefers-reduced-motion:reduce){.login-remember-switch,.login-remember-switch::after{transition:none}}
 /* Paint the transparent iOS status area with the current theme, without a blur. */
 .standalone-app::before { content:""; position:fixed; top:0; left:0; right:0; height:env(safe-area-inset-top,0px); background:var(--system-bar-bg,var(--paper)); pointer-events:none; z-index:1001; }
+/* iOS already reserves these regions in native viewport mode; do not add them twice. */
+.ios-native-viewport::before { display:none; }
+.ios-native-viewport .app-shell > .app-wrapper { padding-top:14px; padding-bottom:132px; }
+.ios-native-viewport #bottomTabBar { bottom:8px; }
+.ios-native-viewport .tab-scroll-fade { height:114px; }
 /* Keep foreground controls crisp; background softness belongs to its own layer. */
 #sectionSchedule :is(.status-bar, .header-right-top, .today-btn, .appearance-toggle, .theme-btn, .weather-widget),
 .chat-thread-header, .chat-page-header {
