@@ -4,6 +4,17 @@ import fs from 'node:fs';
 import vm from 'node:vm';
 
 const source = fs.readFileSync(new URL('../../assets/js/app.js', import.meta.url), 'utf8');
+test('CSP permits the PDF worker both as a Worker and as an imported script',()=>{
+  const config=JSON.parse(fs.readFileSync(new URL('../../vercel.json',import.meta.url),'utf8'));
+  const policy=config.headers.find(rule=>rule.source==='/(.*)').headers.find(header=>header.key==='Content-Security-Policy').value;
+  const directives=Object.fromEntries(policy.split(';').map(value=>value.trim().split(/\s+/)).filter(parts=>parts[0]).map(([name,...values])=>[name,values]));
+  const worker=source.match(/workerSrc = '([^']+)'/)[1];
+  // PDF.js wraps a cross-origin worker in a blob and loads it with importScripts.
+  assert.ok(directives['script-src'].includes(worker));
+  assert.ok(directives['worker-src'].includes(worker));
+  assert.ok(directives['worker-src'].includes('blob:'));
+  assert.ok(!directives['script-src'].includes("'unsafe-eval'"));
+});
 function setup() {
   const scripts = [];
   const window = {};
