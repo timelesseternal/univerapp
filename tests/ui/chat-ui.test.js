@@ -30,6 +30,30 @@ const reply = data => ({ ok: true, json: async () => data });
 const settle = async () => { for (let n = 0; n < 20; n++) await Promise.resolve(); };
 const profile = { id: 'me', name: 'Студент' };
 
+test('a cold inbox shows phantom rows until the first response, including an empty inbox',async()=>{
+  let finish;
+  const ui=setup(()=>new Promise(resolve=>{finish=resolve;}));
+  ui.api.onSection('chat');
+  const placeholder=ui.elements.get('chatInbox').children[0];
+  assert.match(placeholder.className,/chat-loading-inbox/);
+  assert.equal(placeholder.children.length,5);
+  assert.equal(ui.elements.get('chatStatus').hidden,true);
+  finish(reply({profile,conversations:[]}));await settle();
+  assert.equal(ui.elements.get('chatInbox').children.length,1);
+  assert.match(ui.elements.get('chatInbox').children[0].textContent,/Пока нет переписок/);
+});
+
+test('a failed initial inbox removes phantom rows and offers a retry',async()=>{
+  let fail;
+  const ui=setup(()=>new Promise((_,reject)=>{fail=reject;}));
+  ui.api.onSection('chat');
+  assert.match(ui.elements.get('chatInbox').children[0].className,/chat-loading/);
+  fail(new Error('offline'));await settle();
+  assert.equal(ui.elements.get('chatInbox').children.length,0);
+  assert.equal(ui.elements.get('chatStatus').hidden,false);
+  assert.equal(ui.elements.get('chatStatus').children[1].textContent,'Повторить');
+});
+
 test('chat does not request or poll until opened, and stops polling on leaving', async () => {
   const calls = [];
   const ui = setup(async url => {
@@ -50,6 +74,21 @@ test('chat does not request or poll until opened, and stops polling on leaving',
 
 const conversation = { id: 'conversation', peer: { id: 'peer', name: 'Друг' }, unread: 0 };
 const message = { id: '1', senderID: 'peer', text: 'История', createdAt: '2026-10-06T10:00:00Z', clientID: 'incoming' };
+
+test('uncached history shows phantom bubbles, then replaces them with a confirmed empty history',async()=>{
+  let finishHistory;
+  const ui=setup(async url=>{
+    if(url.includes('action=session'))return reply({profile,conversations:[conversation]});
+    if(url.includes('action=inbox'))return reply({conversations:[conversation]});
+    return new Promise(resolve=>{finishHistory=resolve;});
+  });
+  ui.api.onSection('chat');await settle();
+  const opening=ui.elements.get('chatInbox').children[0].listeners.click();
+  const ghost=ui.elements.get('chatMessages').children[0];
+  assert.match(ghost.className,/chat-loading-history/);assert.equal(ghost.children.length,6);
+  await settle();finishHistory(reply({messages:[],hasMore:false}));await opening;
+  assert.match(ui.elements.get('chatMessages').children[0].textContent,/Это начало вашей переписки/);
+});
 
 test('recent conversations prefetch history without marking it read',async()=>{
   const idle=[],calls=[];

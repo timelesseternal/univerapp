@@ -9,7 +9,7 @@
     searchVersion: 0, refreshing: false, sending: false, hasOlder: false,
     history: new Map(), pending: new Map(), inboxAt: 0, readThrough: new Map(),
     monitoring: false, badgeTimer: null, badgeBusy: false, peerProfileOpen: false, peerProfileVersion: 0,
-    inbox: [], previewKey: null, previewOwnerID: null, canResume: false };
+    inbox: [], inboxRenderKey: null, previewKey: null, previewOwnerID: null, canResume: false };
   const warming = new Set();
   const presenceClientID = crypto.randomUUID();
   let presenceSequence = 0, presenceTimer = null, peerPresenceTimer = null;
@@ -174,6 +174,28 @@
     return element;
   }
   function initials(name) { return name.trim().split(/\s+/u).slice(0, 2).map(part => part[0]).join('').toUpperCase(); }
+  function loadingPlaceholder(kind, count = 5) {
+    const placeholder = node('div', `chat-loading chat-loading-${kind}`);
+    placeholder.setAttribute('role', 'status');
+    placeholder.setAttribute('aria-label', kind === 'history' ? 'Загружаем переписку' : 'Загружаем список пользователей');
+    for (let index = 0; index < count; index++) {
+      const row = node('div', kind === 'history' ? 'skeleton-block chat-skeleton-bubble' : 'chat-person chat-skeleton-person');
+      row.setAttribute('aria-hidden', 'true');
+      if (kind !== 'history') {
+        const content = node('div', 'chat-person-content');
+        content.append(node('span', 'skeleton-block chat-skeleton-name'), node('span', 'skeleton-block chat-skeleton-preview'));
+        row.append(node('span', 'skeleton-block chat-skeleton-avatar'), content, node('span', 'skeleton-block chat-skeleton-time'));
+      }
+      placeholder.append(row);
+    }
+    return placeholder;
+  }
+  function showInboxLoading() {
+    if (!state.conversation && !state.inboxAt && state.inboxRenderKey === null) {
+      status();
+      byID('chatInbox').replaceChildren(loadingPlaceholder('inbox'));
+    }
+  }
   function status(text = '', retry = false) {
     const container = byID('chatStatus');
     container.replaceChildren();
@@ -189,6 +211,10 @@
   }
   function showError(error) {
     if (error.message === 'session_changed') return;
+    for (const id of ['chatInbox', 'chatMessages']) {
+      const list = byID(id);
+      if ([...list.children].some(child => child.className?.startsWith('chat-loading '))) list.replaceChildren();
+    }
     status(labels[error.message] || 'Не удалось подключиться. Проверьте интернет и повторите попытку.', true);
   }
   async function request(action, { method = 'GET', params = {}, body, headers = {}, keepalive = false } = {}) {
@@ -423,6 +449,7 @@
     const epoch = state.epoch;
     const started = Date.now();
     state.refreshing = true;
+    showInboxLoading();
     let retry = true;
     try {
       await ensureSession();
@@ -458,7 +485,7 @@
       if (query) results.append(node('p', 'chat-empty', 'Введите хотя бы две буквы имени.'));
       return;
     }
-    results.append(node('p', 'chat-empty', 'Ищем…'));
+    results.append(loadingPlaceholder('search', 3));
     try {
       await ensureSession();
       if (stale(epoch) || version !== state.searchVersion) return;
@@ -508,14 +535,14 @@
     resizeComposer();
     fitConversation();
     if (cached) drawMessages({ scroll: 'bottom' });
-    else byID('chatMessages').replaceChildren(node('p', 'chat-empty', 'Загружаем переписку…'));
+    else byID('chatMessages').replaceChildren(loadingPlaceholder('history', 6));
     const epoch = state.epoch;
     try {
       await ensureSession();
       if (stale(epoch) || state.conversation?.id !== conversation.id) return;
       await refreshMessages({ initial: !cached?.at || Date.now() - cached.at >= 8000 });
       if (!stale(epoch)) { status(); scheduleRefresh(); }
-    } catch (error) { if (!stale(epoch)) showError(error); }
+    } catch (error) { if (!stale(epoch) && state.conversation?.id === conversation.id) showError(error); }
   }
   function closeConversation() {
     stopTyping(); showTyping(false);
@@ -736,7 +763,7 @@
       fitConversation();
       clearTimeout(state.timer);
       clearTimeout(state.searchTimer);
-      if (state.visible) { status(state.profile ? '' : 'Подключаем чат…'); refresh(true); }
+      if (state.visible) { status(); showInboxLoading(); refresh(true); }
     },
     logout: logoutChat,
   };

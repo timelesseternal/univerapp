@@ -34,6 +34,19 @@
 }
 .chat-search-hint { margin: 8px 0 20px; font-size: var(--text-xs); }
 .chat-list { display: grid; gap: 8px; }
+.chat-loading { display:grid; gap:8px; min-width:0; }
+.chat-loading-inbox, .chat-loading-search { gap:0; }
+.chat-skeleton-person { pointer-events:none; }
+.chat-skeleton-avatar { width:42px; height:42px; border-radius:50%; flex-shrink:0; }
+.chat-skeleton-name { display:block; width:72%; height:15px; }
+.chat-skeleton-preview { display:block; width:90%; height:12px; margin-top:5px; }
+.chat-skeleton-time { width:30px; height:10px; flex-shrink:0; align-self:flex-start; margin-top:4px; }
+.chat-skeleton-person:nth-child(even) .chat-skeleton-name { width:58%; }
+.chat-skeleton-person:nth-child(3n) .chat-skeleton-preview { width:65%; }
+.chat-loading-history { padding:12px 0; gap:16px; }
+.chat-skeleton-bubble { width:65%; height:62px; border-radius:20px 20px 20px 6px; }
+.chat-skeleton-bubble:nth-child(even) { justify-self:end; width:52%; border-radius:20px 20px 6px 20px; }
+.chat-skeleton-bubble:nth-child(3n) { height:84px; width:76%; }
 .chat-person {
   width: 100%;
   display: flex;
