@@ -1,9 +1,9 @@
 <svg xmlns="http://www.w3.org/2000/svg" width="512" height="512" viewBox="0 0 512 512">
   <defs>
-    <linearGradient id="bg" x2="1" y2="1"><stop stop-color="#ece3ff"/><stop offset=".5" stop-color="#ddcdfb"/><stop offset="1" stop-color="#c7b2f3"/></linearGradient>
-    <linearGradient id="left" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#633a96"/><stop offset=".55" stop-color="#452171"/><stop offset="1" stop-color="#301253"/></linearGradient>
-    <linearGradient id="top" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#673d99"/><stop offset="1" stop-color="#3b1b68"/></linearGradient>
-    <linearGradient id="right" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#673da0"/><stop offset=".5" stop-color="#512880"/><stop offset="1" stop-color="#321555"/></linearGradient>
+    <linearGradient id="bg" x2="1" y2="1"><stop stop-color="#1d1826"/><stop offset=".5" stop-color="#14111b"/><stop offset="1" stop-color="#0d0b12"/></linearGradient>
+    <linearGradient id="left" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#c7adef"/><stop offset=".55" stop-color="#a080d1"/><stop offset="1" stop-color="#7959ae"/></linearGradient>
+    <linearGradient id="top" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#e0ccff"/><stop offset="1" stop-color="#b697e9"/></linearGradient>
+    <linearGradient id="right" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#c9adf4"/><stop offset=".5" stop-color="#af8cde"/><stop offset="1" stop-color="#8260b5"/></linearGradient>
   </defs>
   <rect width="512" height="512" rx="112" fill="url(#bg)"/>
   <g id="unilink-mark">
