@@ -1,7 +1,6 @@
+import {readWebSession} from './security.js';
 // Small shared helpers used by every /api/* route.
-// The "session" is never a Platonus password — it's a base64 bundle of
-// { sid, token, cookie } handed back once at login time, after which the
-// password itself is discarded server-side and never stored anywhere.
+// Upstream credentials are authenticated and decrypted server-side from an HttpOnly cookie.
 
 export function buildPlatonusHeaders(session) {
   return {
@@ -13,18 +12,6 @@ export function buildPlatonusHeaders(session) {
   };
 }
 
-export function decodeSession(token) {
-  if (!token) return null;
-  try {
-    const session = JSON.parse(Buffer.from(token, 'base64').toString('utf8'));
-    if (!session || !session.sid || !session.token || !session.cookie) return null;
-    return session;
-  } catch {
-    return null;
-  }
-}
-
 export function getSessionFromRequest(req) {
-  const header = req.headers['x-session'];
-  return decodeSession(Array.isArray(header) ? header[0] : header);
+  return readWebSession(req);
 }

@@ -29,11 +29,11 @@ test('UMKD subject and tutor names are escaped in both screens', () => {
 test('UMKD actions accept safe positive document IDs and reject injected or invalid IDs', () => {
   for (const umkdID of ['7);danger();//', -1, 1.5, 0, null, Number.MAX_SAFE_INTEGER + 1]) {
     const ui = setup({ subjectName: 'Математика', umkdID }); ui.context.selectUmkdSubject(0);
-    assert.doesNotMatch(ui.container.innerHTML, /onclick="openUmkdFile/);
+    assert.doesNotMatch(ui.container.innerHTML, /data-action="openUmkdFile/);
   }
   for (const umkdID of [7, '7']) {
     const ui = setup({ subjectName: 'Математика', umkdID }); ui.context.selectUmkdSubject(0);
-    const actions = [...ui.container.innerHTML.matchAll(/onclick="openUmkdFile\((\d+), (\d+)\)"/g)];
+    const actions = [...ui.container.innerHTML.matchAll(/data-action="openUmkdFile\((\d+), (\d+)\)"/g)];
     assert.deepEqual(actions.map(match => [Number(match[1]), Number(match[2])]), [[131, 7], [133, 7], [134, 7], [138, 7]]);
   }
 });

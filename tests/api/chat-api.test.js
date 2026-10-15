@@ -1,3 +1,4 @@
+import {sessionHeaders} from '../helpers/session.js';
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import handler from '../../api/chat.js';
@@ -182,7 +183,7 @@ test('slow Platonus transcript refresh does not delay the inbox and still syncs 
   });
   const session = Buffer.from(JSON.stringify({ sid: 'sid', token: 'token', cookie: 'cookie' })).toString('base64');
   const res = { setHeader() {} };
-  const task = startSession({ headers: { 'x-session': session } }, res, promise => { background = promise; });
+  const task = startSession({ headers: { ...sessionHeaders(session) } }, res, promise => { background = promise; });
   const result = await Promise.race([task, new Promise((_, reject) => {
     const timer = setTimeout(() => reject(new Error('Inbox waited for the transcript')), 1000);
     task.finally(() => clearTimeout(timer));
@@ -214,7 +215,7 @@ test('chat identity comes from Platonus, ignoring browser-supplied identity', as
     return reply({ id: user, name: 'Айгерім Студент' });
   });
   const session = Buffer.from(JSON.stringify({ sid: 'sid', token: 'token', cookie: 'cookie' })).toString('base64');
-  const res = await call({ method: 'POST', action: 'session', headers: { 'x-session': session, 'x-forwarded-proto': 'https' }, body: { studentID: 999, name: 'Подмена' } });
+  const res = await call({ method: 'POST', action: 'session', headers: { ...sessionHeaders(session), 'x-forwarded-proto': 'https' }, body: { studentID: 999, name: 'Подмена' } });
   assert.equal(res.code, 200);
   assert.deepEqual(res.body.conversations, []);
   assert.equal(bootstrap.p_student_id, 91);
@@ -229,7 +230,7 @@ test('a forged or rejected Platonus session never creates a chat profile', async
   let requests = 0;
   setup(t, async url => { requests++; assert.ok(url.includes('platonus.kstu.kz')); return reply({}, 401); });
   const session = Buffer.from(JSON.stringify({ sid: 'fake', token: 'fake', cookie: 'fake' })).toString('base64');
-  const res = await call({ method: 'POST', action: 'session', headers: { 'x-session': session } });
+  const res = await call({ method: 'POST', action: 'session', headers: { ...sessionHeaders(session) } });
   assert.equal(res.code, 401);
   assert.equal(requests, 2);
   assert.equal(res.headers['Set-Cookie'], undefined);

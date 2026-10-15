@@ -1,4 +1,4 @@
-// GET /api/gpa   header: x-session: <token from /api/login>
+// GET /api/gpa   authentication: HttpOnly session cookie
 //
 // Platonus's own GPA endpoint conveniently returns studentID + studentName
 // in the same response, so the frontend calls this first (right after

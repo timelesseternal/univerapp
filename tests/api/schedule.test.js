@@ -1,3 +1,4 @@
+import {sessionHeaders} from '../helpers/session.js';
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import handler from '../../api/schedule.js';
@@ -17,7 +18,7 @@ test('a failed schedule retry is never returned as a confirmed empty week', asyn
         return { status: typeof failure === 'string' ? 200 : failure, text: async () => failure === 'invalid_shape' ? 'null' : 'not JSON' };
       });
       const res = response();
-      await handler({ headers: { 'x-session': session }, query: { studentID: 7 } }, res);
+      await handler({ headers: { ...sessionHeaders(session) }, query: { studentID: 7 } }, res);
       assert.equal(calls.length, 2);
       assert.deepEqual(calls[1], { studentTypeID: 1, statusID: 1, disciplineStudyLanguageIds: [1, 2, 3], studyYear: 2026, term: 1, week: 7 });
       assert.equal(res.code, failure === 401 || failure === 403 ? 401 : 502);
@@ -33,7 +34,7 @@ test('non-object schedule JSON is rejected without crashing or confirming an emp
   for (const rawText of ['null', '[]', '"schedule"', '42']) {
     t.mock.method(globalThis, 'fetch', async () => ({ status: 200, text: async () => rawText }));
     const res = response();
-    await handler({ headers: { 'x-session': session }, query: { studentID: 7 } }, res);
+    await handler({ headers: { ...sessionHeaders(session) }, query: { studentID: 7 } }, res);
     assert.equal(res.code, 502); assert.equal(res.body.error, 'platonus_bad_json');
   }
 });
@@ -42,7 +43,7 @@ test('an explicit successful empty week is confirmed without another request', a
   let calls = 0;
   t.mock.method(globalThis, 'fetch', async () => { calls++; return { status: 200, text: async () => JSON.stringify(emptyWeek()) }; });
   const res = response();
-  await handler({ headers: { 'x-session': session }, query: { studentID: 7, year: '2026', term: '1', week: '7' } }, res);
+  await handler({ headers: { ...sessionHeaders(session) }, query: { studentID: 7, year: '2026', term: '1', week: '7' } }, res);
   assert.equal(calls, 1); assert.equal(res.code, 200);
   assert.deepEqual(res.body.timetable.days, {});
 });
@@ -54,7 +55,7 @@ test('a successful empty retry is confirmed and week zero requests week one', as
     return { status: 200, text: async () => JSON.stringify({ ...emptyWeek(), selectedWeek: calls.length === 1 ? 0 : 1 }) };
   });
   const res = response();
-  await handler({ headers: { 'x-session': session }, query: { studentID: 7 } }, res);
+  await handler({ headers: { ...sessionHeaders(session) }, query: { studentID: 7 } }, res);
   assert.equal(calls.length, 2); assert.equal(calls[1].week, 1);
   assert.equal(res.code, 200); assert.equal(res.body._debug.retried, true);
 });

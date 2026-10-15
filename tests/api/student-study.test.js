@@ -1,3 +1,4 @@
+import {sessionHeaders} from '../helpers/session.js';
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { parseStudySummary, parseTranscriptStudy, enrichStudentStudy } from '../../api/_lib/student-study.js';
@@ -12,7 +13,7 @@ test('cold-start GPA summary returns without loading the transcript',async t=>{
   };
   const session=Buffer.from(JSON.stringify({sid:'sid',token:'token',cookie:'cookie'})).toString('base64');
   const res={setHeader(){},status(code){this.code=code;return this;},json(body){this.body=body;}};
-  await gpaHandler({query:{summary:'1'},headers:{'x-session':session}},res);
+  await gpaHandler({query:{summary:'1'},headers:{...sessionHeaders(session)}},res);
   assert.equal(res.code,200);assert.equal(res.body.studentID,91);assert.equal(calls,1);
 });
 

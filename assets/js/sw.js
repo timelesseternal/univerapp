@@ -1,5 +1,5 @@
 // Public app shell only; student data and video ranges bypass this cache.
-const CACHE_NAME = 'univer-shell-v110';
+const CACHE_NAME = 'univer-shell-v111';
 const FONT_PATHS = new Set([
   '/assets/fonts/manrope/cyrillic-ext.woff2',
   '/assets/fonts/manrope/cyrillic.woff2',
@@ -8,6 +8,7 @@ const FONT_PATHS = new Set([
 const SHELL_PATHS = new Set(['/', '/index.html', '/manifest.webmanifest', '/assets/icons/unilink-apple-touch.png', '/assets/icons/unilink-192.png', '/assets/icons/unilink-512.png', '/assets/css/app.css', '/assets/css/background.css', '/assets/css/typography.css', '/assets/css/chat.css', '/assets/css/motion.css', '/assets/css/controls.css', '/assets/js/appearance.js', '/assets/js/app.js', '/assets/js/updates.js', '/assets/js/chat.js', '/assets/js/background.js', ...FONT_PATHS]);
 SHELL_PATHS.add('/assets/css/wrapped.css');
 SHELL_PATHS.add('/assets/js/navigation.js');
+SHELL_PATHS.add('/assets/js/actions.js');
 SHELL_PATHS.add('/assets/js/viewport-recovery.js');
 SHELL_PATHS.add('/assets/js/wrapped.js');
 SHELL_PATHS.add('/assets/css/academic.css');

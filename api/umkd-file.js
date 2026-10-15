@@ -1,21 +1,9 @@
-// GET /api/umkd-file?fileTypeID=131&umkdid=4922   header: x-session: <token>
-//                                                  (или ?session=<token> в query)
-//
-// Необязательные параметры:
-//   download=1   — отдать файл как attachment (для кнопки «Поделиться» на телефоне)
-//   name=<имя>   — имя файла при скачивании
-//
-// Отдаёт сам PDF-файл УМКД, проксируя его через наш сервер с сессией
-// пользователя. Обычные /api/* роуты берут сессию из заголовка x-session,
-// но ссылку для tg.downloadFile / внешнего браузера нельзя снабдить
-// кастомным заголовком, поэтому дополнительно разрешаем ?session=...
-// (тот же base64-токен, что и в x-session).
-import { getSessionFromRequest, decodeSession, buildPlatonusHeaders } from './_lib/platonus.js';
+// GET /api/umkd-file?fileTypeID=131&umkdid=4922   authentication: HttpOnly session cookie
+// PDF download authenticated only by HttpOnly cookie; never accept credentials in URLs.
+import { getSessionFromRequest, buildPlatonusHeaders } from './_lib/platonus.js';
 
 export default async function handler(req, res) {
-  const headerSession = getSessionFromRequest(req);
-  const querySession = req.query.session ? decodeSession(String(req.query.session)) : null;
-  const session = headerSession || querySession;
+  const session = getSessionFromRequest(req);
 
   if (!session) {
     res.status(401).json({ error: 'no_session' });
@@ -48,7 +36,6 @@ export default async function handler(req, res) {
     // ?download=1 — файл должен скачаться (кнопка «Поделиться» на телефоне),
     // иначе отдаём inline, как раньше (просмотрщик в мини-аппе).
     const asDownload = String(req.query.download || '') === '1';
-    if (asDownload) res.setHeader('Access-Control-Allow-Origin', 'https://web.telegram.org');
     const rawName = String(req.query.name || 'umkd.pdf');
     const safeName = rawName.replace(/[\\/:*?"<>|\r\n]+/g, ' ').trim().slice(0, 150) || 'umkd.pdf';
     // Кириллицу в имени файла кодируем по RFC 5987

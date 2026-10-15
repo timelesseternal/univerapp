@@ -121,6 +121,7 @@ if ('serviceWorker' in navigator) {
     });
   }
   function csRemove(key) {
+    lsSafe(() => localStorage.removeItem(key));
     lsSafe(() => localStorage.removeItem(localCacheKey(key)));
     return new Promise((resolve) => {
       if (useCloudStorage()) {
@@ -155,7 +156,7 @@ if ('serviceWorker' in navigator) {
   let authGeneration = 0;
   let authStorageWork = Promise.resolve();
   let persistLogin = true;
-  let sessionCredentials = null;
+  let loginNetworkWork = Promise.resolve();
   function ensureAuthGeneration(generation) {
     if (generation !== authGeneration) throw new Error('session_changed');
   }
@@ -534,18 +535,23 @@ if ('serviceWorker' in navigator) {
     try {
       await authStorageWork;
       if (generation !== authGeneration) return;
-      const resp = await fetch(`${API_BASE}/api/login`, {
+      const network = fetch(`${API_BASE}/api/login`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ login, password }),
+        body: JSON.stringify({ login, password, remember: shouldRemember }),
+        credentials: 'same-origin',
         signal: AbortSignal.timeout(20000),
       });
+      loginNetworkWork = network.catch(() => null);
+      const resp = await network;
       const data = await resp.json();
       if (generation !== authGeneration) return;
 
       if (!resp.ok || !data.ok) {
         if (data.error === 'invalid_credentials') {
           setLoginError('Неверный логин или пароль.');
+        } else if (data.error === 'login_rate_limit') {
+          setLoginError('Слишком много попыток входа. Попробуйте через несколько минут.');
         } else if (data.error === 'platonus_unreachable') {
           setLoginError('Platonus сейчас недоступен. Попробуйте позже.');
         } else {
@@ -558,16 +564,11 @@ if ('serviceWorker' in navigator) {
 
       authGeneration++;
       loginCompleted = true;
-      platonusSession = data.session;
+      platonusSession = 'cookie';
       persistLogin = shouldRemember;
-      sessionCredentials = { platonus_login: login, platonus_password: password };
       authStorageWork = Promise.all([
         csSet('platonus_remember', shouldRemember ? '1' : '0'),
-        ...(shouldRemember ? [
-          csSet('platonus_session', platonusSession),
-          csSet('platonus_login', login),
-          csSet('platonus_password', password),
-        ] : ['platonus_session', 'platonus_login', 'platonus_password'].map(csRemove)),
+        ...['platonus_session', 'platonus_login', 'platonus_password'].map(csRemove),
       ]);
       document.getElementById('passwordInput').value = '';
 
@@ -600,7 +601,6 @@ if ('serviceWorker' in navigator) {
   function logout() {
     haptic('medium');
     authGeneration++;
-    sessionCredentials = null;
     reloginInFlight = null;
     const keys = ['platonus_session', 'platonus_student', 'platonus_login', 'platonus_password',
       META_CACHE_KEY, JOURNAL_CACHE_KEY, UMKD_CACHE_KEY];
@@ -613,6 +613,9 @@ if ('serviceWorker' in navigator) {
     window.univerAcademic?.reset();
     authStorageWork = Promise.all([
       authStorageWork.catch(() => {}).then(() => Promise.all(keys.map(csRemove))), chatLogout,
+      loginNetworkWork.then(() => fetch(`${API_BASE}/api/session`, {
+        method: 'DELETE', credentials: 'same-origin', signal: AbortSignal.timeout(20000),
+      })).catch(() => {}),
     ]);
     platonusSession = null;
     platonusStudent = null;
@@ -664,29 +667,15 @@ if ('serviceWorker' in navigator) {
     const generation = authGeneration;
     await authStorageWork;
     if (generation !== authGeneration) return false;
-    const credentials = sessionCredentials || await csGetMany(['platonus_login', 'platonus_password']);
-    if (generation !== authGeneration) return false;
-    const login = credentials.platonus_login;
-    const password = credentials.platonus_password;
-    if (!login || !password) return false;
-
     try {
-      const resp = await fetch(`${API_BASE}/api/login`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ login, password }),
-        signal: AbortSignal.timeout(20000),
+      const resp = await fetch(`${API_BASE}/api/session`, {
+        credentials: 'same-origin', cache: 'no-store', signal: AbortSignal.timeout(20000),
       });
       const data = await resp.json();
-      if (generation !== authGeneration) return false;
-      if (!resp.ok || !data.ok) return false;
-
-      platonusSession = data.session;
-      authStorageWork = persistLogin ? csSet('platonus_session', platonusSession) : Promise.resolve();
+      if (generation !== authGeneration || !resp.ok || !data.ok) return false;
+      platonusSession = 'cookie';
       return true;
-    } catch (e) {
-      return false;
-    }
+    } catch { return false; }
   }
 
   async function platonusFetch(path) {
@@ -694,7 +683,7 @@ if ('serviceWorker' in navigator) {
     const generation = authGeneration;
     const requestSession = platonusSession;
     let resp = await fetch(`${API_BASE}${path}`, {
-      headers: { 'x-session': requestSession },
+      credentials: 'same-origin',
       cache: 'no-store',
       signal: AbortSignal.timeout(35000),
     });
@@ -705,7 +694,7 @@ if ('serviceWorker' in navigator) {
       ensureAuthGeneration(generation);
       if (relogged) {
         resp = await fetch(`${API_BASE}${path}`, {
-          headers: { 'x-session': platonusSession },
+          credentials: 'same-origin',
           cache: 'no-store',
           signal: AbortSignal.timeout(35000),
         });
@@ -715,6 +704,7 @@ if ('serviceWorker' in navigator) {
       }
     }
     ensureAuthGeneration(generation);
+    if (resp.status === 401) { logout(); throw new Error('session_expired'); }
     if (!resp.ok) {
       let detail = '';
       try {
@@ -891,32 +881,32 @@ if ('serviceWorker' in navigator) {
       </details>
 
       <nav class="profile-study-tiles" aria-label="Учебные разделы">
-        <button type="button" class="profile-study-tile" onclick="switchSection('umkd')">
+        <button type="button" class="profile-study-tile" data-action="switchSection('umkd')">
           <span class="profile-tile-icon"><svg aria-hidden="true" viewBox="0 0 24 24"><path d="M12 6v15M12 6C9 4 6 3 3 4v15c3-1 6 0 9 2 3-2 6-3 9-2V4c-3-1-6 0-9 2Z"/></svg></span>
           <span class="profile-tile-title">УМКД</span><span class="profile-tile-caption">Учебные материалы</span>
           <svg aria-hidden="true" class="profile-tile-arrow" viewBox="0 0 24 24"><path d="m9 6 6 6-6 6"/></svg>
         </button>
-        <button type="button" class="profile-study-tile" onclick="switchSection('exams')">
+        <button type="button" class="profile-study-tile" data-action="switchSection('exams')">
           <span class="profile-tile-icon"><svg aria-hidden="true" viewBox="0 0 24 24"><rect x="4" y="5" width="16" height="16" rx="3"/><path d="M8 3v4m8-4v4M4 11h16m-12 5 2 2 5-5"/></svg></span>
           <span class="profile-tile-title">Экзамены</span><span class="profile-tile-caption">Расписание сессии</span>
           <svg aria-hidden="true" class="profile-tile-arrow" viewBox="0 0 24 24"><path d="m9 6 6 6-6 6"/></svg>
         </button>
-        <button type="button" class="profile-study-tile" onclick="switchSection('calendar')" aria-label="Академический календарь">
+        <button type="button" class="profile-study-tile" data-action="switchSection('calendar')" aria-label="Академический календарь">
           <span class="profile-tile-icon"><svg aria-hidden="true" viewBox="0 0 24 24"><rect x="4" y="5" width="16" height="16" rx="3"/><path d="M8 3v4m8-4v4M4 11h16m-11 4h2m3 0h2m-7 3h2"/></svg></span>
           <span class="profile-tile-title">Академический календарь</span><span class="profile-tile-caption">Семестр, РК и сессия</span>
           <svg aria-hidden="true" class="profile-tile-arrow" viewBox="0 0 24 24"><path d="m9 6 6 6-6 6"/></svg>
         </button>
-        <button type="button" class="profile-study-tile" onclick="switchSection('transcript')">
+        <button type="button" class="profile-study-tile" data-action="switchSection('transcript')">
           <span class="profile-tile-icon"><svg aria-hidden="true" viewBox="0 0 24 24"><path d="M14 3H6a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V9Z"/><path d="M14 3v6h6M8 13h8m-8 4h5"/></svg></span>
           <span class="profile-tile-title">Транскрипт</span><span class="profile-tile-caption">Оценки за всё обучение</span>
           <svg aria-hidden="true" class="profile-tile-arrow" viewBox="0 0 24 24"><path d="m9 6 6 6-6 6"/></svg>
         </button>
       </nav>
 
-      <button type="button" class="wrapped-launch" onclick="openSemesterWrapped()"><span class="wrapped-launch-kicker">UNILINK · RECAP</span><span class="wrapped-launch-title">Твой семестр в историях <span aria-hidden="true">↗</span></span><span class="wrapped-launch-caption">Твой ритм. Твои предметы. Твои результаты.</span></button>
-      <button type="button" class="profile-update-btn" onclick="updateApplication(this)">Обновить приложение</button>
+      <button type="button" class="wrapped-launch" data-action="openSemesterWrapped()"><span class="wrapped-launch-kicker">UNILINK · RECAP</span><span class="wrapped-launch-title">Твой семестр в историях <span aria-hidden="true">↗</span></span><span class="wrapped-launch-caption">Твой ритм. Твои предметы. Твои результаты.</span></button>
+      <button type="button" class="profile-update-btn" data-action="updateApplication(this)">Обновить приложение</button>
       <p id="appUpdateStatus" class="profile-update-status" role="status"></p>
-      <button class="profile-logout-btn" onclick="confirmLogout()">Выйти из аккаунта</button>
+      <button class="profile-logout-btn" data-action="confirmLogout()">Выйти из аккаунта</button>
     `;
 
     swapContent(container, html, animate);
@@ -1429,7 +1419,7 @@ if ('serviceWorker' in navigator) {
     }
 
     list.innerHTML = names.map(name => `
-      <div class="city-list-item${name === pendingCity ? ' selected' : ''}" onclick="selectCityListItem('${name.replace(/'/g, "\\'")}')">
+      <div class="city-list-item${name === pendingCity ? ' selected' : ''}" data-action="selectCityListItem('${name.replace(/'/g, "\\'")}')">
         ${name}
       </div>
     `).join('');
@@ -1560,7 +1550,7 @@ if ('serviceWorker' in navigator) {
     if (!grid) return;
     const colorThemes = ACCENT_THEMES.filter(t => t.id !== 'default');
     grid.innerHTML = colorThemes.map(t => `
-      <button class="accent-swatch${t.id === pendingAccentId ? ' selected' : ''}" style="background:${t.hex}; color:${t.text};" onclick="selectAccentSwatch('${t.id}')">
+      <button class="accent-swatch${t.id === pendingAccentId ? ' selected' : ''}" style="background:${t.hex}; color:${t.text};" data-action="selectAccentSwatch('${t.id}')">
         <span class="accent-swatch-check">✓</span>
         <span class="accent-swatch-label">${t.name}</span>
         <span class="accent-swatch-hex">${t.hex}</span>
@@ -2220,7 +2210,7 @@ if ('serviceWorker' in navigator) {
         <div class="notice-panel">
           <div class="notice-title">${scheduleLoadFailed ? 'Не удалось загрузить расписание' : 'Загружаем расписание…'}</div>
           <div class="notice-hint">${scheduleLoadFailed
-            ? '<button class="back-link" onclick="retryLiveLoad()">Повторить</button>'
+            ? '<button class="back-link" data-action="retryLiveLoad()">Повторить</button>'
             : 'Обычно это занимает несколько секунд.'}</div>
         </div>
       `, animate);
@@ -2356,7 +2346,7 @@ if ('serviceWorker' in navigator) {
     let itemsHtml = '';
     liveUmkdData.records.forEach((rec, index) => {
       itemsHtml += `
-        <div class="umkd-subject-row row-enter" style="animation-delay:${Math.min(index, 8) * 0.04}s;" onclick="selectUmkdSubject(${index})">
+        <div class="umkd-subject-row row-enter" style="animation-delay:${Math.min(index, 8) * 0.04}s;" data-action="selectUmkdSubject(${index})">
           <span>${escapeHtml(rec.subjectName)}</span>
           <svg aria-hidden="true" class="action-icon umkd-arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m9 6 6 6-6 6"/></svg>
         </div>
@@ -2399,7 +2389,7 @@ if ('serviceWorker' in navigator) {
     const documentID = Number(rec.umkdID);
     if (Number.isSafeInteger(documentID) && documentID > 0) {
       bodyHtml = UMKD_FILE_TYPES.map(type => `
-        <div class="umkd-item" onclick="openUmkdFile(${type.id}, ${documentID})">
+        <div class="umkd-item" data-action="openUmkdFile(${type.id}, ${documentID})">
           <span>${type.label}</span>
           <span class="umkd-document-action"><span>PDF</span><svg aria-hidden="true" class="action-icon umkd-arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m9 6 6 6-6 6"/></svg></span>
         </div>
@@ -2409,7 +2399,7 @@ if ('serviceWorker' in navigator) {
     }
 
     swapContent(container, `
-      <button type="button" class="profile-back navigation-back" onclick="renderUmkdSubjects()"><svg aria-hidden="true" class="action-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m14 6-6 6 6 6"/></svg><span>Назад</span></button>
+      <button type="button" class="profile-back navigation-back" data-action="renderUmkdSubjects()"><svg aria-hidden="true" class="action-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m14 6-6 6 6 6"/></svg><span>Назад</span></button>
       <span class="masthead-eyebrow" style="margin-bottom:10px; display:block;">УМКД</span>
       <div class="notice-title" style="margin-bottom:6px;">${escapeHtml(rec.subjectName)}</div>
       <div class="row-meta" style="margin-bottom:12px;">${escapeHtml(rec.tutorName || '')}</div>
@@ -2512,7 +2502,6 @@ if ('serviceWorker' in navigator) {
     if (!currentUmkdPdf) return;
     const { buffer, fileName } = currentUmkdPdf;
     const blob = new Blob([buffer], { type: 'application/pdf' });
-    const inTelegram = Boolean(tg && tg.initData);
 
     // Preserve the working iPhone share sheet, also available in Android browsers.
     if (isMobilePlatform() && navigator.share && navigator.canShare) {
@@ -2524,24 +2513,6 @@ if ('serviceWorker' in navigator) {
         }
       } catch (error) {
         if (error?.name === 'AbortError') return;
-      }
-    }
-
-    // Telegram Desktop also needs the native download API, not a blob navigation.
-    if (inTelegram && currentUmkdRef) {
-      const url = `${location.origin}${API_BASE}/api/umkd-file`
-        + `?fileTypeID=${encodeURIComponent(currentUmkdRef.fileTypeID)}`
-        + `&umkdid=${encodeURIComponent(currentUmkdRef.umkdid)}`
-        + `&session=${encodeURIComponent(platonusSession)}`
-        + '&download=1'
-        + `&name=${encodeURIComponent(fileName)}`;
-      if (tg.downloadFile && tg.isVersionAtLeast?.('8.0')) {
-        try { tg.downloadFile({ url, file_name: fileName }); return; }
-        catch (error) { /* Fall back when the client does not implement downloading. */ }
-      }
-      if (tg.openLink) {
-        try { tg.openLink(url); return; }
-        catch (error) { /* A browser download remains available. */ }
       }
     }
 
@@ -2572,7 +2543,7 @@ if ('serviceWorker' in navigator) {
       ensureAuthGeneration(generation);
       const resp = await fetch(
         `${API_BASE}/api/umkd-file?fileTypeID=${encodeURIComponent(fileTypeID)}&umkdid=${encodeURIComponent(umkdid)}`,
-        { headers: { 'x-session': platonusSession } }
+        { credentials: 'same-origin' }
       );
       if (!resp.ok) throw new Error('bad_status_' + resp.status);
       const arrayBuffer = await resp.arrayBuffer();
@@ -2582,7 +2553,7 @@ if ('serviceWorker' in navigator) {
       currentUmkdPdf = { buffer: arrayBuffer.slice(0), fileName: buildUmkdFileName(fileTypeID) };
       shareBtn.style.display = 'flex';
 
-      const pdf = await window.pdfjsLib.getDocument({ data: arrayBuffer }).promise;
+      const pdf = await window.pdfjsLib.getDocument({ data: arrayBuffer, isEvalSupported: false }).promise;
       ensureAuthGeneration(generation);
       frame.innerHTML = '';
       for (let pageNum = 1; pageNum <= pdf.numPages; pageNum++) {
@@ -2659,7 +2630,8 @@ if ('serviceWorker' in navigator) {
 
   document.addEventListener('DOMContentLoaded', async () => {
     const generation = authGeneration;
-    const savedPromise = csGetMany(['platonus_session', 'platonus_student', 'platonus_remember']);
+    const savedPromise = csGetMany(['platonus_student', 'platonus_remember']);
+    authStorageWork = Promise.all(['platonus_session', 'platonus_login', 'platonus_password'].map(csRemove));
 
     const savedAccent = lsSafe(() => localStorage.getItem('user_accent'), null) || 'default';
     applyAccentTheme(savedAccent, false);
@@ -2698,7 +2670,8 @@ if ('serviceWorker' in navigator) {
     if (generation !== authGeneration) return;
     persistLogin = saved.platonus_remember !== '0';
     document.getElementById('rememberLoginInput').checked = persistLogin;
-    platonusSession = persistLogin ? saved.platonus_session || null : null;
+    await silentRelogin();
+    if (generation !== authGeneration) return;
     try { platonusStudent = JSON.parse(saved.platonus_student || 'null'); }
     catch (e) { platonusStudent = null; }
 

@@ -1,3 +1,4 @@
+import {sessionHeaders} from '../helpers/session.js';
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { normalizeTranscript, parseAcademicCalendar } from '../../api/_lib/academic-documents.js';
@@ -62,12 +63,12 @@ test('calendar and transcript fetch the signed-in account only and reject expire
     return { ok: true, status: 200, json: async () => transcript() };
   };
   for (const handler of [calendarHandler, transcriptHandler]) {
-    const res = response(); await handler({ method: 'GET', query: { studentID: 999 }, headers: { 'x-session': session } }, res);
+    const res = response(); await handler({ method: 'GET', query: { studentID: 999 }, headers: { ...sessionHeaders(session) } }, res);
     assert.equal(res.code, 200); assert.equal(res.body.studentID, 7); assert.equal(res.headers['Cache-Control'], 'no-store');
   }
   assert.equal(calls.some(url => url.includes('999')), false);
   global.fetch = async () => ({ ok: false, status: 401 });
   for (const handler of [calendarHandler, transcriptHandler]) {
-    const res = response(); await handler({ headers: { 'x-session': session } }, res); assert.equal(res.code, 401);
+    const res = response(); await handler({ headers: { ...sessionHeaders(session) } }, res); assert.equal(res.code, 401);
   }
 });

@@ -153,7 +153,7 @@
     }
     typingTimer = setTimeout(stopTyping, 4000);
   }
-  const bootstrap = () => request('session', { method:'POST',headers:{'x-session':platonusSession},
+  const bootstrap = () => request('session', { method:'POST',
     ...(telegramApp?.initData ? { body:{initData:telegramApp.initData} } : {}) });
   const labels = {
     chat_not_configured: 'Чат пока не подключён. Администратор приложения скоро включит переписки.',

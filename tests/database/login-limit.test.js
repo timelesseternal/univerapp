@@ -1,0 +1,21 @@
+import test from 'node:test';
+import assert from 'node:assert/strict';
+import {readFileSync} from 'node:fs';
+import {PGlite} from '@electric-sql/pglite';
+test('shared login limits enforce account/IP windows, reset, and deny public access',async t=>{
+  const db=new PGlite();t.after(()=>db.close());
+  await db.exec('create role anon;create role authenticated;create role service_role bypassrls;');
+  const sql=readFileSync(new URL('../../supabase/migrations/006_login_rate_limit.sql',import.meta.url),'utf8');
+  await db.exec(sql);await db.exec(sql);
+  const attempt=async(ip,account)=>(await db.query('select security_login_attempt($1,$2) as result',[ip.padStart(64,'0'),account.padStart(64,'0')])).rows[0].result;
+  for(let n=0;n<8;n++)assert.equal((await attempt('a','b')).allowed,true);
+  const denied=await attempt('a','b');assert.equal(denied.allowed,false);assert.ok(denied.retryAfter>0&&denied.retryAfter<=600);
+  assert.equal((await attempt('c','b')).allowed,false,'new IP cannot bypass account limit');
+  await db.exec("update security_login_limits set started_at=clock_timestamp()-interval '11 minutes'");
+  assert.equal((await attempt('a','b')).allowed,true);
+  for(let n=0;n<30;n++)assert.equal((await attempt('d',(n+100).toString(16))).allowed,true);
+  assert.equal((await attempt('d','fff')).allowed,false,'many accounts cannot bypass IP limit');
+  await db.exec('set role anon');
+  await assert.rejects(attempt('a','b'),e=>e.code==='42501');
+  await assert.rejects(db.query('select * from security_login_limits'),e=>e.code==='42501');
+});

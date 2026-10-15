@@ -39,7 +39,7 @@
 
 <div class="login-overlay" id="loginOverlay">
   <div class="login-card">
-    <button type="button" class="appearance-toggle" onclick="toggleColorMode()" aria-label="Включить тёмную тему" aria-pressed="false">
+    <button type="button" class="appearance-toggle" data-action="toggleColorMode()" aria-label="Включить тёмную тему" aria-pressed="false">
       <svg class="appearance-moon" aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20.9 13.1A9 9 0 0 1 10.9 3.1a9 9 0 1 0 10 10Z"/></svg>
       <svg class="appearance-sun" aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="4"/><path d="M12 2v2m0 16v2M2 12h2m16 0h2M5 5l1.4 1.4m11.2 11.2L19 19M5 19l1.4-1.4M17.6 6.4 19 5"/></svg>
     </button>
@@ -52,7 +52,7 @@
     <label class="login-field-label" for="passwordInput">Пароль</label>
     <div class="password-field-wrap">
       <input type="password" id="passwordInput" class="login-input password-input" autocomplete="current-password" placeholder="Пароль от Platonus">
-      <button type="button" class="password-toggle-btn" id="passwordToggleBtn" onclick="togglePasswordVisibility()" aria-label="Показать пароль">
+      <button type="button" class="password-toggle-btn" id="passwordToggleBtn" data-action="togglePasswordVisibility()" aria-label="Показать пароль">
         <svg id="passwordEyeIcon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7-10-7-10-7Z"/><circle cx="12" cy="12" r="3"/></svg>
       </button>
     </div>
@@ -62,7 +62,7 @@
       <input type="checkbox" id="rememberLoginInput" checked>
       <span class="login-remember-switch" aria-hidden="true"></span>
     </label>
-    <button class="login-submit" id="loginSubmitBtn" onclick="submitLogin()">Войти</button>
+    <button class="login-submit" id="loginSubmitBtn" data-action="submitLogin()">Войти</button>
     <div class="login-error" id="loginError"></div>
   </div>
 </div>
@@ -76,12 +76,12 @@
       class="modal-select"
       placeholder="Введите или выберите город…"
       autocomplete="off"
-      oninput="filterCityList(this.value)"
+      data-city-filter
     >
     <div class="city-list" id="cityList"></div>
     <div class="modal-buttons">
-      <button class="modal-btn cancel" onclick="closeCityModal()">Отменить</button>
-      <button class="modal-btn save" onclick="saveCityAndLoad()">Сохранить</button>
+      <button class="modal-btn cancel" data-action="closeCityModal()">Отменить</button>
+      <button class="modal-btn save" data-action="saveCityAndLoad()">Сохранить</button>
     </div>
   </div>
 </div>
@@ -90,21 +90,21 @@
   <div class="modal-card">
     <div class="modal-title">Акцентный цвет</div>
     <div class="accent-swatch-grid" id="accentSwatchGrid"></div>
-    <button class="accent-default-btn" id="accentDefaultBtn" onclick="selectAccentSwatch('default')">
+    <button class="accent-default-btn" id="accentDefaultBtn" data-action="selectAccentSwatch('default')">
       <span class="accent-default-check">✓</span>
       <span>По умолчанию</span>
     </button>
     <div class="modal-buttons">
-      <button class="modal-btn cancel" onclick="closeAccentModal()">Отменить</button>
-      <button class="modal-btn save" onclick="saveAccentTheme()">Сохранить</button>
+      <button class="modal-btn cancel" data-action="closeAccentModal()">Отменить</button>
+      <button class="modal-btn save" data-action="saveAccentTheme()">Сохранить</button>
     </div>
   </div>
 </div>
 
 <div class="umkd-file-overlay" id="umkdFileOverlay">
   <div class="umkd-file-topbar">
-    <button class="umkd-file-action" id="umkdShareBtn" onclick="shareUmkdFile()" aria-label="Поделиться"></button>
-    <button type="button" class="umkd-file-close navigation-back" onclick="closeUmkdFile()" aria-label="Назад"><svg aria-hidden="true" class="action-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m14 6-6 6 6 6"/></svg><span>Назад</span></button>
+    <button class="umkd-file-action" id="umkdShareBtn" data-action="shareUmkdFile()" aria-label="Поделиться"></button>
+    <button type="button" class="umkd-file-close navigation-back" data-action="closeUmkdFile()" aria-label="Назад"><svg aria-hidden="true" class="action-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m14 6-6 6 6 6"/></svg><span>Назад</span></button>
   </div>
   <div class="umkd-file-frame" id="umkdFileFrame"></div>
 </div>
@@ -112,7 +112,7 @@
 <dialog class="logout-dialog" id="logoutDialog" aria-labelledby="logoutTitle">
   <h2 id="logoutTitle">Выйти из аккаунта?</h2>
   <p>Чтобы вернуться, войди с логином и паролем Platonus.</p>
-  <div class="modal-buttons"><button type="button" class="modal-btn cancel" autofocus onclick="closeLogoutConfirmation()">Отмена</button><button type="button" class="modal-btn save" onclick="closeLogoutConfirmation(true)">Выйти</button></div>
+  <div class="modal-buttons"><button type="button" class="modal-btn cancel" autofocus data-action="closeLogoutConfirmation()">Отмена</button><button type="button" class="modal-btn save" data-action="closeLogoutConfirmation(true)">Выйти</button></div>
 </dialog>
 
 <div class="app-shell">
@@ -127,46 +127,46 @@
         </div>
         <div class="header-right-block">
           <div class="header-right-top">
-            <button class="today-btn" id="todayBtn" onclick="jumpToToday()" aria-label="Перейти к сегодняшнему дню">Сегодня</button>
-            <button type="button" class="appearance-toggle" onclick="toggleColorMode()" aria-label="Включить тёмную тему" aria-pressed="false">
+            <button class="today-btn" id="todayBtn" data-action="jumpToToday()" aria-label="Перейти к сегодняшнему дню">Сегодня</button>
+            <button type="button" class="appearance-toggle" data-action="toggleColorMode()" aria-label="Включить тёмную тему" aria-pressed="false">
               <svg class="appearance-moon" aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20.9 13.1A9 9 0 0 1 10.9 3.1a9 9 0 1 0 10 10Z"/></svg>
               <svg class="appearance-sun" aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="4"/><path d="M12 2v2m0 16v2M2 12h2m16 0h2M5 5l1.4 1.4m11.2 11.2L19 19M5 19l1.4-1.4M17.6 6.4 19 5"/></svg>
             </button>
-            <button class="theme-btn" id="themeBtn" onclick="openAccentModal()" aria-label="Выбрать акцентный цвет" title="Акцентный цвет">
+            <button class="theme-btn" id="themeBtn" data-action="openAccentModal()" aria-label="Выбрать акцентный цвет" title="Акцентный цвет">
               <svg aria-hidden="true" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3a9 9 0 1 0 0 18h1a2 2 0 0 0 1.4-3.4 1.5 1.5 0 0 1 1.1-2.6H18a3 3 0 0 0 3-3 9 9 0 0 0-9-9Z"/><circle cx="7.5" cy="10" r=".7"/><circle cx="10" cy="6.5" r=".7"/><circle cx="14.5" cy="6.5" r=".7"/><circle cx="17" cy="10" r=".7"/></svg>
             </button>
           </div>
-          <button type="button" class="weather-widget" id="weatherWidget" onclick="openCityModal()" aria-label="Выбрать город для погоды">— · —°</button>
+          <button type="button" class="weather-widget" id="weatherWidget" data-action="openCityModal()" aria-label="Выбрать город для погоды">— · —°</button>
         </div>
       </div>
 
 
       <div class="week-stepper" id="weekStepper">
-        <button class="week-step-btn" id="weekPrevBtn" onclick="stepWeek(-1)" aria-label="Предыдущая неделя"><svg aria-hidden="true" class="action-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m14 6-6 6 6 6"/></svg></button>
+        <button class="week-step-btn" id="weekPrevBtn" data-action="stepWeek(-1)" aria-label="Предыдущая неделя"><svg aria-hidden="true" class="action-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m14 6-6 6 6 6"/></svg></button>
         <span class="week-step-label" id="weekStepLabel">Неделя —</span>
-        <button class="week-step-btn" id="weekNextBtn" onclick="stepWeek(1)" aria-label="Следующая неделя"><svg aria-hidden="true" class="action-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m9 6 6 6-6 6"/></svg></button>
+        <button class="week-step-btn" id="weekNextBtn" data-action="stepWeek(1)" aria-label="Следующая неделя"><svg aria-hidden="true" class="action-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m9 6 6 6-6 6"/></svg></button>
       </div>
 
       <div class="days-grid" id="daysGrid">
         <div class="day-indicator" id="dayIndicator"></div>
-        <button class="day-btn" id="btn-ПН" onclick="selectDay('Понедельник', this)">ПН</button>
-        <button class="day-btn" id="btn-ВТ" onclick="selectDay('Вторник', this)">ВТ</button>
-        <button class="day-btn" id="btn-СР" onclick="selectDay('Среда', this)">СР</button>
-        <button class="day-btn" id="btn-ЧТ" onclick="selectDay('Четверг', this)">ЧТ</button>
-        <button class="day-btn" id="btn-ПТ" onclick="selectDay('Пятница', this)">ПТ</button>
-        <button class="day-btn" id="btn-СБ" onclick="selectDay('Суббота', this)">СБ</button>
+        <button class="day-btn" id="btn-ПН" data-action="selectDay('Понедельник', this)">ПН</button>
+        <button class="day-btn" id="btn-ВТ" data-action="selectDay('Вторник', this)">ВТ</button>
+        <button class="day-btn" id="btn-СР" data-action="selectDay('Среда', this)">СР</button>
+        <button class="day-btn" id="btn-ЧТ" data-action="selectDay('Четверг', this)">ЧТ</button>
+        <button class="day-btn" id="btn-ПТ" data-action="selectDay('Пятница', this)">ПТ</button>
+        <button class="day-btn" id="btn-СБ" data-action="selectDay('Суббота', this)">СБ</button>
         <div class="weekend-badge" id="weekendBadge">Сегодня выходной</div>
       </div>
 
       <div id="scheduleContainer"></div>
     </div>
 
-    <div class="app-section" id="sectionUmkd" style="display:none;"><button type="button" class="profile-back navigation-back" onclick="switchSection('profile')"><svg aria-hidden="true" class="action-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m14 6-6 6 6 6"/></svg><span>Назад</span></button><div class="section-inner" id="umkdContainer"></div></div>
-    <div class="app-section" id="sectionExams" style="display:none;"><button type="button" class="profile-back navigation-back" onclick="switchSection('profile')"><svg aria-hidden="true" class="action-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m14 6-6 6 6 6"/></svg><span>Назад</span></button><div class="section-inner" id="examsContainer"></div></div>
+    <div class="app-section" id="sectionUmkd" style="display:none;"><button type="button" class="profile-back navigation-back" data-action="switchSection('profile')"><svg aria-hidden="true" class="action-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m14 6-6 6 6 6"/></svg><span>Назад</span></button><div class="section-inner" id="umkdContainer"></div></div>
+    <div class="app-section" id="sectionExams" style="display:none;"><button type="button" class="profile-back navigation-back" data-action="switchSection('profile')"><svg aria-hidden="true" class="action-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m14 6-6 6 6 6"/></svg><span>Назад</span></button><div class="section-inner" id="examsContainer"></div></div>
     <div class="app-section" id="sectionGrades" style="display:none;"><div class="section-inner" id="gradesContainer"></div></div>
     <div class="app-section" id="sectionProfile" style="display:none;"><div class="section-inner" id="profileContainer"></div></div>
-    <section class="app-section" id="sectionCalendar" style="display:none;" aria-label="Академический календарь"><button type="button" class="profile-back navigation-back" onclick="switchSection('profile')"><svg aria-hidden="true" class="action-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m14 6-6 6 6 6"/></svg><span>Назад</span></button><div class="academic-container" id="calendarContainer"></div></section>
-    <section class="app-section" id="sectionTranscript" style="display:none;" aria-label="Транскрипт"><button type="button" class="profile-back navigation-back" onclick="switchSection('profile')"><svg aria-hidden="true" class="action-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m14 6-6 6 6 6"/></svg><span>Назад</span></button><div class="academic-container" id="transcriptContainer"></div></section>
+    <section class="app-section" id="sectionCalendar" style="display:none;" aria-label="Академический календарь"><button type="button" class="profile-back navigation-back" data-action="switchSection('profile')"><svg aria-hidden="true" class="action-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m14 6-6 6 6 6"/></svg><span>Назад</span></button><div class="academic-container" id="calendarContainer"></div></section>
+    <section class="app-section" id="sectionTranscript" style="display:none;" aria-label="Транскрипт"><button type="button" class="profile-back navigation-back" data-action="switchSection('profile')"><svg aria-hidden="true" class="action-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m14 6-6 6 6 6"/></svg><span>Назад</span></button><div class="academic-container" id="transcriptContainer"></div></section>
     <section class="app-section chat-section" id="sectionChat" style="display:none;" aria-label="Личные сообщения">
       <header class="chat-page-header">
         <span class="masthead-eyebrow">На связи</span>
@@ -211,7 +211,7 @@
 <div class="tab-scroll-fade" aria-hidden="true"></div>
 <nav class="bottom-tab-bar" id="bottomTabBar">
   <div class="bottom-tab-indicator" id="tabIndicator"></div>
-  <button class="bottom-tab-btn active" id="section-schedule" onclick="tapTab('schedule')" aria-label="Расписание">
+  <button class="bottom-tab-btn active" id="section-schedule" data-action="tapTab('schedule')" aria-label="Расписание">
     <div class="bottom-tab-icon-wrap">
       <svg aria-hidden="true" class="tab-refresh-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 0 1 15.36-6.36L21 8M21 3v5h-5M21 12a9 9 0 0 1-15.36 6.36L3 16M8 16H3v5"/></svg>
       <svg aria-hidden="true" class="bottom-tab-icon icon-outline" viewBox="0 0 24 24" fill="none" fill-opacity="1" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="5" width="16" height="15" rx="3"/><path d="M8 3v4m8-4v4M4 10h16" fill="none"/></svg>
@@ -219,7 +219,7 @@
     </div>
     <span>Расписание</span>
   </button>
-  <button class="bottom-tab-btn" id="section-grades" onclick="tapTab('grades')">
+  <button class="bottom-tab-btn" id="section-grades" data-action="tapTab('grades')">
     <div class="bottom-tab-icon-wrap">
       <svg aria-hidden="true" class="tab-refresh-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 0 1 15.36-6.36L21 8M21 3v5h-5M21 12a9 9 0 0 1-15.36 6.36L3 16M8 16H3v5"/></svg>
       <svg aria-hidden="true" class="bottom-tab-icon icon-outline" viewBox="0 0 24 24" fill="none" fill-opacity="1" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="12" width="4" height="8" rx="1.5"/><rect x="10" y="4" width="4" height="16" rx="1.5"/><rect x="16" y="8" width="4" height="12" rx="1.5"/></svg>
@@ -227,7 +227,7 @@
     </div>
     <span>Оценки</span>
   </button>
-  <button class="bottom-tab-btn" id="section-chat" onclick="tapTab('chat')">
+  <button class="bottom-tab-btn" id="section-chat" data-action="tapTab('chat')">
     <div class="bottom-tab-icon-wrap">
       <svg aria-hidden="true" class="tab-refresh-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 0 1 15.36-6.36L21 8M21 3v5h-5M21 12a9 9 0 0 1-15.36 6.36L3 16M8 16H3v5"/></svg>
       <svg aria-hidden="true" class="bottom-tab-icon icon-outline" viewBox="0 0 24 24" fill="none" fill-opacity="1" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 11a7 7 0 0 1-7 7H8l-4 3v-8a8 8 0 1 1 16-2Z"/><path d="M8 10h8m-8 4h5" fill="none"/></svg>
@@ -236,7 +236,7 @@
     </div>
     <span>Сообщения</span>
   </button>
-  <button class="bottom-tab-btn" id="section-profile" onclick="tapTab('profile')">
+  <button class="bottom-tab-btn" id="section-profile" data-action="tapTab('profile')">
     <div class="bottom-tab-icon-wrap">
       <svg aria-hidden="true" class="tab-refresh-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 0 1 15.36-6.36L21 8M21 3v5h-5M21 12a9 9 0 0 1-15.36 6.36L3 16M8 16H3v5"/></svg>
       <svg aria-hidden="true" class="bottom-tab-icon icon-outline" viewBox="0 0 24 24" fill="none" fill-opacity="1" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="4"/><path d="M4 21v-1a8 6 0 0 1 16 0v1"/></svg>
@@ -250,6 +250,7 @@
 <script defer src="./assets/js/academic.js"></script>
 <script defer src="./assets/js/app.js"></script>
 <script defer src="./assets/js/updates.js"></script>
+<script defer src="./assets/js/actions.js"></script>
 <script defer src="./assets/js/viewport-recovery.js"></script>
 <script defer src="./assets/js/chat.js"></script>
 <script defer src="./assets/js/navigation.js"></script>

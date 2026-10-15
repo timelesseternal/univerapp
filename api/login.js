@@ -1,4 +1,4 @@
-// POST /api/login  { login, password } -> { ok, session, blockMinutesRemaining }
+// POST /api/login  { login, password, remember } -> { ok, blockMinutesRemaining } + HttpOnly cookie
 //
 // This is the ONLY place the student's password ever passes through this
 // backend. It is forwarded once, straight to Platonus, over HTTPS, and is
@@ -6,18 +6,30 @@
 // Platonus response comes back, the password variable simply falls out of
 // scope at the end of this function.
 
+import {sameOrigin,sessionKey,sealSession,setWebSession} from './_lib/security.js';
+import {loginLimit} from './_lib/login-limit.js';
 export default async function handler(req, res) {
   res.setHeader('Cache-Control', 'no-store');
   if (req.method !== 'POST') {
+    res.setHeader('Allow','POST');
     res.status(405).json({ error: 'method_not_allowed' });
     return;
   }
+  if(!sameOrigin(req)){res.status(403).json({error:'forbidden'});return;}
 
   const { login, password } = req.body || {};
   if (typeof login !== 'string' || !login.trim() || typeof password !== 'string' || !password) {
     res.status(400).json({ error: 'missing_credentials' });
     return;
   }
+  if(login.length>160 || password.length>1024){res.status(400).json({error:'missing_credentials'});return;}
+  try{
+    sessionKey();
+    const limit=await loginLimit(req,login);
+    if(limit?.allowed!==true){
+      res.setHeader('Retry-After',String(limit?.retryAfter || 600));res.status(429).json({error:'login_rate_limit'});return;
+    }
+  }catch{res.status(503).json({error:'security_not_configured'});return;}
 
   let platonusResp;
   try {
@@ -74,11 +86,12 @@ export default async function handler(req, res) {
     res.status(502).json({ error: 'platonus_bad_response' });
     return;
   }
-  const sessionToken = Buffer.from(JSON.stringify(session)).toString('base64');
+  let sessionToken;
+  try{sessionToken=sealSession(session);}catch{res.status(502).json({error:'platonus_bad_response'});return;}
+  setWebSession(req,res,sessionToken,req.body.remember===true);
 
   res.status(200).json({
     ok: true,
-    session: sessionToken,
     blockMinutesRemaining: data.blockMinutesRemaining ?? 0,
   });
 }

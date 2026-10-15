@@ -1,4 +1,4 @@
-// GET /api/schedule?studentID=185082[&year=2026&term=1&week=2]   header: x-session: <token>
+// GET /api/schedule?studentID=185082[&year=2026&term=1&week=2]   authentication: HttpOnly session cookie
 //
 // Platonus запрашивает расписание через POST с телом вида:
 //   { studentTypeID, studyYear, term, statusID, disciplineStudyLanguageIds, week }

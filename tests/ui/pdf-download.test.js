@@ -23,13 +23,12 @@ test('desktop browser downloads directly despite the loaded Telegram SDK and blo
   assert.equal(ui.downloads[0].name, 'Предмет.pdf');
   assert.equal(ui.downloads[0].blob.type, 'application/pdf');
 });
-test('Telegram Desktop uses its native downloader', async () => {
+test('Telegram Desktop downloads a blob without exposing a session URL', async () => {
   let download;
   const ui = setup({ initData: 'verified-by-server-elsewhere', platform: 'tdesktop', isVersionAtLeast: () => true, downloadFile: value => { download = value; } });
   await ui.context.shareUmkdFile();
-  assert.equal(download.file_name, 'Предмет.pdf');
-  assert.match(download.url, /download=1/);
-  assert.equal(ui.downloads.length, 0);
+  assert.equal(download, undefined);
+  assert.equal(ui.downloads.length, 1);
 });
 test('iPhone browser keeps the share sheet even when SDK platform is web', async () => {
   let shared = 0;

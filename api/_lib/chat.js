@@ -1,3 +1,4 @@
+import { sameOrigin } from './security.js';
 import { createHash, randomBytes } from 'node:crypto';
 import { getSessionFromRequest, buildPlatonusHeaders } from './platonus.js';
 import { enrichStudentStudy, fetchStudyDetails } from './student-study.js';
@@ -51,10 +52,7 @@ export function setCookie(req, res, token, maxAge = SESSION_SECONDS) {
   res.setHeader('Set-Cookie', `${COOKIE_NAME}=${token}; Path=/api/chat; HttpOnly; SameSite=Strict; Max-Age=${maxAge}${secure}`);
 }
 export function checkOrigin(req) {
-  if (!req.headers.origin) return;
-  try {
-    if (new URL(req.headers.origin).host === req.headers.host) return;
-  } catch { /* Reject malformed origins. */ }
+  if (sameOrigin(req)) return;
   throw new ChatError(403, 'chat_forbidden');
 }
 export async function currentUser(req) {

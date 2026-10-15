@@ -1,4 +1,4 @@
-// GET /api/umkd?year=2026&term=1   header: x-session: <token>
+// GET /api/umkd?year=2026&term=1   authentication: HttpOnly session cookie
 import { getSessionFromRequest, buildPlatonusHeaders } from './_lib/platonus.js';
 
 export default async function handler(req, res) {
