@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {sealSession,unsealSession,readWebSession,setWebSession,SESSION_SECONDS} from '../../api/_lib/security.js';
+import {sealSession,unsealSession,readWebSession,setWebSession,SESSION_SECONDS,REMEMBER_SECONDS} from '../../api/_lib/security.js';
 import handler from '../../api/session.js';
 import login from '../../api/login.js';
 process.env.UNILINK_SESSION_KEY='02'.repeat(32);
@@ -8,6 +8,16 @@ process.env.SUPABASE_URL='https://test.supabase.co';
 process.env.SUPABASE_SERVICE_ROLE_KEY='server-only';
 const session={sid:'private-sid',token:'private-token',cookie:'upstream=secret'};
 const response=()=>({headers:{},setHeader(k,v){this.headers[k]=v;},status(code){this.code=code;return this;},json(body){this.body=body;}});
+test('remembered sessions survive eight hours and expire after thirty days',()=>{
+  const now=Date.now(),remembered=sealSession(session,now,true),temporary=sealSession(session,now,false);
+  assert.equal(unsealSession(temporary,now+SESSION_SECONDS*1000),null);
+  assert.deepEqual(unsealSession(remembered,now+SESSION_SECONDS*1000),session);
+  assert.deepEqual(unsealSession(remembered,now+REMEMBER_SECONDS*1000-1),session);
+  assert.equal(unsealSession(remembered,now+REMEMBER_SECONDS*1000),null);
+  const res=response();setWebSession({headers:{'x-forwarded-proto':'https'}},res,remembered,true);
+  assert.match(res.headers['Set-Cookie'],/Max-Age=2592000/);
+  assert.match(res.headers['Set-Cookie'],/HttpOnly; SameSite=Strict; Secure/);
+});
 test('session encryption authenticates every field and expires; legacy forged bundles are rejected',()=>{
   const now=Date.now(),a=sealSession(session,now),b=sealSession(session,now);
   assert.notEqual(a,b);assert.deepEqual(unsealSession(a,now),session);

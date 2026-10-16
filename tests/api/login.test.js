@@ -11,6 +11,20 @@ function response() {
   return { headers: {}, setHeader(k, v) { this.headers[k] = v; }, status(code) { this.code = code; return this; }, json(body) { this.body = body; } };
 }
 
+test('login extends the encrypted session only when remember me is explicitly enabled',async t=>{
+  t.mock.method(globalThis,'fetch',limited(async()=>({ok:true,status:200,
+    json:async()=>({login_status:'success',sid:'sid',auth_token:'token'}),
+    headers:{getSetCookie:()=>['sid=1; HttpOnly']}})));
+  for(const remember of [true,false,'true']){
+    const before=Date.now(),res=response();
+    await handler({method:'POST',body:{login:'student',password:'password',remember}},res);
+    assert.equal(res.code,200);assert.equal(res.body.session,undefined);
+    const token=res.headers['Set-Cookie'].split(';')[0].split('=')[1];
+    assert.equal(Boolean(unsealSession(token,before+24*60*60*1000)),remember===true);
+    assert.equal(res.headers['Set-Cookie'].includes('Max-Age=2592000'),remember===true);
+  }
+});
+
 test('login validates credentials without contacting Platonus', async t => {
   const original = globalThis.fetch;
   t.after(() => { globalThis.fetch = original; });

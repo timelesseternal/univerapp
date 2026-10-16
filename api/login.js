@@ -87,7 +87,7 @@ export default async function handler(req, res) {
     return;
   }
   let sessionToken;
-  try{sessionToken=sealSession(session);}catch{res.status(502).json({error:'platonus_bad_response'});return;}
+  try{sessionToken=sealSession(session,Date.now(),req.body.remember===true);}catch{res.status(502).json({error:'platonus_bad_response'});return;}
   setWebSession(req,res,sessionToken,req.body.remember===true);
 
   res.status(200).json({
