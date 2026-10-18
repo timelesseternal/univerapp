@@ -261,3 +261,45 @@ test('cold launch retries missing cookies before showing login and never trusts 
     assert.equal(env.read('platonusSession'), recovered ? 'cookie' : null);
   }
 });
+
+test('logout waits for device restoration before deleting its late cookie', async () => {
+  const env=setup();let completeRestore;
+  const calls=[];
+  env.ctx.window.unilinkDeviceSession={
+    restore:()=>new Promise(resolve=>{completeRestore=resolve;}),
+    clear:async()=>{calls.push('clear-device');},
+  };
+  env.ctx.fetch=async(url,options)=>{
+    if(options?.method==='DELETE'){calls.push('delete-cookie');return {ok:true};}
+    return {ok:false,status:401};
+  };
+  const restoring=env.ctx.silentRelogin();
+  await new Promise(setImmediate);
+  env.ctx.logout();await new Promise(setImmediate);
+  assert.ok(calls.includes('clear-device'));
+  assert.ok(!calls.includes('delete-cookie'));
+  completeRestore(true);
+  assert.equal(await restoring,false);
+  await env.read('authStorageWork');
+  assert.equal(calls.at(-1),'delete-cookie');
+  assert.equal(env.read('platonusSession'),null);
+});
+
+test('successful remembered login persists the device key before opening the app', async () => {
+  const env=setup();const publicKey={kty:'EC',crv:'P-256'};let finishSave,saved,requestBody;
+  env.document.getElementById('rememberLoginInput').checked=true;
+  env.document.getElementById('loginInput').value='user';
+  env.document.getElementById('passwordInput').value='password';
+  env.ctx.window.unilinkDeviceSession={prepare:async()=>({publicKey,
+    save:value=>{saved=value;return new Promise(resolve=>{finishSave=resolve;});}})};
+  env.ctx.fetch=async(url,options)=>{
+    requestBody=JSON.parse(options.body);
+    return {ok:true,json:async()=>({ok:true,deviceSession:'d1.encrypted'})};
+  };
+  const signingIn=env.ctx.submitLogin();await new Promise(setImmediate);
+  assert.deepEqual(requestBody.devicePublicKey,publicKey);
+  assert.equal(saved,'d1.encrypted');assert.equal(env.loads,0);
+  finishSave();await signingIn;
+  assert.equal(env.loads,1);
+  assert.equal(env.read('platonusSession'),'cookie');
+});

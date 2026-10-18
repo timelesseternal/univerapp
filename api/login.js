@@ -8,6 +8,7 @@
 
 import {sameOrigin,sessionKey,sealSession,setWebSession} from './_lib/security.js';
 import {loginLimit} from './_lib/login-limit.js';
+import {devicePublicKey,sealDeviceSession} from './_lib/device-session.js';
 export default async function handler(req, res) {
   res.setHeader('Cache-Control', 'no-store');
   if (req.method !== 'POST') {
@@ -23,6 +24,10 @@ export default async function handler(req, res) {
     return;
   }
   if(login.length>160 || password.length>1024){res.status(400).json({error:'missing_credentials'});return;}
+  let publicKey;
+  if(req.body.remember===true && req.body.devicePublicKey){
+    try{publicKey=devicePublicKey(req.body.devicePublicKey);}catch{res.status(400).json({error:'invalid_device_key'});return;}
+  }
   try{
     sessionKey();
     const limit=await loginLimit(req,login);
@@ -86,12 +91,17 @@ export default async function handler(req, res) {
     res.status(502).json({ error: 'platonus_bad_response' });
     return;
   }
-  let sessionToken;
-  try{sessionToken=sealSession(session,Date.now(),req.body.remember===true);}catch{res.status(502).json({error:'platonus_bad_response'});return;}
+  let sessionToken,deviceSession;
+  try{
+    const issuedAt=Date.now();
+    sessionToken=sealSession(session,issuedAt,req.body.remember===true);
+    if(publicKey)deviceSession=sealDeviceSession(session,publicKey,req.headers?.host,issuedAt);
+  }catch{res.status(502).json({error:'platonus_bad_response'});return;}
   setWebSession(req,res,sessionToken,req.body.remember===true);
 
   res.status(200).json({
     ok: true,
+    ...(deviceSession?{deviceSession}:{}),
     blockMinutesRemaining: data.blockMinutesRemaining ?? 0,
   });
 }

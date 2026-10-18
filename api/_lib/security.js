@@ -22,12 +22,14 @@ export function validSession(value){
   return !!value && ['sid','token','cookie'].every(key=>typeof value[key]==='string'
     && value[key].length>0 && value[key].length<=4096 && !/[\r\n\0]/.test(value[key]));
 }
-export function sealSession(session,now=Date.now(),remember=false){
+export function sealSession(session,now=Date.now(),remember=false,expiresAt){
   if(!validSession(session))throw new Error('invalid_session');
   const iv=randomBytes(12),cipher=createCipheriv('aes-256-gcm',sessionKey(),iv);
   cipher.setAAD(aad);
   const duration=remember===true?REMEMBER_SECONDS:SESSION_SECONDS;
-  const encrypted=Buffer.concat([cipher.update(JSON.stringify({session,remember:remember===true,expires:now+duration*1000}),'utf8'),cipher.final()]);
+  const expires=expiresAt ?? now+duration*1000;
+  if(!Number.isFinite(expires) || expires<=now || expires>now+duration*1000)throw new Error('invalid_session');
+  const encrypted=Buffer.concat([cipher.update(JSON.stringify({session,remember:remember===true,expires}),'utf8'),cipher.final()]);
   const token=['v1',iv.toString('base64url'),encrypted.toString('base64url'),cipher.getAuthTag().toString('base64url')].join('.');
   if(token.length>3800)throw new Error('invalid_session');
   return token;
@@ -53,9 +55,10 @@ export function readWebSession(req){
     .find(part=>part.startsWith(SESSION_COOKIE+'='));
   return unsealSession(cookie?.slice(SESSION_COOKIE.length+1));
 }
-export function setWebSession(req,res,token,remember=false){
+export function setWebSession(req,res,token,remember=false,expiresAt){
   const secure=process.env.VERCEL || process.env.NODE_ENV==='production' || req.headers?.['x-forwarded-proto']==='https';
+  const now=Date.now(),expires=Math.min(expiresAt ?? Infinity,now+REMEMBER_SECONDS*1000);
   const lifetime=!token?'; Max-Age=0; Expires=Thu, 01 Jan 1970 00:00:00 GMT'
-    :remember?`; Max-Age=${REMEMBER_SECONDS}; Expires=${new Date(Date.now()+REMEMBER_SECONDS*1000).toUTCString()}`:'';
+    :remember?`; Max-Age=${Math.max(0,Math.floor((expires-now)/1000))}; Expires=${new Date(expires).toUTCString()}`:'';
   res.setHeader('Set-Cookie',`${SESSION_COOKIE}=${token}; Path=/api; HttpOnly; SameSite=Strict${secure?'; Secure':''}${lifetime}`);
 }

@@ -1,0 +1,13 @@
+.git/
+.github/
+docs/
+tests/
+scripts/
+supabase/
+coverage/
+private-supabase-migration/
+.env*
+README.md
+.editorconfig
+.gitattributes
+*.log

@@ -3,9 +3,17 @@
   "version": "1.0.0",
   "private": true,
   "type": "module",
+  "description": "UniLink — расписание, учебные данные Platonus и личные сообщения",
+  "engines": {
+    "node": ">=22"
+  },
   "scripts": {
     "check": "node scripts/check-project.mjs",
-    "test": "node --test"
+    "test": "node --test",
+    "test:api": "node --test \"tests/api/*.test.js\"",
+    "test:ui": "node --test \"tests/ui/*.test.js\"",
+    "test:database": "node --test \"tests/database/*.test.js\"",
+    "verify": "npm run check && npm test"
   },
   "devDependencies": {
     "@electric-sql/pglite": "^0.5.8"

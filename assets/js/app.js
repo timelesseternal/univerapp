@@ -60,7 +60,7 @@ if ('serviceWorker' in navigator) {
   function lsSafe(fn, fallback) {
     try { return fn(); } catch (e) { return fallback; }
   }
-  // Mirror only display data locally. Credentials remain in CloudStorage in Telegram.
+  // Mirror display data only; passwords and authentication tokens never go to CloudStorage.
   // Namespace by Telegram user so a shared WebView cannot reuse another user's cache.
   function localCacheKey(key) {
     const userID = tg && tg.initDataUnsafe && tg.initDataUnsafe.user && tg.initDataUnsafe.user.id;
@@ -544,10 +544,23 @@ if ('serviceWorker' in navigator) {
     try {
       await authStorageWork;
       if (generation !== authGeneration) return;
+      const device=window.unilinkDeviceSession;
+      let rememberedDevice=null;
+      if(shouldRemember && device){
+        try{
+          rememberedDevice=await device.prepare();
+          if(!rememberedDevice)throw new Error('device_storage_unavailable');
+        }catch{
+          if(generation===authGeneration)setLoginError('Не удалось сохранить вход на устройстве. Попробуй ещё раз или выключи «Запомнить меня».');
+          return;
+        }
+      }
+      if (generation !== authGeneration) return;
       const network = fetch(`${API_BASE}/api/login`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ login, password, remember: shouldRemember }),
+        body: JSON.stringify({ login, password, remember: shouldRemember,
+          ...(rememberedDevice?{devicePublicKey:rememberedDevice.publicKey}:{}) }),
         credentials: 'same-origin',
         signal: AbortSignal.timeout(20000),
       });
@@ -571,6 +584,17 @@ if ('serviceWorker' in navigator) {
         return;
       }
 
+      const deviceWrite=rememberedDevice?rememberedDevice.save(data.deviceSession):device?.clear();
+      if(deviceWrite){
+        authStorageWork=Promise.all([authStorageWork,deviceWrite]);
+        try{await deviceWrite;}catch{
+          if(generation===authGeneration)setLoginError('Не удалось запомнить вход. Повтори попытку или выключи «Запомнить меня».');
+          // A failed optional device write must not block the next explicit login.
+          authStorageWork=authStorageWork.catch(()=>{});
+          return;
+        }
+      }
+      if (generation !== authGeneration) return;
       authGeneration++;
       loginCompleted = true;
       platonusSession = 'cookie';
@@ -622,6 +646,7 @@ if ('serviceWorker' in navigator) {
     window.univerAcademic?.reset();
     authStorageWork = Promise.all([
       authStorageWork.catch(() => {}).then(() => Promise.all(keys.map(csRemove))), chatLogout,
+      window.unilinkDeviceSession?.clear().catch(()=>{}),
       loginNetworkWork.then(() => fetch(`${API_BASE}/api/session`, {
         method: 'DELETE', credentials: 'same-origin', signal: AbortSignal.timeout(20000),
       })).catch(() => {}),
@@ -681,7 +706,18 @@ if ('serviceWorker' in navigator) {
       const resp = await fetch(`${API_BASE}/api/session`, {
         credentials: 'same-origin', cache: 'no-store', signal: AbortSignal.timeout(20000),
       });
-      if (generation !== authGeneration || resp.status === 401) return false;
+      if (generation !== authGeneration) return false;
+      if(resp.status===401){
+        if(!window.unilinkDeviceSession)return false;
+        // Track the complete restore, not just its headers: logout waits before
+        // deleting any cookie that an in-flight restore might still set.
+        const work=window.unilinkDeviceSession.restore(()=>generation===authGeneration);
+        loginNetworkWork=work.catch(()=>false);
+        const restored=await work;
+        if(generation!==authGeneration)return false;
+        if(restored)platonusSession='cookie';
+        return restored;
+      }
       if (!resp.ok) throw new Error('session_check_unavailable');
       const data = await resp.json();
       if (generation !== authGeneration) return false;

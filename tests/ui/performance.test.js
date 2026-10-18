@@ -150,6 +150,7 @@ test('the page references existing local assets in the expected script order', (
     assert.ok(fs.existsSync(new URL(match[1], root)), `Missing ${match[1]}`);
   }
   assert.ok(html.indexOf('telegram-web-app.js') < html.indexOf('assets/js/app.js'));
+  assert.ok(html.indexOf('assets/js/device-session.js') < html.indexOf('assets/js/app.js'));
   assert.ok(html.indexOf('assets/js/app.js') < html.indexOf('assets/js/background.js'));
   const background = fs.readFileSync(new URL('../../assets/js/background.js', import.meta.url), 'utf8');
   assert.ok(!background.includes('background.mp4'));

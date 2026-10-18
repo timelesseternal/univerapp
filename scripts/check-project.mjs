@@ -40,4 +40,13 @@ for (const path of [resolve(root, 'README.md'), ...files.filter(path => extname(
 }
 const workerPath = resolve(root, 'assets/js/sw.js');
 for (const match of readFileSync(workerPath, 'utf8').matchAll(/['"](\/assets\/[^'"]+)['"]/g)) verify(match[1], workerPath);
-console.log(`Checked ${checked} JavaScript files, HTML/CSS resources, documentation links and service worker paths.`);
+const manifestPath = resolve(root, 'manifest.webmanifest');
+const manifest = JSON.parse(readFileSync(manifestPath, 'utf8'));
+for (const icon of manifest.icons || []) verify(icon.src, manifestPath);
+if (!manifest.icons?.length) throw new Error('Manifest must contain application icons');
+const packageJSON = JSON.parse(readFileSync(resolve(root, 'package.json'), 'utf8'));
+const lock = JSON.parse(readFileSync(resolve(root, 'package-lock.json'), 'utf8'));
+if (JSON.stringify(packageJSON.engines) !== JSON.stringify(lock.packages[''].engines)) {
+  throw new Error('Node.js requirements differ between package.json and package-lock.json');
+}
+console.log(`Checked ${checked} JavaScript files, HTML/CSS resources, documentation links, manifest icons, runtime metadata and service worker paths.`);

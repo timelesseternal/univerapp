@@ -1,5 +1,5 @@
 // Public app shell only; student data and video ranges bypass this cache.
-const CACHE_NAME = 'univer-shell-v114';
+const CACHE_NAME = 'univer-shell-v115';
 const FONT_PATHS = new Set([
   '/assets/fonts/manrope/cyrillic-ext.woff2',
   '/assets/fonts/manrope/cyrillic.woff2',
@@ -9,6 +9,7 @@ const SHELL_PATHS = new Set(['/', '/index.html', '/manifest.webmanifest', '/asse
 SHELL_PATHS.add('/assets/css/wrapped.css');
 SHELL_PATHS.add('/assets/js/navigation.js');
 SHELL_PATHS.add('/assets/js/actions.js');
+SHELL_PATHS.add('/assets/js/device-session.js');
 SHELL_PATHS.add('/assets/js/viewport-recovery.js');
 SHELL_PATHS.add('/assets/js/wrapped.js');
 SHELL_PATHS.add('/assets/css/academic.css');
