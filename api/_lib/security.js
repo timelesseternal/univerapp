@@ -55,5 +55,7 @@ export function readWebSession(req){
 }
 export function setWebSession(req,res,token,remember=false){
   const secure=process.env.VERCEL || process.env.NODE_ENV==='production' || req.headers?.['x-forwarded-proto']==='https';
-  res.setHeader('Set-Cookie',`${SESSION_COOKIE}=${token}; Path=/api; HttpOnly; SameSite=Strict${secure?'; Secure':''}${!token?'; Max-Age=0':remember?`; Max-Age=${REMEMBER_SECONDS}`:''}`);
+  const lifetime=!token?'; Max-Age=0; Expires=Thu, 01 Jan 1970 00:00:00 GMT'
+    :remember?`; Max-Age=${REMEMBER_SECONDS}; Expires=${new Date(Date.now()+REMEMBER_SECONDS*1000).toUTCString()}`:'';
+  res.setHeader('Set-Cookie',`${SESSION_COOKIE}=${token}; Path=/api; HttpOnly; SameSite=Strict${secure?'; Secure':''}${lifetime}`);
 }

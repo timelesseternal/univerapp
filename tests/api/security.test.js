@@ -16,6 +16,8 @@ test('remembered sessions survive eight hours and expire after thirty days',()=>
   assert.equal(unsealSession(remembered,now+REMEMBER_SECONDS*1000),null);
   const res=response();setWebSession({headers:{'x-forwarded-proto':'https'}},res,remembered,true);
   assert.match(res.headers['Set-Cookie'],/Max-Age=2592000/);
+  const expiry = res.headers['Set-Cookie'].match(/Expires=([^;]+)/)?.[1];
+  assert.ok(Math.abs(Date.parse(expiry)-(now+REMEMBER_SECONDS*1000))<2000);
   assert.match(res.headers['Set-Cookie'],/HttpOnly; SameSite=Strict; Secure/);
 });
 test('session encryption authenticates every field and expires; legacy forged bundles are rejected',()=>{
@@ -41,6 +43,7 @@ test('session endpoints expose only status, prevent cross-site writes and clear 
   for(const remember of [false,true]){
     const cookie=response();setWebSession({headers},cookie,sealSession(session),remember);
     assert.equal(cookie.headers['Set-Cookie'].includes('Max-Age='),remember);
+    assert.equal(cookie.headers['Set-Cookie'].includes('Expires='),remember);
   }
 });
 test('login rate limits and configuration failures stop requests before Platonus',async t=>{

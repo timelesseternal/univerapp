@@ -499,6 +499,15 @@ if ('serviceWorker' in navigator) {
     el.classList.add('visible');
   }
 
+  function setLoginRestoreState(state) {
+    document.getElementById('loginFormFields').hidden = !!state;
+    document.getElementById('loginRestoreStatus').hidden = !state;
+    document.getElementById('loginRestoreRetry').hidden = state !== 'retry';
+    document.getElementById('loginRestoreMessage').textContent = state === 'retry'
+      ? 'Не удалось проверить сохранённый вход. Проверь подключение и повтори.'
+      : 'Восстанавливаем вход…';
+  }
+
   const EYE_ICON_OPEN = '<path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7-10-7-10-7Z"/><circle cx="12" cy="12" r="3"/>';
   const EYE_ICON_CLOSED = '<path d="m3 3 18 18M9.5 5.3A11 11 0 0 1 12 5c6.5 0 10 7 10 7a17 17 0 0 1-3 3.7M6 6.5A20 20 0 0 0 2 12s3.5 7 10 7a12 12 0 0 0 5-1.1M10 10a3 3 0 0 0 4 4"/>';
 
@@ -649,6 +658,7 @@ if ('serviceWorker' in navigator) {
     setLoginError(null);
     Object.keys(weekScheduleCache).forEach(k => delete weekScheduleCache[k]);
     switchSection('schedule');
+    setLoginRestoreState('');
     showLoginOverlay(true);
     updateWeekStepperUI();
   }
@@ -671,11 +681,17 @@ if ('serviceWorker' in navigator) {
       const resp = await fetch(`${API_BASE}/api/session`, {
         credentials: 'same-origin', cache: 'no-store', signal: AbortSignal.timeout(20000),
       });
+      if (generation !== authGeneration || resp.status === 401) return false;
+      if (!resp.ok) throw new Error('session_check_unavailable');
       const data = await resp.json();
-      if (generation !== authGeneration || !resp.ok || !data.ok) return false;
+      if (generation !== authGeneration) return false;
+      if (!data.ok) throw new Error('session_check_unavailable');
       platonusSession = 'cookie';
       return true;
-    } catch { return false; }
+    } catch (error) {
+      if (generation !== authGeneration) return false;
+      throw error;
+    }
   }
 
   async function platonusFetch(path) {
@@ -2628,9 +2644,73 @@ if ('serviceWorker' in navigator) {
     // { subject: 'Операционные системы', examType: 'Экзамен', date: '2026-01-12', time: '09:00', room: 'Гк423', teacher: 'Толымбекова Г. С.' },
   ];
 
-  document.addEventListener('DOMContentLoaded', async () => {
+  let restoringLogin = false;
+  async function restoreSavedLogin() {
+    if (restoringLogin) return;
+    restoringLogin = true;
     const generation = authGeneration;
-    const savedPromise = csGetMany(['platonus_student', 'platonus_remember']);
+    setLoginRestoreState('checking');
+    let saved, restored;
+    try {
+      saved = await csGetMany(['platonus_student', 'platonus_remember']);
+      if (generation !== authGeneration) return;
+      restored = await silentRelogin();
+      // Give the browser a brief chance to restore its cookie store on a cold launch.
+      // The saved preference is only a retry hint, never proof of authentication.
+      if (!restored && saved.platonus_remember === '1' && saved.platonus_student) {
+        for (const delay of [300, 900]) {
+          await new Promise(resolve => setTimeout(resolve, delay));
+          if (generation !== authGeneration) return;
+          restored = await silentRelogin();
+          if (restored) break;
+        }
+      }
+    } catch {
+      if (generation === authGeneration) setLoginRestoreState('retry');
+      return;
+    } finally {
+      restoringLogin = false;
+    }
+    if (generation !== authGeneration) return;
+    setLoginRestoreState('');
+    persistLogin = saved.platonus_remember !== '0';
+    document.getElementById('rememberLoginInput').checked = persistLogin;
+    try { platonusStudent = JSON.parse(saved.platonus_student || 'null'); }
+    catch (e) { platonusStudent = null; }
+
+    if (restored) {
+      showLoginOverlay(false);
+      document.getElementById('loginOverlay').style.display = 'none';
+
+      // Сразу показываем то, что есть в кэше — без ожидания сети.
+      const cachedData = await loadCachedStudentData();
+      if (generation !== authGeneration) return;
+      if (cachedData) {
+        applyCachedStudentData(cachedData);
+        detectToday(true);
+        updateStatusBarAndLive();
+        selectDay(selectedDay, null, true);
+        if (currentSection === 'profile') {
+          renderProfile(false);
+        } else if (currentSection === 'grades') {
+          renderGrades(false);
+        } else if (currentSection === 'umkd') {
+          renderUmkdSubjects(false);
+        } else {
+          renderSchedule(false);
+        }
+      }
+
+      // Свежие данные всё равно грузим в фоне и тихо обновляем экран,
+      // когда придёт ответ (см. конец loadLiveStudentData).
+      loadLiveStudentData();
+      window.univerChat?.onLogin?.();
+    } else {
+      showLoginOverlay(true);
+    }
+  }
+
+  document.addEventListener('DOMContentLoaded', async () => {
     authStorageWork = Promise.all(['platonus_session', 'platonus_login', 'platonus_password'].map(csRemove));
 
     const savedAccent = lsSafe(() => localStorage.getItem('user_accent'), null) || 'default';
@@ -2666,45 +2746,7 @@ if ('serviceWorker' in navigator) {
     document.addEventListener('visibilitychange', refreshLiveUI);
     window.dispatchEvent(new Event('univer-ready'));
 
-    const saved = await savedPromise;
-    if (generation !== authGeneration) return;
-    persistLogin = saved.platonus_remember !== '0';
-    document.getElementById('rememberLoginInput').checked = persistLogin;
-    await silentRelogin();
-    if (generation !== authGeneration) return;
-    try { platonusStudent = JSON.parse(saved.platonus_student || 'null'); }
-    catch (e) { platonusStudent = null; }
-
-    if (platonusSession) {
-      showLoginOverlay(false);
-      document.getElementById('loginOverlay').style.display = 'none';
-
-      // Сразу показываем то, что есть в кэше — без ожидания сети.
-      const cachedData = await loadCachedStudentData();
-      if (generation !== authGeneration) return;
-      if (cachedData) {
-        applyCachedStudentData(cachedData);
-        detectToday(true);
-        updateStatusBarAndLive();
-        selectDay(selectedDay, null, true);
-        if (currentSection === 'profile') {
-          renderProfile(false);
-        } else if (currentSection === 'grades') {
-          renderGrades(false);
-        } else if (currentSection === 'umkd') {
-          renderUmkdSubjects(false);
-        } else {
-          renderSchedule(false);
-        }
-      }
-
-      // Свежие данные всё равно грузим в фоне и тихо обновляем экран,
-      // когда придёт ответ (см. конец loadLiveStudentData).
-      loadLiveStudentData();
-      window.univerChat?.onLogin?.();
-    } else {
-      showLoginOverlay(true);
-    }
+    await restoreSavedLogin();
 
 
   });

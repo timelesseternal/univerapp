@@ -2,7 +2,7 @@
 (() => {
   'use strict';
   const allowed = new Set([
-    'toggleColorMode', 'togglePasswordVisibility', 'submitLogin', 'closeCityModal',
+    'toggleColorMode', 'togglePasswordVisibility', 'submitLogin', 'restoreSavedLogin', 'closeCityModal',
     'saveCityAndLoad', 'selectAccentSwatch', 'closeAccentModal', 'saveAccentTheme',
     'shareUmkdFile', 'closeUmkdFile', 'closeLogoutConfirmation', 'jumpToToday',
     'openAccentModal', 'openCityModal', 'stepWeek', 'selectDay', 'switchSection',

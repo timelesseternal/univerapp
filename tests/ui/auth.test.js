@@ -184,3 +184,80 @@ test('without remember me old credentials are removed and silent renewal remains
   env.ctx.logout(); await env.read('authStorageWork');
   assert.equal(env.read('platonusSession'), null);
 });
+
+test('temporary session-check failures preserve the account and do not delete its cookie', async () => {
+  for (const failure of ['offline', 'server', 'invalid-json']) {
+    const env = setup(); const calls = [];
+    env.ctx.fetch = async (url, options) => {
+      calls.push([url, options.method]);
+      if (url !== '/api/session') return { status: 401, ok: false };
+      if (failure === 'offline') throw new TypeError('offline');
+      if (failure === 'server') return { status: 503, ok: false };
+      return { status: 200, ok: true, json: async () => { throw new SyntaxError('invalid JSON'); } };
+    };
+    await assert.rejects(env.ctx.platonusFetch('/api/gpa'));
+    assert.equal(env.read('platonusSession'), 'old');
+    assert.equal(env.read('platonusStudent.studentID'), 1);
+    assert.ok(!calls.some(([,method]) => method === 'DELETE'));
+  }
+});
+
+function setupRestore() {
+  const env = setup();
+  env.ctx.setTimeout = fn => { fn(); return 0; };
+  env.ctx.loadCachedStudentData = async () => null;
+  env.ctx.csGetMany = async () => ({ platonus_student: '{"studentID":1}', platonus_remember: '1' });
+  vm.runInContext(app.slice(app.indexOf('  let restoringLogin'), app.indexOf("  document.addEventListener('DOMContentLoaded'")), env.ctx);
+  return env;
+}
+
+test('a fresh launch restores a remembered session without asking for credentials', async () => {
+  const env = setupRestore();
+  vm.runInContext('platonusSession = null; platonusStudent = null;', env.ctx);
+  await env.ctx.restoreSavedLogin();
+  assert.equal(env.read('platonusSession'), 'cookie');
+  assert.equal(env.loads, 1);
+  assert.equal(env.document.getElementById('loginOverlay').style.display, 'none');
+});
+
+test('offline startup offers retry instead of a password form, then restores the same account', async () => {
+  const env = setupRestore();
+  vm.runInContext('platonusSession = null;', env.ctx);
+  env.ctx.fetch = async () => { throw new TypeError('offline'); };
+  await env.ctx.restoreSavedLogin();
+  assert.equal(env.document.getElementById('loginFormFields').hidden, true);
+  assert.equal(env.document.getElementById('loginRestoreRetry').hidden, false);
+  assert.equal(env.loads, 0);
+  env.ctx.fetch = async () => ({ ok: true, status: 200, json: async () => ({ok:true}) });
+  await env.ctx.restoreSavedLogin();
+  assert.equal(env.read('platonusSession'), 'cookie');
+  assert.equal(env.loads, 1);
+});
+
+test('only a confirmed expired session opens the password form on launch', async () => {
+  const env = setupRestore();
+  vm.runInContext('platonusSession = null;', env.ctx);
+  env.ctx.fetch = async () => ({ ok: false, status: 401 });
+  await env.ctx.restoreSavedLogin();
+  assert.equal(env.document.getElementById('loginFormFields').hidden, false);
+  assert.equal(env.document.getElementById('loginRestoreStatus').hidden, true);
+  assert.equal(env.document.getElementById('loginOverlay').style.display, 'flex');
+  assert.equal(env.loads, 0);
+});
+
+test('cold launch retries missing cookies before showing login and never trusts cached identity alone', async () => {
+  for (const recovered of [true, false]) {
+    const env = setupRestore(); let calls = 0;
+    vm.runInContext('platonusSession = null;', env.ctx);
+    env.ctx.fetch = async () => {
+      calls++;
+      return recovered && calls === 2
+        ? { ok: true, status: 200, json: async () => ({ok:true}) }
+        : { ok: false, status: 401 };
+    };
+    await env.ctx.restoreSavedLogin();
+    assert.equal(calls, recovered ? 2 : 3);
+    assert.equal(env.loads, recovered ? 1 : 0);
+    assert.equal(env.read('platonusSession'), recovered ? 'cookie' : null);
+  }
+});
