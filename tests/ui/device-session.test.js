@@ -12,8 +12,8 @@ process.env.UNILINK_SESSION_KEY='04'.repeat(32);
 const source=readFileSync(new URL('../../assets/js/device-session.js',import.meta.url),'utf8');
 const session={sid:'upstream-sid',token:'upstream-token',cookie:'upstream=cookie'};
 const host='app.test';
-function browser(database,fetch){
-  const window={crypto:webcrypto};
+function browser(database,fetch,telegram){
+  const window={crypto:webcrypto,location:{host},...(telegram?{Telegram:{WebApp:telegram}}:{})};
   vm.runInNewContext(source,{window,indexedDB:database,fetch,TextEncoder,Uint8Array,btoa,AbortSignal,setTimeout,clearTimeout});
   return window.unilinkDeviceSession;
 }
@@ -85,6 +85,53 @@ test('signing out while a challenge is pending prevents sending the restoration 
 test('denied local storage fails promptly without claiming that login is remembered',async()=>{
   const denied={open(){throw new Error('blocked');}},backend=server(),client=browser(denied,backend.fetch);
   await assert.rejects(client.prepare(),/blocked/);
-  await assert.rejects(client.restore(),/device_storage_unavailable/);
+  assert.equal(await client.restore(),false);
   assert.equal(backend.calls.length,0);
+});
+
+function nativeStorage(){
+  const values=new Map();
+  return {values,
+    setItem(key,value,callback){values.set(key,value);queueMicrotask(()=>callback(null,true));},
+    getItem(key,callback){queueMicrotask(()=>callback(null,values.get(key) ?? null));},
+    removeItem(key,callback){values.delete(key);queueMicrotask(()=>callback(null,true));},
+  };
+}
+function telegram(storage,id=42){
+  return {initData:'telegram-fixture',initDataUnsafe:{user:{id}},isVersionAtLeast:()=>true,
+    SecureStorage:storage,CloudStorage:{setItem(){throw new Error('must not store credentials in cloud');}}};
+}
+
+test('Telegram restores remembered login from native secure storage after its WebView storage is lost',async()=>{
+  const storage=nativeStorage(),backend=server();
+  const unavailable={open(){throw new Error('webview_storage_blocked');}};
+  const first=browser(unavailable,backend.fetch,telegram(storage));
+  const prepared=await first.prepare();
+  await prepared.save(sealDeviceSession(session,prepared.publicKey,host));
+  assert.equal(storage.values.size,1);
+  assert.ok(![...storage.values.values()][0].includes('upstream-'));
+  const reopened=browser(undefined,backend.fetch,telegram(storage));
+  assert.equal(await reopened.restore(),true);
+  assert.deepEqual(unsealSession(backend.cookie.split(';')[0].split('=')[1]),session);
+  await reopened.clear();
+  assert.equal(storage.values.size,0);
+  assert.equal(await browser(undefined,backend.fetch,telegram(storage)).restore(),false);
+});
+
+test('an unavailable Telegram secure store falls back to a non-exportable IndexedDB key',async()=>{
+  const storage={getItem:(key,cb)=>cb('unavailable'),setItem:(key,value,cb)=>cb('unavailable'),removeItem:(key,cb)=>cb('unavailable')};
+  const database=indexedDBFixture(),backend=server(),tg=telegram(storage);
+  const first=browser(database,backend.fetch,tg),prepared=await first.prepare();
+  await prepared.save(sealDeviceSession(session,prepared.publicKey,host));
+  assert.equal(database.records.get('remembered-login-tg-42').privateKey.extractable,false);
+  assert.equal(await browser(database,backend.fetch,tg).restore(),true);
+  assert.equal(await browser(database,backend.fetch,telegram(storage,99)).restore(),false);
+});
+
+test('older Telegram versions keep the browser persistence path without calling unsupported native APIs',async()=>{
+  const storage={getItem(){throw new Error('unsupported');},setItem(){throw new Error('unsupported');},removeItem(){throw new Error('unsupported');}};
+  const tg={...telegram(storage),isVersionAtLeast:()=>false};
+  const database=indexedDBFixture(),backend=server(),first=browser(database,backend.fetch,tg);
+  const prepared=await first.prepare();await prepared.save(sealDeviceSession(session,prepared.publicKey,host));
+  assert.equal(await browser(database,backend.fetch,tg).restore(),true);
 });

@@ -549,11 +549,7 @@ if ('serviceWorker' in navigator) {
       if(shouldRemember && device){
         try{
           rememberedDevice=await device.prepare();
-          if(!rememberedDevice)throw new Error('device_storage_unavailable');
-        }catch{
-          if(generation===authGeneration)setLoginError('Не удалось сохранить вход на устройстве. Попробуй ещё раз или выключи «Запомнить меня».');
-          return;
-        }
+        }catch{ /* Remembering is optional; storage failures must not block login. */ }
       }
       if (generation !== authGeneration) return;
       const network = fetch(`${API_BASE}/api/login`, {
@@ -588,10 +584,8 @@ if ('serviceWorker' in navigator) {
       if(deviceWrite){
         authStorageWork=Promise.all([authStorageWork,deviceWrite]);
         try{await deviceWrite;}catch{
-          if(generation===authGeneration)setLoginError('Не удалось запомнить вход. Повтори попытку или выключи «Запомнить меня».');
           // A failed optional device write must not block the next explicit login.
           authStorageWork=authStorageWork.catch(()=>{});
-          return;
         }
       }
       if (generation !== authGeneration) return;

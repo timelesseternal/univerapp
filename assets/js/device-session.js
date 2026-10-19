@@ -2,9 +2,37 @@
 // Platonus credentials; the encrypted envelope requires this device's private key.
 (() => {
   'use strict';
-  const DB_NAME='unilink-device',STORE='credentials',ACTIVE='remembered-login';
+  const telegram=window.Telegram?.WebApp?.initData?window.Telegram.WebApp:null;
+  const DB_NAME='unilink-device',STORE='credentials';
+  const ACTIVE=telegram?.initDataUnsafe?.user?.id
+    ? `remembered-login-tg-${telegram.initDataUnsafe.user.id}`:'remembered-login';
+  const NATIVE_KEY='unilink_login_'+(window.location?.host || 'local').replace(/[^a-z0-9_-]/gi,'_').slice(0,100);
   const purpose='unilink-remembered-device-v1';
   let storageWork=Promise.resolve();
+
+  function secureStorage(){
+    try{
+      const storage=telegram?.isVersionAtLeast?.('9.0') && telegram.SecureStorage;
+      return storage && ['getItem','setItem','removeItem'].every(method=>typeof storage[method]==='function')?storage:null;
+    }catch{return null;}
+  }
+  function nativeCall(storage,method,...args){
+    return new Promise((resolve,reject)=>{
+      const timer=setTimeout(()=>reject(new Error('device_storage_unavailable')),5000);
+      try{
+        storage[method](NATIVE_KEY,...args,(error,value)=>{
+          clearTimeout(timer);
+          if(error || (method==='setItem' && value!==true))reject(new Error('device_storage_unavailable'));
+          else resolve(value);
+        });
+      }catch(error){clearTimeout(timer);reject(error);}
+    });
+  }
+  function queued(operation){
+    const work=storageWork.catch(()=>{}).then(operation);
+    storageWork=work.catch(()=>{});
+    return work;
+  }
 
   function transaction(mode,operation){
     return new Promise((resolve,reject)=>{
@@ -44,25 +72,38 @@
     });
   }
   function stored(mode,operation){
-    const work=storageWork.catch(()=>{}).then(()=>transaction(mode,operation));
-    storageWork=work.catch(()=>{});
-    return work;
+    return queued(()=>transaction(mode,operation));
   }
   async function clear(){
-    if(typeof indexedDB==='undefined')return;
-    await stored('readwrite',store=>store.delete(ACTIVE));
+    await queued(async()=>{
+      const storage=secureStorage(),operations=[];
+      if(storage)operations.push(nativeCall(storage,'removeItem'));
+      if(typeof indexedDB!=='undefined')operations.push(transaction('readwrite',store=>store.delete(ACTIVE)));
+      const results=await Promise.allSettled(operations);
+      if(results.some(result=>result.status==='rejected'))throw new Error('device_storage_unavailable');
+    });
   }
   async function prepare(){
-    if(!window.crypto?.subtle || typeof indexedDB==='undefined')return null;
-    // Verify that persistent storage is available before creating a remembered login.
-    await stored('readonly',store=>store.get(ACTIVE));
-    const keys=await window.crypto.subtle.generateKey({name:'ECDSA',namedCurve:'P-256'},false,['sign','verify']);
+    const storage=secureStorage();
+    if(!window.crypto?.subtle || (!storage && typeof indexedDB==='undefined'))return null;
+    if(!storage)await stored('readonly',store=>store.get(ACTIVE));
+    // Native secure storage accepts strings. Export only for that OS-protected
+    // store; browser fallback still receives a non-exportable CryptoKey.
+    const keys=await window.crypto.subtle.generateKey({name:'ECDSA',namedCurve:'P-256'},!!storage,['sign','verify']);
     const publicKey=await window.crypto.subtle.exportKey('jwk',keys.publicKey);
+    const privateJwk=storage?await window.crypto.subtle.exportKey('jwk',keys.privateKey):null;
+    const privateKey=storage?await window.crypto.subtle.importKey('jwk',privateJwk,{name:'ECDSA',namedCurve:'P-256'},false,['sign']):keys.privateKey;
     return {
       publicKey,
       async save(deviceSession){
         if(typeof deviceSession!=='string' || !deviceSession.startsWith('d1.') || deviceSession.length>6000)throw new Error('invalid_device_session');
-        await stored('readwrite',store=>store.put({version:1,privateKey:keys.privateKey,deviceSession},ACTIVE));
+        await queued(async()=>{
+          const operations=[];
+          if(storage)operations.push(nativeCall(storage,'setItem',JSON.stringify({version:2,privateJwk,deviceSession})));
+          if(typeof indexedDB!=='undefined')operations.push(transaction('readwrite',store=>store.put({version:1,privateKey,deviceSession},ACTIVE)));
+          const results=await Promise.allSettled(operations);
+          if(!results.some(result=>result.status==='fulfilled'))throw new Error('device_storage_unavailable');
+        });
       },
     };
   }
@@ -80,29 +121,42 @@
     return data;
   }
   async function restore(isCurrent=()=>true){
-    if(!window.crypto?.subtle || typeof indexedDB==='undefined')return false;
+    if(!window.crypto?.subtle)return false;
     let saved;
-    try{saved=await stored('readonly',store=>store.get(ACTIVE));}
-    catch{throw new Error('device_storage_unavailable');}
+    const storage=secureStorage();
+    if(storage){
+      try{
+        const raw=await queued(()=>nativeCall(storage,'getItem'));
+        const native=raw && JSON.parse(raw);
+        if(native?.version===2 && typeof native.deviceSession==='string' && native.deviceSession.length<=6000){
+          const privateKey=await window.crypto.subtle.importKey('jwk',native.privateJwk,{name:'ECDSA',namedCurve:'P-256'},false,['sign']);
+          saved={version:1,privateKey,deviceSession:native.deviceSession};
+        }
+      }catch{ /* Try the browser copy when native storage is temporarily unavailable. */ }
+    }
+    if(!saved && typeof indexedDB!=='undefined'){
+      try{saved=await stored('readonly',store=>store.get(ACTIVE));}
+      catch{return false;} // Unavailable local storage must not hide the login form.
+    }
     if(!isCurrent())throw new Error('session_changed');
     if(!saved)return false;
     if(saved.version!==1 || saved.privateKey?.type!=='private' || saved.privateKey.extractable!==false
       || saved.privateKey.algorithm?.name!=='ECDSA' || saved.privateKey.algorithm.namedCurve!=='P-256'
       || typeof saved.deviceSession!=='string' || saved.deviceSession.length>6000){
-      await clear();return false;
+      await clear().catch(()=>{});return false;
     }
     const {deviceSession,privateKey}=saved;
     const challenge=await post({action:'challenge',deviceSession},isCurrent);
-    if(!challenge){await clear();return false;}
+    if(!challenge){await clear().catch(()=>{});return false;}
     if(typeof challenge.challenge!=='string' || challenge.challenge.length>180)throw new Error('session_check_unavailable');
     let bytes;
     try{
       bytes=new Uint8Array(await window.crypto.subtle.sign({name:'ECDSA',hash:'SHA-256'},privateKey,
         new TextEncoder().encode(`${purpose}\n${challenge.challenge}`)));
-    }catch{await clear();return false;}
+    }catch{await clear().catch(()=>{});return false;}
     const signature=btoa(String.fromCharCode(...bytes)).replaceAll('+','-').replaceAll('/','_').replace(/=+$/,'');
     const result=await post({action:'restore',deviceSession,challenge:challenge.challenge,signature},isCurrent);
-    if(!result){await clear();return false;}
+    if(!result){await clear().catch(()=>{});return false;}
     return true;
   }
   window.unilinkDeviceSession={prepare,restore,clear};

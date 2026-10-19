@@ -303,3 +303,25 @@ test('successful remembered login persists the device key before opening the app
   assert.equal(env.loads,1);
   assert.equal(env.read('platonusSession'),'cookie');
 });
+
+test('optional storage failures never block a successful login in a restricted WebView',async()=>{
+  for(const failure of ['prepare','save','clear','unsupported']){
+    const env=setup();
+    env.document.getElementById('rememberLoginInput').checked=failure!=='clear';
+    env.document.getElementById('loginInput').value='student';
+    env.document.getElementById('passwordInput').value='password';
+    env.ctx.window.unilinkDeviceSession={
+      prepare:async()=>{
+        if(failure==='prepare')throw new Error('indexeddb_blocked');
+        if(failure==='unsupported')return null;
+        return {publicKey:{kty:'EC'},save:async()=>{throw new Error('key_cannot_be_cloned');}};
+      },
+      clear:async()=>{if(failure==='clear')throw new Error('storage_blocked');},
+    };
+    await env.ctx.submitLogin();await env.read('authStorageWork');
+    assert.equal(env.loads,1,failure);
+    assert.equal(env.read('platonusSession'),'cookie',failure);
+    assert.ok(!env.document.body.classList.contains('login-screen'),failure);
+    assert.equal(env.document.getElementById('passwordInput').value,'',failure);
+  }
+});
