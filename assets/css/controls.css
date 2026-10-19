@@ -19,6 +19,9 @@ html, body { height:100%; min-height:0; overflow:hidden; overscroll-behavior:non
   margin-inline:auto;
   margin-block: 0;
 }
+/* Closed overlays must also disappear from keyboard and screen-reader navigation. */
+.modal-overlay, .umkd-file-overlay { visibility:hidden; }
+.modal-overlay.active, .umkd-file-overlay.active { visibility:visible; }
 /* Keep its layout rectangle for chat sizing while the software keyboard is open. */
 .chat-keyboard-open #bottomTabBar,
 .chat-keyboard-open .tab-scroll-fade { visibility:hidden; pointer-events:none; }

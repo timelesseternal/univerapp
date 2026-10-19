@@ -229,10 +229,27 @@
         signal: AbortSignal.timeout(action === 'session' && method === 'POST' ? 22000 : 12000),
       });
     } catch { throw new Error('chat_unavailable'); }
-    const data = await response.json().catch(() => ({}));
+    const data = await response.json().catch(() => null);
+    if (stale(epoch)) throw new Error('session_changed');
+    if (!data || typeof data !== 'object' || Array.isArray(data)) throw new Error('chat_unavailable');
     if (!response.ok) {
       if (data.error === 'chat_session_expired' && !stale(epoch)) state.profile = null;
       throw new Error(data.error || 'chat_unavailable');
+    }
+    const person = value => value && typeof value.id === 'string' && typeof value.name === 'string';
+    const conversation = value => value && typeof value.id === 'string' && person(value.peer);
+    const message = value => value && typeof value.id === 'string' && /^\d{1,20}$/.test(value.id)
+      && typeof value.senderID === 'string' && typeof value.text === 'string'
+      && typeof value.createdAt === 'string' && Number.isFinite(Date.parse(value.createdAt));
+    if ((action === 'session' && !person(data.profile))
+      || (action === 'session' && data.conversations !== undefined
+        && (!Array.isArray(data.conversations) || !data.conversations.every(conversation)))
+      || (action === 'inbox' && (!Array.isArray(data.conversations) || !data.conversations.every(conversation)))
+      || (action === 'users' && (!Array.isArray(data.users) || !data.users.every(person)))
+      || (['conversation', 'conversations'].includes(action) && !conversation(data.conversation))
+      || (action === 'messages' && method === 'GET' && (!Array.isArray(data.messages) || !data.messages.every(message)))
+      || (action === 'messages' && method === 'POST' && !message(data.message))) {
+      throw new Error('chat_unavailable');
     }
     return data;
   }
@@ -420,7 +437,9 @@
       newIDs: initial || older ? new Set() : newIDs });
     // Continue from this response, not a newer message concurrently sent locally.
     if (params.after && data.hasMore && data.messages.length) {
-      await refreshMessages({ initial, after: data.messages.at(-1).id });
+      const cursor = data.messages.at(-1).id;
+      if (BigInt(cursor) <= BigInt(params.after)) throw new Error('chat_unavailable');
+      await refreshMessages({ initial, after: cursor });
     }
     if (stale(epoch) || state.conversation?.id !== id) return;
     if (state.visible && !state.peerProfileOpen && !document.hidden && state.conversation?.id===id) {
@@ -561,8 +580,12 @@
   }
   function resizeComposer() {
     const input = byID('chatText');
+    input.style.overflowY = 'hidden';
     input.style.height = 'auto';
-    input.style.height = Math.min(120, input.scrollHeight) + 'px';
+    const border = Number.isFinite(input.offsetHeight - input.clientHeight) ? input.offsetHeight - input.clientHeight : 2;
+    const height = input.scrollHeight + Math.max(0, border);
+    input.style.height = Math.min(120, height) + 'px';
+    input.style.overflowY = height > 120 ? 'auto' : 'hidden';
     byID('chatSend').disabled = state.sending || !input.value.trim();
   }
   function closePeerProfile() {
@@ -627,7 +650,8 @@
   async function send(event) {
     event.preventDefault();
     if (!state.conversation || state.sending) return;
-    const text = byID('chatText').value.trim();
+    const draftText = byID('chatText').value;
+    const text = draftText.trim();
     if (!text || text.length > 2000) return;
     stopTyping();
     const epoch = state.epoch, id = state.conversation.id;
@@ -638,7 +662,7 @@
     drawMessages({ scroll: 'bottom', pendingID:clientID });
     state.sending = true;
     byID('chatSend').disabled = true;
-    byID('chatText').disabled = true;
+    // Keep focus (and the phone keyboard) while the request is pending.
     byID('chatSend').setAttribute('aria-label', 'Отправляем сообщение');
     try {
       await ensureSession();
@@ -646,7 +670,9 @@
       const data = await request('messages', { method: 'POST', body: { conversationID: id, text, clientID } });
       if (stale(epoch)) return;
       state.pending.delete(clientID);
-      state.drafts.delete(id);
+      const currentDraft = state.conversation?.id === id ? byID('chatText').value : state.drafts.get(id)?.text;
+      if (currentDraft === draftText) state.drafts.delete(id);
+      else if (currentDraft !== undefined) state.drafts.set(id, { text: currentDraft, clientID: null });
       const cached = state.history.get(id);
       if (cached && state.conversation?.id !== id) {
         cached.messages = [...cached.messages.filter(message => message.id !== data.message.id), data.message]
@@ -655,7 +681,7 @@
       if (state.conversation?.id === id) {
         state.messages.set(data.message.id, data.message);
         rememberHistory();
-        byID('chatText').value = '';
+        if (byID('chatText').value === draftText) byID('chatText').value = '';
         drawMessages({ scroll: 'bottom' });
         status();
       }
@@ -763,7 +789,11 @@
       fitConversation();
       clearTimeout(state.timer);
       clearTimeout(state.searchTimer);
-      if (state.visible) { status(); showInboxLoading(); refresh(true); }
+      state.searchVersion++;
+      if (state.visible) {
+        status(); showInboxLoading(); refresh(true);
+        if (byID('chatSearch').value.trim()) search();
+      }
     },
     logout: logoutChat,
   };
@@ -783,6 +813,10 @@
     finally { button.disabled = false; }
   });
   byID('chatComposer').addEventListener('submit', send);
+  byID('chatSend').addEventListener('pointerdown', event => {
+    // Blurring the textarea can move the dock before click is dispatched on iOS.
+    if (event.button === 0 && document.activeElement === byID('chatText')) event.preventDefault();
+  });
   byID('chatText').addEventListener('input', () => { resizeComposer(); publishTyping(); });
   byID('chatText').addEventListener('blur', () => { stopTyping(); fitConversation(); });
   let fitFrame = 0;

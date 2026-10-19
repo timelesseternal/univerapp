@@ -23,8 +23,13 @@ function setup() {
     getElementById(id) { if (!elements.has(id)) elements.set(id, element()); return elements.get(id); },
     querySelectorAll: () => [],
   };
+  const storage = new Map();
   const ctx = vm.createContext({
-    document, window: {}, AbortSignal, localStorage: { removeItem() {} },
+    document, window: {}, AbortSignal, localStorage: {
+      getItem: key => storage.get(key) ?? null,
+      setItem: (key, value) => storage.set(key, value),
+      removeItem: key => storage.delete(key),
+    },
     lsSafe: fn => fn(), localCacheKey: key => key, useCloudStorage: () => false,
     csRemove: async key => { removed.push(key); }, csSet: async (key,value) => { written.push([key,value]); },
     csGetMany: async () => ({ platonus_login: 'user', platonus_password: 'password' }),
@@ -41,7 +46,7 @@ function setup() {
   vm.runInContext(app.slice(app.indexOf('  const API_BASE'), app.indexOf('  const PLT_DAY_NAMES')), ctx);
   vm.runInContext("platonusSession = 'old'; platonusStudent = { studentID: 1 };", ctx);
   return {
-    ctx, document, elements, removed, written,
+    ctx, document, elements, removed, written, storage,
     read: expression => vm.runInContext(expression, ctx),
     flushTimers() { for (const fn of [...timers.values()]) fn(); timers.clear(); },
     get loads() { return loads; },
@@ -60,6 +65,14 @@ test('logout restores the login screen and cancels its old hide timer', () => {
   assert.equal(env.read('platonusStudent'), null);
   assert.equal(env.document.getElementById('loginSubmitBtn').disabled, false);
   assert.equal(env.document.getElementById('passwordInput').type, 'password');
+});
+
+test('an offline logout prevents a later launch from reusing an old cookie',async()=>{
+  const env=setup();env.ctx.fetch=async()=>{throw new Error('offline');};
+  env.ctx.logout();await env.read('authStorageWork');
+  assert.equal(env.storage.get('signed_out'),'1');
+  let calls=0;env.ctx.fetch=async()=>{calls++;return {ok:true,json:async()=>({ok:true})};};
+  assert.equal(await env.ctx.silentRelogin(),false);assert.equal(calls,0);
 });
 
 test('renewed Platonus requests get fresh deadlines and preserve the new session on timeout', async () => {

@@ -8,9 +8,11 @@ import { getSessionFromRequest, buildPlatonusHeaders } from './_lib/platonus.js'
 import { enrichStudentStudy, fetchStudyDetails } from './_lib/student-study.js';
 import { syncOwnStudyProfile, restoreVerifiedStudyProfile } from './_lib/chat.js';
 import { waitUntil } from '@vercel/functions';
+import { allowGet, queryInteger } from './_lib/request.js';
 
 export default async function handler(req, res) {
   res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate');
+  if (!allowGet(req, res)) return;
   const session = getSessionFromRequest(req);
   if (!session) {
     res.status(401).json({ error: 'no_session' });
@@ -30,6 +32,11 @@ export default async function handler(req, res) {
     }
     if (!r.ok) { res.status(502).json({ error: 'platonus_unreachable' }); return; }
     const data = await r.json();
+    if (!data || typeof data !== 'object' || Array.isArray(data)
+      || !queryInteger(data.studentID, 1)) {
+      res.status(502).json({ error: 'invalid_student' });
+      return;
+    }
     if (summary) {
       res.status(200).json(data);
       return;

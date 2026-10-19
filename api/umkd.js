@@ -1,8 +1,10 @@
 // GET /api/umkd?year=2026&term=1   authentication: HttpOnly session cookie
 import { getSessionFromRequest, buildPlatonusHeaders } from './_lib/platonus.js';
+import { allowGet, queryInteger } from './_lib/request.js';
 
 export default async function handler(req, res) {
   res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate');
+  if (!allowGet(req, res)) return;
 
   const session = getSessionFromRequest(req);
   if (!session) {
@@ -10,8 +12,8 @@ export default async function handler(req, res) {
     return;
   }
 
-  const { year, term } = req.query;
-  if (!year || !term) {
+  const { year, term } = req.query || {};
+  if (!queryInteger(year, 1900, 2200) || !queryInteger(term, 0, 12)) {
     res.status(400).json({ error: 'missing_year_or_term' });
     return;
   }
@@ -27,6 +29,10 @@ export default async function handler(req, res) {
     }
     if (!r.ok) { res.status(502).json({ error: 'platonus_unreachable' }); return; }
     const data = await r.json();
+    if (!data || typeof data !== 'object' || Array.isArray(data) || !Array.isArray(data.subjects)) {
+      res.status(502).json({ error: 'invalid_umkd' });
+      return;
+    }
     res.status(200).json(data);
   } catch (err) {
     res.status(502).json({ error: 'platonus_unreachable' });

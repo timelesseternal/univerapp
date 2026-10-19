@@ -1,8 +1,11 @@
 // GET /api/umkd-file?fileTypeID=131&umkdid=4922   authentication: HttpOnly session cookie
 // PDF download authenticated only by HttpOnly cookie; never accept credentials in URLs.
 import { getSessionFromRequest, buildPlatonusHeaders } from './_lib/platonus.js';
+import { allowGet, queryInteger } from './_lib/request.js';
 
 export default async function handler(req, res) {
+  res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate');
+  if (!allowGet(req, res)) return;
   const session = getSessionFromRequest(req);
 
   if (!session) {
@@ -10,8 +13,8 @@ export default async function handler(req, res) {
     return;
   }
 
-  const { fileTypeID, umkdid } = req.query;
-  if (!fileTypeID || !umkdid) {
+  const { fileTypeID, umkdid } = req.query || {};
+  if (!queryInteger(fileTypeID, 1) || !queryInteger(umkdid, 1)) {
     res.status(400).json({ error: 'missing_params' });
     return;
   }
@@ -32,6 +35,11 @@ export default async function handler(req, res) {
     }
 
     const arrayBuffer = await r.arrayBuffer();
+    const pdf = Buffer.from(arrayBuffer);
+    if (pdf.subarray(0, 5).toString('ascii') !== '%PDF-') {
+      res.status(502).json({ error: 'invalid_pdf' });
+      return;
+    }
 
     // ?download=1 — файл должен скачаться (кнопка «Поделиться» на телефоне),
     // иначе отдаём inline, как раньше (просмотрщик в мини-аппе).
@@ -47,8 +55,8 @@ export default async function handler(req, res) {
       'Content-Disposition',
       `${asDownload ? 'attachment' : 'inline'}; filename="umkd.pdf"; filename*=UTF-8''${encodedName}`
     );
-    res.status(200).send(Buffer.from(arrayBuffer));
+    res.status(200).send(pdf);
   } catch (err) {
-    res.status(502).json({ error: 'platonus_unreachable', detail: String(err && err.message || err) });
+    res.status(502).json({ error: 'platonus_unreachable' });
   }
 }

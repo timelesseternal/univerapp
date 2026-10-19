@@ -10,6 +10,7 @@
 // сам считает текущей: selectedStudyYear/selectedTerm/selectedWeek), а
 // затем повторяем запрос уже с этими значениями явно.
 import { getSessionFromRequest, buildPlatonusHeaders } from './_lib/platonus.js';
+import { allowGet, queryInteger } from './_lib/request.js';
 
 async function fetchPlatonusSchedule(studentID, session, overrides) {
   const body = {
@@ -37,7 +38,7 @@ function hasAnyLesson(data) {
   const days = (data && data.timetable && data.timetable.days) || {};
   return Object.values(days).some(day => {
     const lessons = (day && day.lessons) || {};
-    return Object.values(lessons).some(slot => Array.isArray(slot.lessons) && slot.lessons.length > 0);
+    return Object.values(lessons).some(slot => Array.isArray(slot?.lessons) && slot.lessons.length > 0);
   });
 }
 
@@ -46,11 +47,12 @@ function hasAnyLesson(data) {
 // `0 && x` в JS ложно, из-за чего валидная неделя 0 раньше принималась за
 // отсутствие метаданных.
 function isDefinedNumber(value) {
-  return typeof value === 'number' && !Number.isNaN(value);
+  return Number.isFinite(value) && Number.isInteger(value) && value >= 0;
 }
 
 export default async function handler(req, res) {
   res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate');
+  if (!allowGet(req, res)) return;
 
   const session = getSessionFromRequest(req);
   if (!session) {
@@ -58,9 +60,16 @@ export default async function handler(req, res) {
     return;
   }
 
-  const { studentID, year, term, week } = req.query;
-  if (!studentID) {
+  const { studentID, year, term, week } = req.query || {};
+  if (!queryInteger(studentID, 1)) {
     res.status(400).json({ error: 'missing_studentID' });
+    return;
+  }
+
+  if ((year !== undefined && !queryInteger(year, 1900, 2200))
+    || (term !== undefined && !queryInteger(term, 0, 12))
+    || (week !== undefined && !queryInteger(week, 0, 60))) {
+    res.status(400).json({ error: 'invalid_params' });
     return;
   }
 
@@ -74,7 +83,7 @@ export default async function handler(req, res) {
   try {
     first = await fetchPlatonusSchedule(studentID, session, explicitOverrides);
   } catch (err) {
-    res.status(502).json({ error: 'platonus_unreachable', detail: String(err && err.message || err) });
+    res.status(502).json({ error: 'platonus_unreachable' });
     return;
   }
 
@@ -86,7 +95,6 @@ export default async function handler(req, res) {
     res.status(502).json({
       error: 'platonus_bad_status',
       platonusStatus: first.status,
-      detail: first.rawText.slice(0, 300),
     });
     return;
   }
@@ -96,7 +104,7 @@ export default async function handler(req, res) {
     firstData = JSON.parse(first.rawText);
     if (!firstData || typeof firstData !== 'object' || Array.isArray(firstData)) throw new Error('invalid_schedule');
   } catch (err) {
-    res.status(502).json({ error: 'platonus_bad_json', detail: first.rawText.slice(0, 300) });
+    res.status(502).json({ error: 'platonus_bad_json' });
     return;
   }
 
@@ -124,7 +132,7 @@ export default async function handler(req, res) {
         second = await fetchPlatonusSchedule(studentID, session, retryOverrides);
       } catch (err) {
         // An unconfirmed empty response must not replace a saved week.
-        res.status(502).json({ error: 'platonus_unreachable', detail: String(err && err.message || err) });
+        res.status(502).json({ error: 'platonus_unreachable' });
         return;
       }
       if (second.status === 401 || second.status === 403) {
@@ -132,7 +140,7 @@ export default async function handler(req, res) {
         return;
       }
       if (second.status < 200 || second.status >= 300) {
-        res.status(502).json({ error: 'platonus_bad_status', platonusStatus: second.status, detail: second.rawText.slice(0, 300) });
+        res.status(502).json({ error: 'platonus_bad_status', platonusStatus: second.status });
         return;
       }
       let secondData;
@@ -141,7 +149,7 @@ export default async function handler(req, res) {
         if (!secondData || typeof secondData !== 'object' || Array.isArray(secondData)) throw new Error('invalid_schedule');
       }
       catch {
-        res.status(502).json({ error: 'platonus_bad_json', detail: second.rawText.slice(0, 300) });
+        res.status(502).json({ error: 'platonus_bad_json' });
         return;
       }
       secondData._debug = { retried: true, retryOverrides, rawSelectedWeek, secondHasLessons: hasAnyLesson(secondData) };

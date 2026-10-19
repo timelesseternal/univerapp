@@ -75,6 +75,72 @@ test('chat does not request or poll until opened, and stops polling on leaving',
 const conversation = { id: 'conversation', peer: { id: 'peer', name: 'Друг' }, unread: 0 };
 const message = { id: '1', senderID: 'peer', text: 'История', createdAt: '2026-10-06T10:00:00Z', clientID: 'incoming' };
 
+test('malformed chat snapshots offer retry without corrupting the saved inbox',async()=>{
+  let broken=false;
+  const ui=setup(async url=>reply(url.includes('action=session')?{profile,conversations:[conversation]}:
+    broken?{conversations:[{id:'broken',peer:null}]}:{conversations:[conversation]}));
+  ui.api.onSection('chat');await settle();
+  const original=ui.elements.get('chatInbox').children[0];broken=true;
+  await ui.api.refreshNow();
+  assert.equal(ui.elements.get('chatInbox').children[0],original);
+  assert.equal(ui.elements.get('chatStatus').hidden,false);
+});
+
+test('sending keeps the composer enabled and preserves a newer draft',async()=>{
+  let finish;
+  const ui=setup(async(url,options)=>{
+    if(url.includes('action=session'))return reply({profile,conversations:[conversation]});
+    if(url.includes('action=messages')&&options.method==='POST')return new Promise(resolve=>{finish=resolve;});
+    return reply({messages:[],hasMore:false});
+  });
+  ui.api.onSection('chat');await settle();
+  await ui.elements.get('chatInbox').children[0].listeners.click();
+  const input=ui.elements.get('chatText');input.value='Первое сообщение';
+  const sending=ui.elements.get('chatComposer').listeners.submit({preventDefault(){}});await settle();
+  assert.notEqual(input.disabled,true);input.value='Следующее сообщение';
+  finish(reply({message:{...message,senderID:'me',text:'Первое сообщение',clientID:'retry-id'}}));await sending;
+  assert.equal(input.value,'Следующее сообщение');
+});
+
+test('pressing send keeps focus in the composer and a single line has no scrollbar',()=>{
+  const ui=setup(async()=>reply({profile}));
+  const input=ui.elements.get('chatText');ui.context.document.activeElement=input;
+  let prevented=false;
+  ui.elements.get('chatSend').listeners.pointerdown({button:0,preventDefault(){prevented=true;}});
+  assert.equal(prevented,true);
+  input.scrollHeight=44;input.offsetHeight=44;input.clientHeight=42;
+  input.listeners.input();
+  assert.equal(input.style.height,'46px');assert.equal(input.style.overflowY,'hidden');
+  input.scrollHeight=180;input.listeners.input();
+  assert.equal(input.style.height,'120px');assert.equal(input.style.overflowY,'auto');
+});
+
+test('returning to chat resumes a search cancelled before the debounce fired',async()=>{
+  let searches=0;
+  const ui=setup(async url=>{
+    if(url.includes('action=session'))return reply({profile,conversations:[]});
+    if(url.includes('action=users')){searches++;return reply({users:[]});}
+    return reply({conversations:[]});
+  });
+  ui.api.onSection('chat');await settle();
+  const input=ui.elements.get('chatSearch');input.value='Друг';input.listeners.input();
+  ui.api.onSection('profile');ui.api.onSection('chat');await settle();
+  assert.equal(searches,1);assert.match(ui.elements.get('chatResults').children[0].textContent,/Пользователь не найден/);
+});
+
+test('a repeated incremental cursor stops catch-up instead of polling recursively forever',async()=>{
+  let calls=0;
+  const ui=setup(async url=>{
+    if(url.includes('action=session'))return reply({profile,conversations:[conversation]});
+    if(url.includes('action=messages')){calls++;return reply({messages:[message],hasMore:calls>1});}
+    return reply({ok:true});
+  });
+  ui.api.onSection('chat');await settle();
+  await ui.elements.get('chatInbox').children[0].listeners.click();
+  await ui.api.refreshNow();
+  assert.equal(calls,2);assert.equal(ui.elements.get('chatStatus').hidden,false);
+});
+
 test('uncached history shows phantom bubbles, then replaces them with a confirmed empty history',async()=>{
   let finishHistory;
   const ui=setup(async url=>{

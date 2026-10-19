@@ -25,6 +25,7 @@ test('a failed schedule retry is never returned as a confirmed empty week', asyn
       assert.equal(res.body.error, failure === 401 || failure === 403 ? 'session_expired'
         : failure === 'timeout' ? 'platonus_unreachable' : typeof failure === 'string' ? 'platonus_bad_json' : 'platonus_bad_status');
       assert.equal(res.body.timetable, undefined);
+      assert.equal(res.body.detail, undefined);
       assert.match(res.headers['Cache-Control'], /no-store/);
     });
   }

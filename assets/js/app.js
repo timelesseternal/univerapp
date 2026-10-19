@@ -591,6 +591,7 @@ if ('serviceWorker' in navigator) {
       if (generation !== authGeneration) return;
       authGeneration++;
       loginCompleted = true;
+      lsSafe(() => localStorage.removeItem(localCacheKey('signed_out')));
       platonusSession = 'cookie';
       persistLogin = shouldRemember;
       authStorageWork = Promise.all([
@@ -627,6 +628,9 @@ if ('serviceWorker' in navigator) {
 
   function logout() {
     haptic('medium');
+    // An offline DELETE cannot clear an HttpOnly cookie. Remember the explicit
+    // sign-out locally so a later launch cannot silently reuse that cookie.
+    lsSafe(() => localStorage.setItem(localCacheKey('signed_out'), '1'));
     authGeneration++;
     reloginInFlight = null;
     const keys = ['platonus_session', 'platonus_student', 'platonus_login', 'platonus_password',
@@ -696,6 +700,7 @@ if ('serviceWorker' in navigator) {
     const generation = authGeneration;
     await authStorageWork;
     if (generation !== authGeneration) return false;
+    if (lsSafe(() => localStorage.getItem(localCacheKey('signed_out')), null) === '1') return false;
     try {
       const resp = await fetch(`${API_BASE}/api/session`, {
         credentials: 'same-origin', cache: 'no-store', signal: AbortSignal.timeout(20000),
@@ -816,7 +821,8 @@ if ('serviceWorker' in navigator) {
   function buildGradeCardHtml(subj, index) {
     const cleanTitle = String(subj.subjectName || '').replace(/\s*\([^)]*\)\s*$/, '').trim();
     const percent = Math.max(0, Math.min(100, parseFloat(subj.centerMark) || 0));
-    const ringColor = subj.color || 'var(--accent)';
+    const ringColor = /^(?:#[a-f\d]{3,8}|[a-z]{1,24}|rgba?\([\d\s.,%]+\))$/i.test(String(subj.color || ''))
+      ? escapeHtml(subj.color) : 'var(--accent)';
     const r = 22;
     const circumference = 2 * Math.PI * r;
     const dash = (percent / 100) * circumference;
@@ -826,8 +832,8 @@ if ('serviceWorker' in navigator) {
 
     const metricHtml = (e) => e
       ? `<div class="grade-metric">
-           <span class="grade-metric-value">${e.mark ?? '—'}</span>
-           <span class="grade-metric-label">${e.name}</span>
+           <span class="grade-metric-value">${escapeHtml(e.mark ?? '—')}</span>
+           <span class="grade-metric-label">${escapeHtml(e.name)}</span>
          </div>`
       : `<div class="grade-metric"></div>`; // пустая ячейка, чтобы колонки не съезжали
 
@@ -836,7 +842,7 @@ if ('serviceWorker' in navigator) {
     return `
       <div class="grade-card row-enter" style="animation-delay:${Math.min(index, 8) * 0.04}s;">
         <div class="grade-title" title="${escapeHtml(cleanTitle)}">${escapeHtml(cleanTitle)}</div>
-        <div class="grade-tutor">${subj.tutorList || ''}</div>
+        <div class="grade-tutor">${escapeHtml(subj.tutorList || '')}</div>
         <div class="grade-body">
           <div class="grade-ring-wrap">
             <svg viewBox="0 0 54 54">
@@ -899,7 +905,7 @@ if ('serviceWorker' in navigator) {
     const gpaProgress = hasAcademicGpa ? Math.min(academicGpa / 4, 1) * 100 : 0;
     const gpaText = hasAcademicGpa ? academicGpa.toFixed(2).replace('.', ',') : '—';
     const gpaExpanded = document.getElementById('profileGpaDetails')?.open || false;
-    const initials = (s.studentName || '').split(' ').filter(Boolean).slice(0, 2).map(w => w[0]).join('').toUpperCase();
+    const initials = String(s.studentName || '').split(' ').filter(Boolean).slice(0, 2).map(w => w[0]).join('').toUpperCase();
 
     const html = `
       <div class="profile-toolbar">
@@ -909,7 +915,7 @@ if ('serviceWorker' in navigator) {
         <div class="profile-avatar">${escapeHtml(initials || '?')}</div>
         <div class="profile-header-info">
           <div class="profile-name">${escapeHtml(s.studentName || 'Студент')}</div>
-          <div class="profile-id">ID: ${s.studentID ?? '—'}</div>
+          <div class="profile-id">ID: ${escapeHtml(s.studentID ?? '—')}</div>
           <div class="profile-study-info"><span>Группа: ${escapeHtml(studentGroup(s) || '—')}</span><span>Курс: ${studentCourse(s) || '—'}</span></div>
         </div>
       </div>
@@ -920,9 +926,9 @@ if ('serviceWorker' in navigator) {
           <span class="gpa-ring" aria-hidden="true"><svg viewBox="0 0 120 120"><defs><linearGradient id="gpaRingGradient" x1="0" y1="0" x2="1" y2="1"><stop offset="0%" stop-color="var(--accent)"/><stop offset="100%" stop-color="var(--ink-soft)"/></linearGradient></defs><circle class="gpa-ring-track" cx="60" cy="60" r="51"/><circle class="gpa-ring-progress" cx="60" cy="60" r="51" pathLength="100" stroke-dasharray="${gpaProgress} 100"/></svg><span class="gpa-ring-number">${gpaText}</span></span>
         </summary>
         <div class="profile-gpa-extra">
-        <div class="gpa-row"><span class="gpa-label">Научный GPA</span><span class="gpa-value">${s.scientificGpa ?? '—'}</span></div>
-        <div class="gpa-row"><span class="gpa-label">Социальный GPA</span><span class="gpa-value">${s.socialGpa ?? '—'}</span></div>
-        <div class="gpa-row"><span class="gpa-label">Интегральный GPA</span><span class="gpa-value">${s.integralGpa ?? '—'}</span></div>
+        <div class="gpa-row"><span class="gpa-label">Научный GPA</span><span class="gpa-value">${escapeHtml(s.scientificGpa ?? '—')}</span></div>
+        <div class="gpa-row"><span class="gpa-label">Социальный GPA</span><span class="gpa-value">${escapeHtml(s.socialGpa ?? '—')}</span></div>
+        <div class="gpa-row"><span class="gpa-label">Интегральный GPA</span><span class="gpa-value">${escapeHtml(s.integralGpa ?? '—')}</span></div>
         </div>
       </details>
 
@@ -1342,7 +1348,7 @@ if ('serviceWorker' in navigator) {
   function renderDayOffWeatherHtml(data) {
     const target = document.getElementById('dayOffWeatherDetail');
     if (!target) return;
-    let city = localStorage.getItem('user_city');
+    let city = lsSafe(() => localStorage.getItem('user_city'), null);
     if (!city || !CITY_COORDS[city]) city = 'Караганда';
     target.innerHTML = smartWeatherHtml(city, data);
   }
@@ -1352,7 +1358,7 @@ if ('serviceWorker' in navigator) {
     const request = ++dayWeatherRequest;
     const el = document.getElementById('dayOffWeatherDetail');
     if (!el) return;
-    let savedCity = localStorage.getItem('user_city');
+    let savedCity = lsSafe(() => localStorage.getItem('user_city'), null);
     if (!savedCity || !CITY_COORDS[savedCity]) savedCity = 'Караганда';
 
     const cacheFresh = dayOffWeatherCache.city === savedCity
@@ -1370,7 +1376,7 @@ if ('serviceWorker' in navigator) {
       ]);
       if (weather.status !== 'fulfilled') throw weather.reason;
       const data = { ...weather.value, airQuality: air.status === 'fulfilled' ? air.value.current?.us_aqi : null };
-      if (request !== dayWeatherRequest || document.getElementById('dayOffWeatherDetail') !== el || (localStorage.getItem('user_city') || 'Караганда') !== savedCity) return;
+      if (request !== dayWeatherRequest || document.getElementById('dayOffWeatherDetail') !== el || (lsSafe(() => localStorage.getItem('user_city'), null) || 'Караганда') !== savedCity) return;
       dayOffWeatherCache = { city: savedCity, data, timestamp: Date.now() };
       renderDayOffWeatherHtml(data);
     } catch (e) {
@@ -1424,10 +1430,10 @@ if ('serviceWorker' in navigator) {
   async function loadWeather(isRetry) {
     const request = ++weatherRequest;
     const weatherEl = document.getElementById('weatherWidget');
-    let savedCity = localStorage.getItem('user_city');
+    let savedCity = lsSafe(() => localStorage.getItem('user_city'), null);
     if (!savedCity || !CITY_COORDS[savedCity]) {
       savedCity = 'Караганда';
-      localStorage.setItem('user_city', savedCity);
+      lsSafe(() => localStorage.setItem('user_city', savedCity));
     }
 
     if (!isRetry) weatherEl.textContent = savedCity + ' · …';
@@ -1505,7 +1511,7 @@ if ('serviceWorker' in navigator) {
     haptic('light');
     const modal = document.getElementById('cityModal');
     const searchInput = document.getElementById('citySearchInput');
-    pendingCity = localStorage.getItem('user_city') || 'Караганда';
+    pendingCity = lsSafe(() => localStorage.getItem('user_city'), null) || 'Караганда';
     searchInput.value = '';
     renderCityList('');
     modal.classList.add('active');
@@ -1521,7 +1527,7 @@ if ('serviceWorker' in navigator) {
   function saveCityAndLoad() {
     if (pendingCity && CITY_COORDS[pendingCity]) {
       haptic('medium');
-      localStorage.setItem('user_city', pendingCity);
+      lsSafe(() => localStorage.setItem('user_city', pendingCity));
       closeCityModal();
       loadWeather();
       dayOffWeatherCache = { city: null, data: null, timestamp: 0 };
@@ -1588,7 +1594,7 @@ if ('serviceWorker' in navigator) {
       root.setProperty('--accent-tint-soft', `rgba(${rgbStr}, 0.06)`);
     }
     currentAccentId = id;
-    if (persist) localStorage.setItem('user_accent', id);
+    if (persist) lsSafe(() => localStorage.setItem('user_accent', id));
   }
 
   function renderAccentSwatches() {
@@ -1767,7 +1773,7 @@ if ('serviceWorker' in navigator) {
         const t = LESSON_TIMES[first.пара];
         const timeStr = t ? t.start : '?';
         const shortDay = getShortDayName(dayName) || dayName;
-        return `<strong>${first.sub}</strong> — ${shortDay}, ${timeStr}, ${formatRoomLabel(first)}`;
+        return `<strong>${escapeHtml(first.sub)}</strong> — ${escapeHtml(shortDay)}, ${escapeHtml(timeStr)}, ${escapeHtml(formatRoomLabel(first))}`;
       }
     }
     return 'на этой неделе пар больше нет — глянь следующую неделю стрелкой сверху';
@@ -2347,9 +2353,9 @@ if ('serviceWorker' in navigator) {
 
       rowsHtml += `
         <div class="lesson-event${isActive ? ' is-current' : ''}">
-          <div class="row-index" aria-label="${startTime} — ${endTime}">
-            <span class="row-index-main">${startTime}</span>
-            <span class="row-index-sub">${endTime}</span>
+          <div class="row-index" aria-label="${escapeHtml(startTime)} — ${escapeHtml(endTime)}">
+            <span class="row-index-main">${escapeHtml(startTime)}</span>
+            <span class="row-index-sub">${escapeHtml(endTime)}</span>
           </div>
         <div class="${rowClass}"${rowStyle}>
           ${isActive ? '<span class="lesson-live-aura" aria-hidden="true"></span><span class="lesson-live-orbit" aria-hidden="true"></span>' : ''}
@@ -2362,7 +2368,7 @@ if ('serviceWorker' in navigator) {
               ${isActive ? '<span class="live-tag"><span class="live-dot pulse-live-tag"></span>сейчас</span>' : ''}
             </div>
             <div class="row-meta">${escapeHtml(item.teacher || '')}</div>
-            <div class="row-meta row-meta-room">${formatRoomLabel(item)}</div>
+            <div class="row-meta row-meta-room">${escapeHtml(formatRoomLabel(item))}</div>
             ${progressBarHtml}
           </div>
         </div>
@@ -2652,13 +2658,13 @@ if ('serviceWorker' in navigator) {
       rowsHtml += `
         <div class="list-row row-enter" style="animation-delay:${Math.min(index, 8) * 0.04}s;">
           <div class="row-index">
-            <span class="row-index-main">${exam.date}</span>
-            <span class="row-index-sub">${exam.time}</span>
+            <span class="row-index-main">${escapeHtml(exam.date)}</span>
+            <span class="row-index-sub">${escapeHtml(exam.time)}</span>
           </div>
           <div class="row-body">
-            <div class="row-top"><span class="row-title">${exam.subject}</span></div>
-            <div class="row-meta">${exam.teacher || ''}<span class="meta-sep">·</span>ауд. ${exam.room || '—'}</div>
-            <div class="row-tags"><span class="tag tag-fill">${exam.examType || 'Экзамен'}</span></div>
+            <div class="row-top"><span class="row-title">${escapeHtml(exam.subject)}</span></div>
+            <div class="row-meta">${escapeHtml(exam.teacher || '')}<span class="meta-sep">·</span>ауд. ${escapeHtml(exam.room || '—')}</div>
+            <div class="row-tags"><span class="tag tag-fill">${escapeHtml(exam.examType || 'Экзамен')}</span></div>
           </div>
         </div>
       `;

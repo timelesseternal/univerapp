@@ -3,6 +3,18 @@ import assert from 'node:assert/strict';
 import vm from 'node:vm';
 import {readFileSync} from 'node:fs';
 const source=readFileSync(new URL('../../assets/js/app.js',import.meta.url),'utf8');
+
+test('grade fields remain text and an upstream color cannot inject SVG attributes',()=>{
+  const ctx=vm.createContext({});
+  vm.runInContext(source.slice(source.indexOf('  function orderGradeMetrics('),source.indexOf('  function studentGroup(')),ctx);
+  const attack='<img src=x onerror="alert(1)">';
+  const html=ctx.buildGradeCardHtml({subjectName:attack,tutorList:attack,centerMark:75,
+    color:'red" onload="alert(1)',exams:[{name:attack,mark:attack}]},0);
+  assert.doesNotMatch(html,/<img|stroke="red" onload/);
+  assert.match(html,/&lt;img/);assert.match(html,/stroke="var\(--accent\)"/);
+  const valid=ctx.buildGradeCardHtml({color:'#aabbcc',centerMark:75,exams:[]},0);
+  assert.match(valid,/stroke="#aabbcc"/);assert.match(valid,/>75%</);
+});
 function setup(journal,failed=false){
   const element={innerHTML:''};
   const ctx=vm.createContext({document:{getElementById:()=>element},platonusStudent:{studentID:7},liveJournalData:journal,
