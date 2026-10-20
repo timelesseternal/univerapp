@@ -1,13 +1,11 @@
 // POST /api/login  { login, password, remember } -> { ok, blockMinutesRemaining } + HttpOnly cookie
 //
-// This is the ONLY place the student's password ever passes through this
-// backend. It is forwarded once, straight to Platonus, over HTTPS, and is
-// never written to a log, a database, a file, or anywhere else. Once the
-// Platonus response comes back, the password variable simply falls out of
-// scope at the end of this function.
+// Remembered device envelopes may carry encrypted renewal credentials.
+// Neither passwords nor upstream tokens are returned in readable form.
 
 import {sameOrigin,sessionKey,sealSession,setWebSession} from './_lib/security.js';
 import {loginLimit} from './_lib/login-limit.js';
+import {loginToPlatonus} from './_lib/platonus-login.js';
 import {devicePublicKey,sealDeviceSession} from './_lib/device-session.js';
 export default async function handler(req, res) {
   res.setHeader('Cache-Control', 'no-store');
@@ -36,72 +34,24 @@ export default async function handler(req, res) {
     }
   }catch{res.status(503).json({error:'security_not_configured'});return;}
 
-  let platonusResp;
+  let session, blockMinutesRemaining;
   try {
-    platonusResp = await fetch('https://platonus.kstu.kz/rest/api/login', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json; charset=UTF-8',
-        Accept: 'application/json, text/plain, */*',
-      },
-      signal: AbortSignal.timeout(12000),
-      body: JSON.stringify({
-        login,
-        password,
-        iin: null,
-        icNumber: null,
-        authForDeductedStudentsAndGraduates: 'false',
-      }),
-    });
-  } catch (err) {
-    res.status(502).json({ error: 'platonus_unreachable' });
-    return;
-  }
-
-  if (!platonusResp.ok) {
-    res.status(platonusResp.status === 401 || platonusResp.status === 403 ? 401 : 502).json({ error: platonusResp.status === 401 || platonusResp.status === 403 ? 'invalid_credentials' : 'platonus_unreachable' });
-    return;
-  }
-
-  let data;
-  try {
-    data = await platonusResp.json();
+    ({session,blockMinutesRemaining}=await loginToPlatonus(login,password));
   } catch (error) {
-    res.status(502).json({ error: error?.name === 'TimeoutError' || error?.name === 'AbortError' ? 'platonus_unreachable' : 'platonus_bad_response' });
-    return;
-  }
-  if (data?.login_status !== 'success') {
-    res.status(401).json({ error: 'invalid_credentials' });
-    return;
-  }
-
-  // Collect the Set-Cookie headers Platonus sent back (plt_auth_cookie,
-  // sessionid, plt_sid, ...) so we can replay them on every later request.
-  const setCookie =
-    typeof platonusResp.headers.getSetCookie === 'function'
-      ? platonusResp.headers.getSetCookie()
-      : platonusResp.headers.get('set-cookie')
-      ? [platonusResp.headers.get('set-cookie')]
-      : [];
-
-  const cookie = setCookie.map((c) => c.split(';')[0]).join('; ');
-
-  const session = { sid: data.sid, token: data.auth_token, cookie };
-  if (!session.sid || !session.token || !session.cookie) {
-    res.status(502).json({ error: 'platonus_bad_response' });
+    res.status(error.status || 502).json({error:error.status ? error.message : 'platonus_unreachable'});
     return;
   }
   let sessionToken,deviceSession;
   try{
     const issuedAt=Date.now();
     sessionToken=sealSession(session,issuedAt,req.body.remember===true);
-    if(publicKey)deviceSession=sealDeviceSession(session,publicKey,req.headers?.host,issuedAt);
+    if(publicKey)deviceSession=sealDeviceSession(session,publicKey,req.headers?.host,issuedAt,{credentials:{login,password}});
   }catch{res.status(502).json({error:'platonus_bad_response'});return;}
   setWebSession(req,res,sessionToken,req.body.remember===true);
 
   res.status(200).json({
     ok: true,
     ...(deviceSession?{deviceSession}:{}),
-    blockMinutesRemaining: data.blockMinutesRemaining ?? 0,
+    blockMinutesRemaining,
   });
 }

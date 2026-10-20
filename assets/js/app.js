@@ -558,7 +558,7 @@ if ('serviceWorker' in navigator) {
         body: JSON.stringify({ login, password, remember: shouldRemember,
           ...(rememberedDevice?{devicePublicKey:rememberedDevice.publicKey}:{}) }),
         credentials: 'same-origin',
-        signal: AbortSignal.timeout(20000),
+        signal: AbortSignal.timeout(35000),
       });
       loginNetworkWork = network.catch(() => null);
       const resp = await network;
@@ -626,15 +626,15 @@ if ('serviceWorker' in navigator) {
     if (confirmed) logout();
   }
 
-  function logout() {
+  function logout(forget = true) {
     haptic('medium');
     // An offline DELETE cannot clear an HttpOnly cookie. Remember the explicit
     // sign-out locally so a later launch cannot silently reuse that cookie.
-    lsSafe(() => localStorage.setItem(localCacheKey('signed_out'), '1'));
+    if (forget) lsSafe(() => localStorage.setItem(localCacheKey('signed_out'), '1'));
     authGeneration++;
     reloginInFlight = null;
-    const keys = ['platonus_session', 'platonus_student', 'platonus_login', 'platonus_password',
-      META_CACHE_KEY, JOURNAL_CACHE_KEY, UMKD_CACHE_KEY];
+    const keys = forget ? ['platonus_session', 'platonus_student', 'platonus_login', 'platonus_password',
+      META_CACHE_KEY, JOURNAL_CACHE_KEY, UMKD_CACHE_KEY] : [];
     // Clear display data immediately; finish earlier credential writes before deletion.
     keys.forEach(key => {
       lsSafe(() => localStorage.removeItem(localCacheKey(key)));
@@ -644,7 +644,7 @@ if ('serviceWorker' in navigator) {
     window.univerAcademic?.reset();
     authStorageWork = Promise.all([
       authStorageWork.catch(() => {}).then(() => Promise.all(keys.map(csRemove))), chatLogout,
-      window.unilinkDeviceSession?.clear().catch(()=>{}),
+      forget ? window.unilinkDeviceSession?.clear().catch(()=>{}) : Promise.resolve(),
       loginNetworkWork.then(() => fetch(`${API_BASE}/api/session`, {
         method: 'DELETE', credentials: 'same-origin', signal: AbortSignal.timeout(20000),
       })).catch(() => {}),
@@ -687,22 +687,27 @@ if ('serviceWorker' in navigator) {
   }
 
   let reloginInFlight = null;
-  function silentRelogin() {
+  let sessionRevision = 0;
+  function silentRelogin(refreshUpstream = false) {
+    if (reloginInFlight && refreshUpstream && !reloginInFlight.refreshUpstream) {
+      return reloginInFlight.then(() => silentRelogin(true));
+    }
     if (!reloginInFlight) {
-      const request = performSilentRelogin().finally(() => {
+      const request = performSilentRelogin(refreshUpstream).finally(() => {
         if (reloginInFlight === request) reloginInFlight = null;
       });
+      request.refreshUpstream = refreshUpstream;
       reloginInFlight = request;
     }
     return reloginInFlight;
   }
-  async function performSilentRelogin() {
+  async function performSilentRelogin(refreshUpstream = false) {
     const generation = authGeneration;
     await authStorageWork;
     if (generation !== authGeneration) return false;
     if (lsSafe(() => localStorage.getItem(localCacheKey('signed_out')), null) === '1') return false;
     try {
-      const resp = await fetch(`${API_BASE}/api/session`, {
+      const resp = refreshUpstream ? {status:401} : await fetch(`${API_BASE}/api/session`, {
         credentials: 'same-origin', cache: 'no-store', signal: AbortSignal.timeout(20000),
       });
       if (generation !== authGeneration) return false;
@@ -710,11 +715,11 @@ if ('serviceWorker' in navigator) {
         if(!window.unilinkDeviceSession)return false;
         // Track the complete restore, not just its headers: logout waits before
         // deleting any cookie that an in-flight restore might still set.
-        const work=window.unilinkDeviceSession.restore(()=>generation===authGeneration);
+        const work=window.unilinkDeviceSession.restore(()=>generation===authGeneration,refreshUpstream);
         loginNetworkWork=work.catch(()=>false);
         const restored=await work;
         if(generation!==authGeneration)return false;
-        if(restored)platonusSession='cookie';
+        if(restored){platonusSession='cookie';sessionRevision++;}
         return restored;
       }
       if (!resp.ok) throw new Error('session_check_unavailable');
@@ -733,6 +738,7 @@ if ('serviceWorker' in navigator) {
     if (!platonusSession) throw new Error('no_session');
     const generation = authGeneration;
     const requestSession = platonusSession;
+    const requestRevision = sessionRevision;
     let resp = await fetch(`${API_BASE}${path}`, {
       credentials: 'same-origin',
       cache: 'no-store',
@@ -741,7 +747,7 @@ if ('serviceWorker' in navigator) {
 
     ensureAuthGeneration(generation);
     if (resp.status === 401) {
-      const relogged = platonusSession !== requestSession || await silentRelogin();
+      const relogged = platonusSession !== requestSession || sessionRevision !== requestRevision || await silentRelogin(true);
       ensureAuthGeneration(generation);
       if (relogged) {
         resp = await fetch(`${API_BASE}${path}`, {
@@ -750,12 +756,14 @@ if ('serviceWorker' in navigator) {
           signal: AbortSignal.timeout(35000),
         });
       } else {
-        logout();
+        logout(false);
         throw new Error('session_expired');
       }
     }
     ensureAuthGeneration(generation);
-    if (resp.status === 401) { logout(); throw new Error('session_expired'); }
+    // A route can reject a newly renewed session transiently or lack access.
+    // Do not destroy a confirmed fresh login because one route still fails.
+    if (resp.status === 401) throw new Error('request_failed: platonus_auth_unavailable');
     if (!resp.ok) {
       let detail = '';
       try {

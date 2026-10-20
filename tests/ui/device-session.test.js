@@ -4,7 +4,7 @@ import {readFileSync} from 'node:fs';
 import vm from 'node:vm';
 import {webcrypto} from 'node:crypto';
 import {indexedDBFixture} from '../helpers/indexeddb.js';
-import {sealDeviceSession} from '../../api/_lib/device-session.js';
+import {sealDeviceSession,readDeviceSession} from '../../api/_lib/device-session.js';
 import {unsealSession} from '../../api/_lib/security.js';
 import handler from '../../api/session.js';
 
@@ -12,6 +12,8 @@ process.env.UNILINK_SESSION_KEY='04'.repeat(32);
 const source=readFileSync(new URL('../../assets/js/device-session.js',import.meta.url),'utf8');
 const session={sid:'upstream-sid',token:'upstream-token',cookie:'upstream=cookie'};
 const host='app.test';
+process.env.SUPABASE_URL='https://test.supabase.co';
+process.env.SUPABASE_SERVICE_ROLE_KEY='server-only';
 function browser(database,fetch,telegram){
   const window={crypto:webcrypto,location:{host},...(telegram?{Telegram:{WebApp:telegram}}:{})};
   vm.runInNewContext(source,{window,indexedDB:database,fetch,TextEncoder,Uint8Array,btoa,AbortSignal,setTimeout,clearTimeout});
@@ -101,6 +103,41 @@ function telegram(storage,id=42){
   return {initData:'telegram-fixture',initDataUnsafe:{user:{id}},isVersionAtLeast:()=>true,
     SecureStorage:storage,CloudStorage:{setItem(){throw new Error('must not store credentials in cloud');}}};
 }
+
+test('browser and Telegram renew upstream login, persist the rotated envelope and recover after reopening',async t=>{
+  t.mock.method(globalThis,'fetch',async url=>String(url).includes('/rpc/security_login_attempt')
+    ? {ok:true,json:async()=>({allowed:true})}
+    : {ok:true,status:200,json:async()=>({login_status:'success',sid:'renewed',auth_token:'new-token'}),
+      headers:{getSetCookie:()=>['new=cookie; Secure']}});
+  for(const native of [false,true]){
+    const database=indexedDBFixture(),storage=nativeStorage(),tg=native?telegram(storage):undefined,backend=server();
+    const first=browser(database,backend.fetch,tg),prepared=await first.prepare();
+    const old=sealDeviceSession(session,prepared.publicKey,host,Date.now(),{credentials:{login:'student',password:'not-readable'}});
+    await prepared.save(old);const expires=readDeviceSession(old,host).expires;
+    const reopened=browser(database,backend.fetch,tg);
+    assert.equal(await reopened.restore(()=>true,true),true);
+    const saved=database.records.get(native?'remembered-login-tg-42':'remembered-login');
+    assert.notEqual(saved.deviceSession,old);
+    assert.equal(readDeviceSession(saved.deviceSession,host).session.sid,'renewed');
+    assert.equal(readDeviceSession(saved.deviceSession,host).expires,expires);
+    assert.equal(JSON.stringify(saved).includes('not-readable'),false);
+    assert.equal(JSON.stringify(backend.calls).includes('not-readable'),false);
+    assert.equal(backend.calls.at(-1).refresh,true);
+    const restart=browser(native?undefined:database,backend.fetch,tg);
+    assert.equal(await restart.restore(),true);
+    assert.equal(unsealSession(backend.cookie.split(';')[0].split('=')[1]).sid,'renewed');
+  }
+});
+
+test('a delayed or rejected proof does not delete the remembered device',async()=>{
+  const database=indexedDBFixture(),backend=server(),first=browser(database,backend.fetch);
+  const prepared=await first.prepare();await prepared.save(sealDeviceSession(session,prepared.publicKey,host));
+  const rejected=browser(database,async(url,options)=>JSON.parse(options.body).action==='challenge'
+    ? backend.fetch(url,options):{ok:false,status:401,json:async()=>({error:'invalid_device_proof'})});
+  await assert.rejects(rejected.restore(),/session_check_unavailable/);
+  assert.equal(database.records.size,1);
+  assert.equal(await browser(database,backend.fetch).restore(),true);
+});
 
 test('Telegram restores remembered login from native secure storage after its WebView storage is lost',async()=>{
   const storage=nativeStorage(),backend=server();

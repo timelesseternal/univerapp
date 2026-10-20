@@ -271,7 +271,7 @@
       } catch (error) {
         if (stale(epoch) || generation !== authGeneration) throw new Error('session_changed');
         if (error.message !== 'session_expired') throw error;
-        if (!await silentRelogin()) { logout(); throw error; }
+        if (!await silentRelogin(true)) { logout(false); throw error; }
         if (stale(epoch) || generation !== authGeneration) throw new Error('session_changed');
         data = await bootstrap();
       }

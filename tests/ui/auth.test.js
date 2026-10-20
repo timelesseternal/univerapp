@@ -77,6 +77,11 @@ test('an offline logout prevents a later launch from reusing an old cookie',asyn
 
 test('renewed Platonus requests get fresh deadlines and preserve the new session on timeout', async () => {
   const env = setup(); const deadlines = [], calls = [];
+  env.ctx.window.unilinkDeviceSession={restore:async(_,refresh)=>{
+    assert.equal(refresh,true);
+    await env.ctx.fetch('/api/session',{method:'POST',signal:env.ctx.AbortSignal.timeout(20000)});
+    return true;
+  }};
   env.ctx.AbortSignal = { timeout(duration) {
     const controller = new AbortController(); deadlines.push({ controller, duration }); return controller.signal;
   } };
@@ -201,6 +206,11 @@ test('without remember me old credentials are removed and silent renewal remains
 test('temporary session-check failures preserve the account and do not delete its cookie', async () => {
   for (const failure of ['offline', 'server', 'invalid-json']) {
     const env = setup(); const calls = [];
+    env.ctx.window.unilinkDeviceSession={restore:async()=>{
+      const response=await env.ctx.fetch('/api/session',{method:'POST'});
+      if(!response.ok)throw new Error('session_check_unavailable');
+      await response.json();return true;
+    }};
     env.ctx.fetch = async (url, options) => {
       calls.push([url, options.method]);
       if (url !== '/api/session') return { status: 401, ok: false };
@@ -213,6 +223,48 @@ test('temporary session-check failures preserve the account and do not delete it
     assert.equal(env.read('platonusStudent.studentID'), 1);
     assert.ok(!calls.some(([,method]) => method === 'DELETE'));
   }
+});
+
+test('parallel upstream failures share one real renewal even when the app cookie still exists',async()=>{
+  const env=setup();let renewals=0,renewed=false,complete;
+  env.ctx.window.unilinkDeviceSession={restore:async(current,refresh)=>{
+    assert.equal(refresh,true);renewals++;
+    await new Promise(resolve=>{complete=resolve;});
+    assert.equal(current(),true);renewed=true;return true;
+  }};
+  env.ctx.fetch=async()=>renewed?{ok:true,status:200,json:async()=>({value:'fresh'})}:{ok:false,status:401};
+  const requests=[env.ctx.platonusFetch('/api/gpa'),env.ctx.platonusFetch('/api/schedule')];
+  await new Promise(setImmediate);assert.equal(renewals,1);complete();
+  assert.equal((await Promise.all(requests)).length,2);assert.equal(env.read('platonusSession'),'cookie');
+  assert.equal(env.storage.get('signed_out'),undefined);
+});
+
+test('an in-flight cookie check cannot substitute for a requested upstream renewal',async()=>{
+  const env=setup();let finish,renewals=0;
+  env.ctx.fetch=()=>new Promise(resolve=>{finish=resolve;});
+  env.ctx.window.unilinkDeviceSession={restore:async(_,refresh)=>{assert.equal(refresh,true);renewals++;return true;}};
+  const checking=env.ctx.silentRelogin();await new Promise(setImmediate);
+  const renewal=env.ctx.silentRelogin(true);
+  finish({ok:true,status:200,json:async()=>({ok:true})});
+  assert.equal(await checking,true);assert.equal(await renewal,true);assert.equal(renewals,1);
+});
+
+test('automatic expiration does not erase a remembered device or mark deliberate sign-out',async()=>{
+  const env=setup();let cleared=0;
+  env.ctx.window.unilinkDeviceSession={restore:async()=>false,clear:async()=>{cleared++;}};
+  env.ctx.fetch=async()=>({ok:false,status:401});
+  await assert.rejects(env.ctx.platonusFetch('/api/gpa'),/session_expired/);
+  await env.read('authStorageWork');
+  assert.equal(cleared,0);assert.equal(env.storage.get('signed_out'),undefined);
+});
+
+test('one route rejecting a fresh upstream session cannot erase the signed-in account',async()=>{
+  const env=setup();let cleared=0;
+  env.ctx.window.unilinkDeviceSession={restore:async()=>true,clear:async()=>{cleared++;}};
+  env.ctx.fetch=async()=>({ok:false,status:401});
+  await assert.rejects(env.ctx.platonusFetch('/api/grades'),/platonus_auth_unavailable/);
+  assert.equal(env.read('platonusSession'),'cookie');assert.equal(env.read('platonusStudent.studentID'),1);
+  assert.equal(cleared,0);assert.equal(env.storage.get('signed_out'),undefined);
 });
 
 function setupRestore() {

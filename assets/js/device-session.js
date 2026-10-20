@@ -1,5 +1,5 @@
-// Cookie-independent recovery for remembered logins. No passwords or readable
-// Platonus credentials; the encrypted envelope requires this device's private key.
+// Cookie-independent recovery and renewal. Credentials remain inside a
+// server-encrypted envelope, usable only with this device's private key.
 (() => {
   'use strict';
   const telegram=window.Telegram?.WebApp?.initData?window.Telegram.WebApp:null;
@@ -111,16 +111,21 @@
     if(!isCurrent())throw new Error('session_changed');
     const response=await fetch('/api/session',{
       method:'POST',credentials:'same-origin',cache:'no-store',
-      headers:{'Content-Type':'application/json'},body:JSON.stringify(body),signal:AbortSignal.timeout(20000),
+      headers:{'Content-Type':'application/json'},body:JSON.stringify(body),signal:AbortSignal.timeout(body.refresh===true?35000:20000),
     });
     if(!isCurrent())throw new Error('session_changed');
-    if(response.status===401)return null;
+    if(response.status===401){
+      const error=await response.json().catch(()=>({}));
+      if(['session_expired','invalid_credentials','reauthentication_required'].includes(error.error))return null;
+      throw new Error('session_check_unavailable');
+    }
     if(!response.ok)throw new Error('session_check_unavailable');
     const data=await response.json();
+    if(!isCurrent())throw new Error('session_changed');
     if(!data.ok)throw new Error('session_check_unavailable');
     return data;
   }
-  async function restore(isCurrent=()=>true){
+  async function restore(isCurrent=()=>true,refresh=false){
     if(!window.crypto?.subtle)return false;
     let saved;
     const storage=secureStorage();
@@ -130,7 +135,7 @@
         const native=raw && JSON.parse(raw);
         if(native?.version===2 && typeof native.deviceSession==='string' && native.deviceSession.length<=6000){
           const privateKey=await window.crypto.subtle.importKey('jwk',native.privateJwk,{name:'ECDSA',namedCurve:'P-256'},false,['sign']);
-          saved={version:1,privateKey,deviceSession:native.deviceSession};
+          saved={version:1,privateKey,deviceSession:native.deviceSession,privateJwk:native.privateJwk};
         }
       }catch{ /* Try the browser copy when native storage is temporarily unavailable. */ }
     }
@@ -155,8 +160,17 @@
         new TextEncoder().encode(`${purpose}\n${challenge.challenge}`)));
     }catch{await clear().catch(()=>{});return false;}
     const signature=btoa(String.fromCharCode(...bytes)).replaceAll('+','-').replaceAll('/','_').replace(/=+$/,'');
-    const result=await post({action:'restore',deviceSession,challenge:challenge.challenge,signature},isCurrent);
+    const result=await post({action:'restore',deviceSession,challenge:challenge.challenge,signature,...(refresh?{refresh:true}:{})},isCurrent);
     if(!result){await clear().catch(()=>{});return false;}
+    if(typeof result.deviceSession==='string' && result.deviceSession.startsWith('d1.') && result.deviceSession.length<=6000){
+      await queued(async()=>{
+        if(!isCurrent())return;
+        const operations=[];
+        if(storage && saved.privateJwk)operations.push(nativeCall(storage,'setItem',JSON.stringify({version:2,privateJwk:saved.privateJwk,deviceSession:result.deviceSession})));
+        if(typeof indexedDB!=='undefined')operations.push(transaction('readwrite',store=>store.put({version:1,privateKey,deviceSession:result.deviceSession},ACTIVE)));
+        await Promise.allSettled(operations);
+      });
+    }
     return true;
   }
   window.unilinkDeviceSession={prepare,restore,clear};

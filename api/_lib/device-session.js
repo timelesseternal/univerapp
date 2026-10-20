@@ -22,9 +22,15 @@ function aad(host){
   return Buffer.from(`${purpose}\n${host.toLowerCase()}`);
 }
 
-export function sealDeviceSession(session,publicKey,host,now=Date.now()){
+export function sealDeviceSession(session,publicKey,host,now=Date.now(),options={}){
   if(!validSession(session))throw new Error('invalid_session');
-  const payload={session,publicKey:devicePublicKey(publicKey),expires:now+REMEMBER_SECONDS*1000};
+  const expires=options.expires ?? now+REMEMBER_SECONDS*1000;
+  if(!Number.isFinite(expires) || expires<=now || expires>now+REMEMBER_SECONDS*1000)throw new Error('invalid_expiration');
+  const credentials=options.credentials;
+  if(credentials && (typeof credentials.login!=='string' || !credentials.login.trim() || credentials.login.length>160
+    || typeof credentials.password!=='string' || !credentials.password || credentials.password.length>1024))throw new Error('invalid_credentials');
+  const payload={session,publicKey:devicePublicKey(publicKey),expires,
+    ...(credentials?{credentials:{login:credentials.login,password:credentials.password}}:{})};
   const iv=randomBytes(12),cipher=createCipheriv('aes-256-gcm',deviceKey('encryption'),iv);
   cipher.setAAD(aad(host));
   const encrypted=Buffer.concat([cipher.update(JSON.stringify(payload),'utf8'),cipher.final()]);

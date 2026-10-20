@@ -91,11 +91,60 @@ test('login issues a device-bound envelope only for an explicit remembered login
     const result=response();
     await login({method:'POST',headers,body:{login:'student',password:'password',remember,devicePublicKey:publicKey}},result);
     assert.equal(result.code,200);
-    if(remember){assert.deepEqual(readDeviceSession(result.body.deviceSession,host).session,session);}
+    if(remember){
+      const payload=readDeviceSession(result.body.deviceSession,host);
+      assert.deepEqual(payload.session,session);
+      assert.deepEqual(payload.credentials,{login:'student',password:'password'});
+      assert.equal(JSON.stringify(result.body).includes('password'),false);
+    }
     else assert.equal(result.body.deviceSession,undefined);
     assert.equal(result.body.session,undefined);
   }
   const denied=response();
   await login({method:'POST',headers,body:{login:'student',password:'password',remember:true,devicePublicKey:{}}},denied);
   assert.equal(denied.code,400);assert.equal(denied.headers['Set-Cookie'],undefined);
+});
+
+test('a device proof renews expired Platonus credentials without extending the remembered deadline',async t=>{
+  const {publicKey,privateKey}=await device(),issued=Date.now()-20*86400000;
+  const credentials={login:'student',password:'secret-for-renewal'};
+  const deviceSession=sealDeviceSession(session,publicKey,host,issued,{credentials});
+  const expires=readDeviceSession(deviceSession,host).expires;
+  let calls=0;
+  t.mock.method(globalThis,'fetch',async(url,options)=>{
+    if(String(url).includes('/rpc/security_login_attempt'))return {ok:true,json:async()=>({allowed:true})};
+    assert.equal(url,'https://platonus.kstu.kz/rest/api/login');calls++;
+    assert.equal(JSON.parse(options.body).password,credentials.password);
+    return {ok:true,status:200,json:async()=>({login_status:'success',sid:'fresh-sid',auth_token:'fresh-token'}),headers:{getSetCookie:()=>['fresh=cookie; Secure']}};
+  });
+  const challenge=deviceChallenge(deviceSession,host),signature=await sign(privateKey,challenge);
+  const result=response();
+  await handler({method:'POST',headers,body:{action:'restore',deviceSession,challenge,signature,refresh:true}},result);
+  assert.equal(result.code,200);assert.equal(calls,1);
+  const payload=readDeviceSession(result.body.deviceSession,host);
+  assert.equal(payload.session.sid,'fresh-sid');assert.equal(payload.expires,expires);
+  assert.deepEqual(payload.credentials,credentials);
+  const cookie=unsealSession(result.headers['Set-Cookie'].split(';')[0].split('=')[1]);
+  assert.equal(cookie.sid,'fresh-sid');assert.equal(cookie.credentials,undefined);
+  assert.ok(!JSON.stringify(result.body).includes(credentials.password));
+});
+
+test('renewal rejects unsigned proofs before touching Platonus, and temporary failures do not clear cookies',async t=>{
+  const {publicKey,privateKey}=await device();
+  const deviceSession=sealDeviceSession(session,publicKey,host,Date.now(),{credentials:{login:'student',password:'secret'}});
+  const challenge=deviceChallenge(deviceSession,host),signature=await sign(privateKey,challenge);
+  let upstream=0,limited=false;
+  t.mock.method(globalThis,'fetch',async url=>{
+    if(String(url).includes('/rpc/security_login_attempt'))return {ok:true,json:async()=>({allowed:!limited})};
+    upstream++;return {ok:false,status:503};
+  });
+  const denied=response();
+  await handler({method:'POST',headers,body:{action:'restore',deviceSession,challenge,refresh:true}},denied);
+  assert.equal(denied.code,401);assert.equal(upstream,0);
+  const failed=response();
+  await handler({method:'POST',headers,body:{action:'restore',deviceSession,challenge,signature,refresh:true}},failed);
+  assert.equal(failed.code,502);assert.equal(failed.headers['Set-Cookie'],undefined);
+  limited=true;const blocked=response();
+  await handler({method:'POST',headers,body:{action:'restore',deviceSession,challenge,signature,refresh:true}},blocked);
+  assert.equal(blocked.code,429);assert.equal(upstream,1);
 });

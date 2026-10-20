@@ -3,6 +3,12 @@
     "fra1"
   ],
   "functions": {
+    "api/login.js": {
+      "maxDuration": 30
+    },
+    "api/session.js": {
+      "maxDuration": 30
+    },
     "api/chat.js": {
       "maxDuration": 30
     }
