@@ -19,6 +19,47 @@ SHELL_PATHS.add('/assets/js/grade-details.js');
 SHELL_PATHS.add('/assets/icons/unilink-dark-maskable-512.png');
 SHELL_PATHS.add('/assets/icons/unilink-dark-favicon-32.png');
 
+async function savedResponse(request, includePrevious = false) {
+  try {
+    const cache = await caches.open(CACHE_NAME);
+    const response = await cache.match(request);
+    if (response) return response;
+  } catch { /* Restricted storage must not block a successful network load. */ }
+  if (!includePrevious) return;
+  try {
+    const names = (await caches.keys()).filter(name => name.startsWith('univer-shell-') && name !== CACHE_NAME).reverse();
+    for (const name of names) {
+      const response = await (await caches.open(name)).match(request);
+      if (response) return response;
+    }
+  } catch { /* Offline recovery is optional when CacheStorage is unavailable. */ }
+}
+
+async function rememberResponse(request, response) {
+  try { await (await caches.open(CACHE_NAME)).put(request, response); }
+  catch { /* Quota or storage errors must not turn HTTP 200 into a failed load. */ }
+}
+
+async function pruneShellCaches(keepPrevious) {
+  try {
+    const names = (await caches.keys()).filter(name => name.startsWith('univer-shell-') && name !== CACHE_NAME);
+    const remove = names.slice(0, Math.max(0, names.length - keepPrevious));
+    await Promise.all(remove.map(name => caches.delete(name)));
+  } catch { /* Activation can continue even when the cache is restricted. */ }
+}
+
+async function networkResponse(request, work) {
+  try {
+    const response = await work;
+    if (response.ok) return response;
+    return await savedResponse(request, true) || response;
+  } catch (error) {
+    const cached = await savedResponse(request, true);
+    if (cached) return cached;
+    throw error;
+  }
+}
+
 self.addEventListener('message', event => {
   if (event.data?.type !== 'REFRESH_SHELL' || !event.ports?.[0]) return;
   event.waitUntil((async () => {
@@ -31,6 +72,7 @@ self.addEventListener('message', event => {
       }));
       const cache = await caches.open(CACHE_NAME);
       await Promise.all(files.map(([path, response]) => cache.put(path, response)));
+      await pruneShellCaches(1);
       event.ports[0].postMessage({ ok: true });
     } catch { event.ports[0].postMessage({ ok: false }); }
   })());
@@ -38,10 +80,9 @@ self.addEventListener('message', event => {
 
 self.addEventListener('install', () => self.skipWaiting());
 self.addEventListener('activate', event => {
-  event.waitUntil(caches.keys().then(names => Promise.all(
-    names.filter(name => name.startsWith('univer-') && name !== CACHE_NAME)
-      .map(name => caches.delete(name))
-  )).then(() => self.clients.claim()));
+  // Keep working fallbacks until the new shell has actually downloaded.
+  // Only public shell caches belong to this worker.
+  event.waitUntil(pruneShellCaches(2).then(() => self.clients.claim()));
 });
 self.addEventListener('fetch', event => {
   const request = event.request;
@@ -53,40 +94,31 @@ self.addEventListener('fetch', event => {
   // Cache namespaces change with releases so an old release cannot fill this cache.
   if (!FONT_PATHS.has(url.pathname) && url.pathname !== '/' && url.pathname !== '/index.html') {
     const update = (async () => {
-      const response = await fetch(request);
-      if (response.ok) {
-        const cache = await caches.open(CACHE_NAME);
-        await cache.put(request, response.clone());
-      }
+      const response = await fetch(request, { signal: AbortSignal.timeout(10000) });
+      if (response.ok) await rememberResponse(request, response.clone());
       return response;
     })();
     event.waitUntil(update.catch(() => {}));
     event.respondWith((async () => {
-      const cache = await caches.open(CACHE_NAME);
-      const cached = await cache.match(request);
-      return cached || await update;
+      const cached = await savedResponse(request);
+      return cached || await networkResponse(request, update);
     })());
     return;
   }
 
   // Prefer fresh HTML; keep the public shell available if the network is down.
   event.respondWith((async () => {
-    const cache = await caches.open(CACHE_NAME);
     if (FONT_PATHS.has(url.pathname)) {
-      const cachedFont = await cache.match(request);
+      const cachedFont = await savedResponse(request);
       if (cachedFont) return cachedFont;
     }
-    try {
-      const response = await fetch(request);
+    return networkResponse(request, (async () => {
+      const response = await fetch(request, { signal: AbortSignal.timeout(10000) });
       if (response.ok) {
         const copy = response.clone();
-        event.waitUntil(cache.put(request, copy));
+        event.waitUntil(rememberResponse(request, copy));
       }
       return response;
-    } catch (error) {
-      const cached = await cache.match(request);
-      if (cached) return cached;
-      throw error;
-    }
+    })());
   })());
 });

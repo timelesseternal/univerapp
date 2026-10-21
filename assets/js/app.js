@@ -977,12 +977,13 @@ if ('serviceWorker' in navigator) {
       </nav>
 
       <button type="button" class="wrapped-launch" data-action="openSemesterWrapped()"><span class="wrapped-launch-kicker">UNILINK · RECAP</span><span class="wrapped-launch-title">Твой семестр в историях <span aria-hidden="true">↗</span></span><span class="wrapped-launch-caption">Твой ритм. Твои предметы. Твои результаты.</span></button>
-      <button type="button" class="profile-update-btn" data-action="updateApplication(this)">Обновить приложение</button>
+      <div id="appUpdateAvailable" class="profile-update-available" role="status" hidden><span class="profile-update-dot" aria-hidden="true"></span>Доступна новая версия</div>
+      <button type="button" id="appUpdateButton" class="profile-update-btn" data-action="updateApplication(this)">Обновить приложение</button>
       <p id="appUpdateStatus" class="profile-update-status" role="status"></p>
       <button class="profile-logout-btn" data-action="confirmLogout()">Выйти из аккаунта</button>
     `;
 
-    swapContent(container, html, animate);
+    swapContent(container, html, animate, () => window.unilinkUpdates?.render());
   }
 
   function renderGrades(animate = true) {
@@ -1064,14 +1065,17 @@ if ('serviceWorker' in navigator) {
   // Если запрос не удался, возвращаем null, и старые (кэшированные) данные остаются.
   let journalRequest = null;
   let journalSnapshot = null, umkdRequest = null, umkdSnapshot = null;
+  let desiredJournalKey = null, desiredUmkdKey = null;
   function fetchJournal(year, term, force = false) {
     const studentID = platonusStudent && platonusStudent.studentID;
     const generation = authGeneration;
     const key = `${generation}-${studentID}-${year}-${term}`;
+    desiredJournalKey = key;
     if (journalRequest?.key === key) return journalRequest.work;
     if (!force && journalSnapshot?.key === key && Date.now() - journalSnapshot.at < (journalSnapshot.empty ? 5000 : 30000)) return Promise.resolve(liveJournalData);
     const journalWork = studentID ? platonusFetch(`/api/grades?studentID=${studentID}&year=${year}&term=${term}`)
       .then(journal => {
+        if (generation !== authGeneration || journalRequest !== pending || desiredJournalKey !== key) return null;
         if (!Array.isArray(journal)) throw new Error('invalid_journal');
         if (generation === authGeneration) {
           if (!journal.length) {
@@ -1092,7 +1096,7 @@ if ('serviceWorker' in navigator) {
         }
         return journal;
       }).catch(() => {
-        if (generation === authGeneration) {
+        if (generation === authGeneration && journalRequest === pending && desiredJournalKey === key) {
           gradesLoadFailed = true;
           if (currentSection === 'grades') renderGrades(false);
         }
@@ -1106,9 +1110,11 @@ if ('serviceWorker' in navigator) {
   function fetchUmkd(year, term, force = false) {
     const generation = authGeneration;
     const key = `${generation}-${year}-${term}`;
+    desiredUmkdKey = key;
     if (umkdRequest?.key === key) return umkdRequest.work;
     if (!force && umkdSnapshot?.key === key && Date.now() - umkdSnapshot.at < 300000) return Promise.resolve(liveUmkdData);
     const work = platonusFetch(`/api/umkd?year=${year}&term=${term}`).then(umkd => {
+      if (generation !== authGeneration || umkdRequest !== pending || desiredUmkdKey !== key) return null;
       if (!umkd || !Array.isArray(umkd.records)) throw new Error('invalid_umkd');
       if (generation === authGeneration) {
         liveUmkdData = umkd;
@@ -1119,7 +1125,7 @@ if ('serviceWorker' in navigator) {
       }
       return umkd;
     }).catch(() => {
-      if (generation === authGeneration) {
+      if (generation === authGeneration && umkdRequest === pending && desiredUmkdKey === key) {
         umkdLoadFailed = true;
         if (currentSection === 'umkd' && selectedUmkdSubject === null) renderUmkdSubjects(false);
       }
@@ -2217,6 +2223,7 @@ if ('serviceWorker' in navigator) {
     if (section === currentSection) return;
     haptic('light');
     currentSection = section;
+    window.unilinkUpdates?.check();
     window.univerAcademic?.onSection(section);
 
     document.querySelectorAll('.bottom-tab-btn').forEach(btn => {

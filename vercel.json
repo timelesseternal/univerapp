@@ -1,4 +1,5 @@
 {
+  "buildCommand": "node scripts/build-release.mjs",
   "regions": [
     "fra1"
   ],
@@ -20,6 +21,10 @@
     }
   },
   "headers": [
+    {
+      "source": "/version.json",
+      "headers": [{ "key": "Cache-Control", "value": "no-store" }]
+    },
     {
       "source": "/(.*)",
       "headers": [

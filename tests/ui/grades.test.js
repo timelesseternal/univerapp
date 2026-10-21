@@ -107,3 +107,37 @@ test('academic refresh pauses when hidden and retries the visible section automa
   assert.deepEqual(calls,[['grades',2026,1]]);
   ctx.currentSection='umkd';ctx.refreshVisibleAcademicData();assert.deepEqual(calls[1],['umkd',2026,1]);
 });
+
+test('late responses or errors from an old semester cannot replace current grades and UMKD',async()=>{
+  for(const kind of ['journal','umkd'])for(const outcome of ['data','empty','error']){
+    const requests=[];let saves=0;
+    const ctx=vm.createContext({window:{},platonusStudent:{studentID:7},authGeneration:1,currentSection:'schedule',
+      liveJournalData:null,liveUmkdData:null,gradesLoadFailed:false,umkdLoadFailed:false,
+      platonusFetch:()=>new Promise((resolve,reject)=>requests.push({resolve,reject})),saveCachedStudentData(){saves++;}});
+    vm.runInContext(source.slice(source.indexOf('  let journalRequest'),source.indexOf('  function retryGrades')),ctx);
+    const fetch=kind==='journal'?ctx.fetchJournal:ctx.fetchUmkd;
+    const previous=fetch(2026,1),current=fetch(2026,2);
+    const fresh=kind==='journal'?[{subjectName:'Новый семестр'}]:{records:[{name:'Новый семестр'}]};
+    requests[1].resolve(fresh);await current;
+    if(outcome==='error')requests[0].reject(new Error('offline'));
+    else requests[0].resolve(kind==='journal'?(outcome==='empty'?[]:[{subjectName:'Старый семестр'}]):{records:outcome==='empty'?[]:[{name:'Старый семестр'}]});
+    assert.equal(await previous,null,`${kind}: ${outcome}`);
+    assert.equal(kind==='journal'?ctx.liveJournalData:ctx.liveUmkdData,fresh);
+    assert.equal(kind==='journal'?ctx.gradesLoadFailed:ctx.umkdLoadFailed,false);assert.equal(saves,1);
+  }
+});
+
+test('returning to a fresh cached semester also invalidates a pending request for another semester',async()=>{
+  for(const kind of ['journal','umkd']){
+    const requests=[];
+    const ctx=vm.createContext({window:{},platonusStudent:{studentID:7},authGeneration:1,currentSection:'schedule',
+      liveJournalData:null,liveUmkdData:null,platonusFetch:()=>new Promise(resolve=>requests.push(resolve)),saveCachedStudentData(){}});
+    vm.runInContext(source.slice(source.indexOf('  let journalRequest'),source.indexOf('  function retryGrades')),ctx);
+    const fetch=kind==='journal'?ctx.fetchJournal:ctx.fetchUmkd;
+    const fresh=kind==='journal'?[{subjectName:'Текущий'}]:{records:[{name:'Текущий'}]};
+    const loaded=fetch(2026,2);requests[0](fresh);await loaded;
+    const old=fetch(2026,1);assert.equal(await fetch(2026,2),fresh);
+    requests[1](kind==='journal'?[{subjectName:'Прошлый'}]:{records:[{name:'Прошлый'}]});
+    assert.equal(await old,null);assert.equal(kind==='journal'?ctx.liveJournalData:ctx.liveUmkdData,fresh);
+  }
+});
