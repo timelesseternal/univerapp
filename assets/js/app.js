@@ -540,7 +540,7 @@ if ('serviceWorker' in navigator) {
     }
 
     btn.disabled = true;
-    btn.textContent = 'Входим…';
+    btn.innerHTML = loadingHtml('Вход в аккаунт', true);
 
     try {
       await authStorageWork;
@@ -653,6 +653,7 @@ if ('serviceWorker' in navigator) {
     platonusSession = null;
     platonusStudent = null;
     liveJournalData = null;
+    window.unilinkGradeDetails?.reset();
     gradesLoadFailed = false;
     liveUmkdData = null;
     umkdLoadFailed = false;
@@ -853,7 +854,8 @@ if ('serviceWorker' in navigator) {
     const metricsHtml = slots.map(metricHtml).join('') + extras.map(metricHtml).join('');
 
     return `
-      <div class="grade-card row-enter" style="animation-delay:${Math.min(index, 8) * 0.04}s;">
+      <details class="grade-card row-enter" data-grade-index="${index}" style="animation-delay:${Math.min(index, 8) * 0.04}s;">
+        <summary class="grade-summary">
         <div class="grade-title" title="${escapeHtml(cleanTitle)}">${escapeHtml(cleanTitle)}</div>
         <div class="grade-tutor">${escapeHtml(subj.tutorList || '')}</div>
         <div class="grade-body">
@@ -866,7 +868,10 @@ if ('serviceWorker' in navigator) {
           </div>
           <div class="grade-metrics-grid">${metricsHtml}</div>
         </div>
-      </div>
+        <span class="grade-details-link">Контрольные точки <svg aria-hidden="true" class="profile-gpa-arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m9 6 6 6-6 6"/></svg></span>
+        </summary>
+        <div class="grade-details-body"></div>
+      </details>
     `;
   }
 
@@ -1005,7 +1010,16 @@ if ('serviceWorker' in navigator) {
       html += loadingHtml('Оценки загружаются');
     }
 
-    swapContent(container, html, animate);
+    swapContent(container, html, animate, () => {
+      const period = journalSnapshot?.key?.startsWith(`${authGeneration}-${platonusStudent?.studentID}-`)
+        ? journalSnapshot.key.split('-').slice(-2) : null;
+      const current = trueCurrentWeekInfo || liveScheduleWeekInfo;
+      window.unilinkGradeDetails?.attach(container, {
+        subjects: subjects || [], studentID: platonusStudent?.studentID, generation: authGeneration,
+        year: period ? Number(period[0]) : current?.studyYear ?? current?.selectedStudyYear,
+        term: period ? Number(period[1]) : current?.term ?? current?.selectedTerm, fetch: platonusFetch,
+      });
+    });
   }
 
   function openSemesterWrapped() {
@@ -2161,7 +2175,7 @@ if ('serviceWorker' in navigator) {
         tabTurns.delete(section);
       }
       resolve();
-    }, reduced ? 0 : 980));
+    }, reduced ? 0 : 1100));
     tabTurns.set(section, turn);
     return turn;
   }

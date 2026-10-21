@@ -3,6 +3,9 @@
     "fra1"
   ],
   "functions": {
+    "api/grade-details.js": {
+      "maxDuration": 30
+    },
     "api/exams.js": {
       "maxDuration": 30
     },

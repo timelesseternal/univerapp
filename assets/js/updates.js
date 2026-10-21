@@ -38,7 +38,7 @@
     const status = document.getElementById('appUpdateStatus');
     button.disabled = true;
     button.setAttribute('aria-busy', 'true');
-    button.textContent = 'Проверяем обновление…';
+    button.innerHTML = window.unilinkLoading.html('Проверка обновления', true);
     if (status) status.textContent = '';
     try {
       if (navigator.onLine === false) throw new Error('offline');
@@ -55,7 +55,6 @@
         if (pending) await activated(pending);
         const worker = registration.active;
         if (!worker) throw new Error('worker_missing');
-        button.textContent = 'Загружаем обновление…';
         await refreshShell(worker);
       } else {
         const response = await fetch('./index.html', { cache: 'reload', signal: AbortSignal.timeout(12000) });

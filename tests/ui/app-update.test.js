@@ -2,6 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import vm from 'node:vm';
 import { readFileSync } from 'node:fs';
+import { installLoading } from '../helpers/loading.js';
 const source = readFileSync(new URL('../../assets/js/updates.js', import.meta.url), 'utf8');
 const workerSource = readFileSync(new URL('../../assets/js/sw.js', import.meta.url), 'utf8');
 
@@ -14,6 +15,7 @@ function setup({ update = async () => {}, ok = true, online = true } = {}) {
     refreshes++;assert.equal(data.type, 'REFRESH_SHELL');ports[0].receive({ data: { ok } });
   } } };
   const window = { location: { reload() { reloads++; } } };
+  installLoading({ window });
   const privateData = new Map([['platonus_session', 'session'], ['univer-chat-preview-23', 'messages']]);
   vm.runInNewContext(source, { window, navigator: { onLine: online, serviceWorker: { getRegistration: async () => registration } },
     document: { getElementById: () => status }, setTimeout, clearTimeout,
@@ -28,6 +30,7 @@ test('an app update refreshes the shell once, then reloads without removing logi
   const updating = ui.window.updateApplication(ui.button);
   await Promise.resolve();await Promise.resolve();
   assert.equal(ui.button.disabled, true);assert.equal(ui.reloads, 0);
+  assert.match(ui.button.innerHTML, /content-loading-arrow/);
   await ui.window.updateApplication(ui.button);
   release();await updating;
   assert.equal(ui.refreshes, 1);assert.equal(ui.reloads, 1);

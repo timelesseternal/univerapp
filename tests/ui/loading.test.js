@@ -3,6 +3,14 @@ import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
 import {installLoading} from '../helpers/loading.js';
 
+test('all four tab indicators mount the same SVG used by content loading',()=>{
+  const elements=Array.from({length:4},()=>({innerHTML:''}));
+  const ctx={window:{},document:{querySelectorAll:()=>elements}};installLoading(ctx);
+  elements.forEach(element=>assert.equal(element.innerHTML,ctx.window.unilinkLoading.icon()));
+  const html=readFileSync(new URL('../../index.html',import.meta.url),'utf8');
+  assert.equal((html.match(/class="tab-refresh-icon" data-loading-icon/g)||[]).length,4);
+});
+
 test('shared loading is an accessible rotating arrow without visible text or a notice card',()=>{
   const ctx={window:{}};installLoading(ctx);
   const html=ctx.window.unilinkLoading.html('Материалы "<img src=x>"');

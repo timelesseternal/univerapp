@@ -9,4 +9,8 @@
       return `<${tag} class="content-loading${compact ? ' content-loading-compact' : ''}" role="status" aria-label="${escape(label)}">${icon()}</${tag}>`;
     },
   };
+  // Static tab placeholders use the same SVG as dynamic loading states.
+  if (typeof document !== 'undefined') {
+    document.querySelectorAll('[data-loading-icon]').forEach(element => { element.innerHTML = icon(); });
+  }
 })();
