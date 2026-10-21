@@ -93,9 +93,12 @@ test('parallel expired requests share one relogin', async () => {
   assert.equal(logins, 1);
 });
 test('cached studentID lets schedule render while GPA remains pending', async () => {
-  let renders = 0;
+  let renders = 0, prefetches = 0;
   const ctx = vm.createContext({
-    liveLoadInFlight: false, scheduleLoadFailed: false, authGeneration: 0, ensureAuthGeneration() {},
+    window: {univerAcademic:{prefetch(options){
+      prefetches++;assert.ok(renders>0);assert.equal(ctx.liveLoadInFlight,false);
+      assert.equal(options.student.studentID,7);assert.equal(options.fetch,ctx.platonusFetch);
+    }}}, liveLoadInFlight: false, scheduleLoadFailed: false, authGeneration: 0, ensureAuthGeneration() {},
     platonusStudent: { studentID: 7 }, liveScheduleWeekInfo: { selectedStudyYear: 2026, selectedTerm: 1 },
     currentSection: 'schedule', userNavigatedWeek: false, browsedWeekInfo: null,
     fetchGradesAndUmkd: async () => ({}),
@@ -110,11 +113,12 @@ test('cached studentID lets schedule render while GPA remains pending', async ()
   await ctx.loadLiveStudentData();
   assert.ok(renders > 0);
   assert.equal(ctx.liveLoadInFlight, false);
+  assert.equal(prefetches,1);
 });
 test('ready grades refresh before the schedule and ignore late data after logout', async () => {
   let completeExtras, completeSchedule, renders = 0;
   const ctx = vm.createContext({
-    liveLoadInFlight: false, scheduleLoadFailed: false, authGeneration: 0, ensureAuthGeneration() {},
+    window: {}, liveLoadInFlight: false, scheduleLoadFailed: false, authGeneration: 0, ensureAuthGeneration() {},
     platonusStudent: { studentID: 7 }, liveScheduleWeekInfo: { selectedStudyYear: 2026, selectedTerm: 1 },
     currentSection: 'grades', userNavigatedWeek: false, browsedWeekInfo: null,
     liveJournalData: null, liveUmkdData: null,

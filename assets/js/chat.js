@@ -609,7 +609,7 @@
     const loading = node('div', 'chat-profile-loading');
     loading.setAttribute('role', 'status');
     loading.setAttribute('aria-label', 'Загружаем профиль');
-    loading.innerHTML = '<svg aria-hidden="true" viewBox="0 0 32 32" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle class="chat-profile-loading-track" cx="16" cy="16" r="11"/><g class="chat-profile-loading-arrow"><path d="M16 5a11 11 0 1 1-11 11M2 19l3-3 3 3"/></g></svg>';
+    loading.innerHTML = window.unilinkLoading.icon();
     content.replaceChildren(loading);
     try {
       await ensureSession();

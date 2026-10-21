@@ -1,3 +1,4 @@
+import {installLoading} from '../helpers/loading.js';
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import vm from 'node:vm';
@@ -19,12 +20,13 @@ function setup(journal,failed=false){
   const element={innerHTML:''};
   const ctx=vm.createContext({document:{getElementById:()=>element},platonusStudent:{studentID:7},liveJournalData:journal,
     gradesLoadFailed:failed,swapContent:(target,html)=>{target.innerHTML=html;},buildGradeCardHtml:()=>'<article>Предмет</article>'});
+  installLoading(ctx);
   vm.runInContext(source.slice(source.indexOf('  function renderGrades('),source.indexOf('  function renderCurrentSection(')),ctx);
   return {ctx,element};
 }
 test('an empty journal displays automatic loading without a Platonus warning or refresh button',()=>{
   const ui=setup([]);ui.ctx.renderGrades(false);
-  assert.match(ui.element.innerHTML,/обновляются автоматически/);assert.doesNotMatch(ui.element.innerHTML,/Platonus|пустой|Оценок пока нет|retryGrades|<button/);
+  assert.match(ui.element.innerHTML,/content-loading/);assert.doesNotMatch(ui.element.innerHTML,/notice-panel|Platonus|пустой|Оценок пока нет|retryGrades|<button/);
 });
 
 test('empty journals retry promptly and never overwrite cached grades or recap with emptiness',async()=>{

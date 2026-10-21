@@ -1,3 +1,4 @@
+import {installLoading} from '../helpers/loading.js';
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import vm from 'node:vm';
@@ -7,6 +8,7 @@ function setup(fetch){
   const element={innerHTML:''};
   const ctx=vm.createContext({authGeneration:1,currentSection:'exams',platonusFetch:fetch,
     document:{getElementById:()=>element},swapContent:(el,html)=>{el.innerHTML=html;}});
+  installLoading(ctx);
   vm.runInContext(source.slice(source.indexOf('  function escapeHtml('),source.indexOf('  function studentGroup(')),ctx);
   vm.runInContext(source.slice(source.indexOf('  let EXAMS_SCHEDULE'),source.indexOf('  let restoringLogin')),ctx);
   return {ctx,element};
@@ -14,7 +16,7 @@ function setup(fetch){
 test('exams show loading first and share a request; confirmed data is reused',async()=>{
   let finish,calls=0;
   const ui=setup(async path=>{assert.equal(path,'/api/exams');calls++;return new Promise(resolve=>{finish=resolve;});});
-  ui.ctx.renderExams(false);assert.match(ui.element.innerHTML,/Загружаем экзамены/);
+  ui.ctx.renderExams(false);assert.match(ui.element.innerHTML,/content-loading/);assert.doesNotMatch(ui.element.innerHTML,/notice-panel/);
   const first=ui.ctx.fetchExams(),second=ui.ctx.fetchExams();assert.equal(first,second);
   finish({exams:[]});await first;assert.match(ui.element.innerHTML,/пока пусто/);
   await ui.ctx.fetchExams();assert.equal(calls,1);

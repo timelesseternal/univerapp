@@ -22,6 +22,14 @@ html, body { height:100%; min-height:0; overflow:hidden; overscroll-behavior:non
 /* Closed overlays must also disappear from keyboard and screen-reader navigation. */
 .modal-overlay, .umkd-file-overlay { visibility:hidden; }
 .modal-overlay.active, .umkd-file-overlay.active { visibility:visible; }
+.content-loading { display:grid; place-items:center; min-height:160px; color:var(--accent); }
+.content-loading svg { display:block; width:38px; height:38px; }
+.content-loading-track { opacity:.16; }
+.content-loading-arrow { transform-box:view-box; transform-origin:16px 16px; animation:contentLoadingTurn 1.1s linear infinite; }
+.content-loading-compact { display:inline-grid; min-height:0; vertical-align:middle; }
+.content-loading-compact svg { width:18px; height:18px; }
+@keyframes contentLoadingTurn { to { transform:rotate(360deg); } }
+@media(prefers-reduced-motion:reduce) { .content-loading-arrow { animation:none; } }
 .exam-when { color:var(--accent); font-size:13px; font-weight:700; line-height:1.5; overflow-wrap:anywhere; }
 .exam-title { margin:8px 0; font-size:18px; line-height:1.45; letter-spacing:-.02em; overflow-wrap:anywhere; }
 .exam-card .row-meta { margin:0; overflow-wrap:anywhere; }

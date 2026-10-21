@@ -1,3 +1,4 @@
+import {installLoading} from '../helpers/loading.js';
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
@@ -23,6 +24,7 @@ function setup(fetch, options = {}) {
     authGeneration: 1, platonusSession: 'verified-session', crypto: { randomUUID: () => 'retry-id' },
     setTimeout(fn, delay) { const id = ++timerID; timers.set(id, { fn, delay }); return id; },
     clearTimeout(id) { timers.delete(id); }, silentRelogin: async () => false, logout() {} };
+  installLoading(context);
   vm.runInNewContext(source, context);
   return { context, elements, timers, api: context.window.univerChat };
 }

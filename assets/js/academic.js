@@ -42,19 +42,12 @@
     target.innerHTML = `<span>${cached ? 'Показаны ранее загруженные данные. ' : ''}Не удалось загрузить ${kind === 'calendar' ? 'календарь' : 'транскрипт'}.</span><button type="button">Попробовать ещё</button>`;
     target.querySelector('button').addEventListener('click', () => open(kind, options, true));
   }
-  async function open(kind, options, force = false) {
-    if (!names[kind]) return;
+  function load(kind, options, force = false) {
     const id = Number(options?.student?.studentID);
-    const el = container(kind);
-    if (!el || !Number.isSafeInteger(id) || id <= 0 || typeof options.fetch !== 'function') return;
-    active = kind; account = id;
+    if (!names[kind] || !Number.isSafeInteger(id) || id <= 0 || typeof options?.fetch !== 'function') return Promise.reject(new Error('invalid_account'));
     const key = `${id}:${kind}`, version = epoch;
-    const visible = () => epoch === version && account === id && active === kind;
     const saved = cache.get(key);
-    if (saved) paint(kind, saved.data, options);
-    if (!saved) el.innerHTML = `<header class="academic-heading"><h1>${names[kind]}</h1></header><div class="academic-card academic-loading" role="status">Загружаем из Platonus…</div>`;
-    el.dataset.academicKey = key;
-    if (!force && saved && Date.now() - saved.time < ttl) return;
+    if (!force && saved && Date.now() - saved.time < ttl) return Promise.resolve(saved.data);
     if (!pending.has(key)) {
       const request = (async () => {
         const data = await options.fetch(`/api/${kind}`);
@@ -65,10 +58,25 @@
       pending.set(key, request);
       request.finally(() => { if (pending.get(key) === request) pending.delete(key); }).catch(() => {});
     }
-    try { const data = await pending.get(key); if (visible()) paint(kind, data, options); }
+    return pending.get(key);
+  }
+  async function open(kind, options, force = false) {
+    if (!names[kind]) return;
+    const id = Number(options?.student?.studentID), el = container(kind);
+    if (!el || !Number.isSafeInteger(id) || id <= 0 || typeof options?.fetch !== 'function') return;
+    active = kind; account = id;
+    const key = `${id}:${kind}`, version = epoch;
+    const visible = () => epoch === version && account === id && active === kind;
+    const saved = cache.get(key);
+    if (saved) paint(kind, saved.data, options);
+    else el.innerHTML = `<header class="academic-heading"><h1>${names[kind]}</h1></header>` + window.unilinkLoading.html(names[kind]);
+    el.dataset.academicKey = key;
+    try { const data = await load(kind, options, force); if (visible()) paint(kind, data, options); }
     catch { if (visible()) feedback(kind, options, !!saved); }
   }
-  window.univerAcademic = { open, onSection: section => { active = names[section] ? section : null; }, reset: () => {
+  // Warm data only: never activate a screen, paint hidden content or show errors.
+  const prefetch = options => Promise.allSettled(Object.keys(names).map(kind => load(kind, options)));
+  window.univerAcademic = { open, prefetch, onSection: section => { active = names[section] ? section : null; }, reset: () => {
     epoch++; active = null; account = null; cache.clear(); pending.clear();
     for (const kind of Object.keys(names)) { const el = container(kind); if (el) { el.innerHTML = ''; painted.delete(el); delete el.dataset.academicKey; } }
   } };

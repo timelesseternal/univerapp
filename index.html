@@ -47,7 +47,7 @@
     <div class="login-subtitle">Твоя учёба в одном месте.<br>Войди через Platonus, чтобы открыть расписание, оценки и профиль.</div>
 
     <div id="loginRestoreStatus" role="status" aria-live="polite">
-      <p id="loginRestoreMessage">Восстанавливаем вход…</p>
+      <div id="loginRestoreMessage"></div>
       <button type="button" class="login-submit" id="loginRestoreRetry" data-action="restoreSavedLogin()" hidden>Повторить</button>
     </div>
     <div id="loginFormFields" hidden>
@@ -128,7 +128,7 @@
     <div class="app-section" id="sectionSchedule">
       <div class="status-bar">
         <div class="status-info-left">
-          <span id="weekStatusText"><span class="masthead-eyebrow">Загрузка</span><span class="masthead-headline">—</span></span>
+          <span id="weekStatusText"><span class="masthead-eyebrow">Расписание</span><span class="masthead-headline">—</span></span>
           <span class="live-lesson-badge" id="liveLessonBadge"><span class="live-dot"></span><span>Идёт пара…</span></span>
         </div>
         <div class="header-right-block">
@@ -252,6 +252,7 @@
   </button>
 </nav>
 
+<script defer src="./assets/js/loading.js"></script>
 <script defer src="./assets/js/wrapped.js"></script>
 <script defer src="./assets/js/academic.js"></script>
 <script defer src="./assets/js/device-session.js"></script>

@@ -2,6 +2,7 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import vm from 'node:vm';
+import {installLoading} from '../helpers/loading.js';
 
 const app = fs.readFileSync(new URL('../../assets/js/app.js', import.meta.url), 'utf8');
 function setup() {
@@ -43,6 +44,7 @@ function setup() {
     clearTimeout: id => timers.delete(id),
     fetch: async () => ({ ok: true, status: 200, json: async () => ({ ok: true, session: 'new' }) }),
   });
+  installLoading(ctx);
   vm.runInContext(app.slice(app.indexOf('  const API_BASE'), app.indexOf('  const PLT_DAY_NAMES')), ctx);
   vm.runInContext("platonusSession = 'old'; platonusStudent = { studentID: 1 };", ctx);
   return {
@@ -65,6 +67,15 @@ test('logout restores the login screen and cancels its old hide timer', () => {
   assert.equal(env.read('platonusStudent'), null);
   assert.equal(env.document.getElementById('loginSubmitBtn').disabled, false);
   assert.equal(env.document.getElementById('passwordInput').type, 'password');
+});
+
+test('checking a saved login uses the shared indicator while retry retains an actionable error',()=>{
+  const env=setup();env.ctx.setLoginRestoreState('checking');
+  assert.match(env.document.getElementById('loginRestoreMessage').innerHTML,/content-loading-arrow/);
+  assert.equal(env.document.getElementById('loginRestoreRetry').hidden,true);
+  env.ctx.setLoginRestoreState('retry');
+  assert.match(env.document.getElementById('loginRestoreMessage').textContent,/Не удалось проверить/);
+  assert.equal(env.document.getElementById('loginRestoreRetry').hidden,false);
 });
 
 test('an offline logout prevents a later launch from reusing an old cookie',async()=>{

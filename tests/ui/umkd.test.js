@@ -1,3 +1,4 @@
+import {installLoading} from '../helpers/loading.js';
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
@@ -11,6 +12,7 @@ function setup(record) {
     document: { getElementById: () => container, querySelector: () => back },
     swapContent: (target, html) => { target.innerHTML = html; },
   });
+  installLoading(context);
   vm.runInContext(app.slice(app.indexOf('  function escapeHtml('), app.indexOf('  function studentGroup(')), context);
   vm.runInContext(app.slice(app.indexOf('  function renderUmkdSubjects('), app.indexOf('  let pdfJsLoadPromise')), context);
   return { context, container };
@@ -28,7 +30,7 @@ test('UMKD subject and tutor names are escaped in both screens', () => {
 
 test('UMKD loading, a confirmed empty semester and a network failure have distinct states',()=>{
   const ui=setup({});ui.context.liveUmkdData=null;ui.context.renderUmkdSubjects();
-  assert.match(ui.container.innerHTML,/Загружаем дисциплины/);
+  assert.match(ui.container.innerHTML,/content-loading/);assert.doesNotMatch(ui.container.innerHTML,/notice-panel/);
   ui.context.liveUmkdData={records:[]};ui.context.renderUmkdSubjects();
   assert.match(ui.container.innerHTML,/Дисциплин пока нет/);assert.doesNotMatch(ui.container.innerHTML,/Войдите в аккаунт/);
   ui.context.umkdLoadFailed=true;ui.context.renderUmkdSubjects();

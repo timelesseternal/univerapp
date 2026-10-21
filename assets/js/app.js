@@ -504,9 +504,9 @@ if ('serviceWorker' in navigator) {
     document.getElementById('loginFormFields').hidden = !!state;
     document.getElementById('loginRestoreStatus').hidden = !state;
     document.getElementById('loginRestoreRetry').hidden = state !== 'retry';
-    document.getElementById('loginRestoreMessage').textContent = state === 'retry'
-      ? 'Не удалось проверить сохранённый вход. Проверь подключение и повтори.'
-      : 'Восстанавливаем вход…';
+    const message = document.getElementById('loginRestoreMessage');
+    if (state === 'retry') message.textContent = 'Не удалось проверить сохранённый вход. Проверь подключение и повтори.';
+    else message.innerHTML = state ? loadingHtml('Восстановление входа') : '';
   }
 
   const EYE_ICON_OPEN = '<path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7-10-7-10-7Z"/><circle cx="12" cy="12" r="3"/>';
@@ -873,6 +873,9 @@ if ('serviceWorker' in navigator) {
   function escapeHtml(value) {
     return String(value).replace(/[&<>"']/g, character => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[character]));
   }
+  function loadingHtml(label, compact = false) {
+    return window.unilinkLoading.html(label, compact);
+  }
   function studentGroup(student) {
     const candidates = [student.studentGroupName, student.groupName, student.academicGroupName,
       student.studyGroupName, student.group, student.studentGroup, student.studyGroup, student.academicGroup,
@@ -998,10 +1001,8 @@ if ('serviceWorker' in navigator) {
       html += subjects.map((subj, index) => buildGradeCardHtml(subj, index)).join('');
     } else if (gradesLoadFailed) {
       html += '<div class="notice-panel"><div class="notice-title">Не удалось загрузить оценки</div><div class="notice-hint">Проверьте интернет. Загрузка повторится автоматически.</div></div>';
-    } else if (subjects) {
-      html += '<div class="notice-panel" role="status"><div class="notice-hint">Загружаем оценки… Данные обновляются автоматически.</div></div>';
     } else {
-      html += '<div class="notice-panel"><div class="notice-hint">Оценки по предметам загружаются…</div></div>';
+      html += loadingHtml('Оценки загружаются');
     }
 
     swapContent(container, html, animate);
@@ -1257,7 +1258,10 @@ if ('serviceWorker' in navigator) {
       renderCurrentSection();
       saveCachedStudentData();
     } finally {
-      if (generation === authGeneration) liveLoadInFlight = false;
+      if (generation === authGeneration) {
+        liveLoadInFlight = false;
+        if (platonusStudent) window.univerAcademic?.prefetch?.({student:platonusStudent,fetch:platonusFetch});
+      }
     }
   }
 
@@ -2080,7 +2084,7 @@ if ('serviceWorker' in navigator) {
     // стрелками — иначе бейдж наврёт, если пользователь ушёл смотреть
     // другую неделю.
     if (!trueCurrentWeekInfo && platonusSession) {
-      badgeEl.innerHTML = `<span class="live-dot"></span><span>${scheduleLoadFailed ? 'расписание недоступно' : 'загружаем расписание…'}</span>`;
+      badgeEl.innerHTML = scheduleLoadFailed ? '<span class="live-dot"></span><span>расписание недоступно</span>' : loadingHtml('Расписание загружается', true);
       badgeEl.classList.remove('pulse-live');
       return;
     }
@@ -2280,12 +2284,11 @@ if ('serviceWorker' in navigator) {
 
     // Пока расписание не пришло, не показываем «пар нет» — это было бы неправдой.
     if (!browsedWeekInfo && platonusSession) {
+      if (!scheduleLoadFailed) { swapContent(container, loadingHtml('Расписание загружается'), animate); return; }
       swapContent(container, `
         <div class="notice-panel">
-          <div class="notice-title">${scheduleLoadFailed ? 'Не удалось загрузить расписание' : 'Загружаем расписание…'}</div>
-          <div class="notice-hint">${scheduleLoadFailed
-            ? '<button class="back-link" data-action="retryLiveLoad()">Повторить</button>'
-            : 'Обычно это занимает несколько секунд.'}</div>
+          <div class="notice-title">Не удалось загрузить расписание</div>
+          <div class="notice-hint"><button class="back-link" data-action="retryLiveLoad()">Повторить</button></div>
         </div>
       `, animate);
       return;
@@ -2409,11 +2412,15 @@ if ('serviceWorker' in navigator) {
     if (!liveUmkdData || !Array.isArray(liveUmkdData.records) || liveUmkdData.records.length === 0) {
       const failed = umkdLoadFailed;
       const loaded = Array.isArray(liveUmkdData?.records);
+      if (!failed && !loaded) {
+        swapContent(container, '<span class="masthead-eyebrow" style="margin-bottom:10px;display:block;">УМКД</span>' + loadingHtml('Учебные материалы загружаются'), animate);
+        return;
+      }
       swapContent(container, `
         <span class="masthead-eyebrow" style="margin-bottom:10px; display:block;">УМКД</span>
         <div class="notice-panel">
-          <div class="notice-title">${failed ? 'Не удалось загрузить УМКД' : loaded ? 'Дисциплин пока нет' : 'Загружаем дисциплины…'}</div>
-          <div class="notice-hint">${failed ? 'Проверьте интернет. Загрузка повторится автоматически.' : loaded ? 'Учебные материалы этого семестра ещё не опубликованы.' : 'Получаем учебные материалы текущего семестра.'}</div>
+          <div class="notice-title">${failed ? 'Не удалось загрузить УМКД' : 'Дисциплин пока нет'}</div>
+          <div class="notice-hint">${failed ? 'Проверьте интернет. Загрузка повторится автоматически.' : 'Учебные материалы этого семестра ещё не опубликованы.'}</div>
         </div>
       `, animate);
       return;
@@ -2604,7 +2611,7 @@ if ('serviceWorker' in navigator) {
     const overlay = document.getElementById('umkdFileOverlay');
     const frame = document.getElementById('umkdFileFrame');
     const shareBtn = document.getElementById('umkdShareBtn');
-    frame.innerHTML = '<div class="umkd-file-status">Загрузка документа…</div>';
+    frame.innerHTML = loadingHtml('Документ загружается');
     overlay.classList.add('active');
     lockBodyScroll();
     setViewportZoomable(true);
@@ -2699,9 +2706,10 @@ if ('serviceWorker' in navigator) {
     const heading = '<span class="masthead-eyebrow" style="margin-bottom:10px;display:block;">Экзамены</span>';
     const warning = examsLoadFailed ? '<div class="notice-panel" role="status"><div class="notice-hint">Не удалось обновить расписание экзаменов. Загрузка повторится автоматически.</div></div>' : '';
     if (!EXAMS_SCHEDULE?.length) {
+      if (!EXAMS_SCHEDULE && !examsLoadFailed) { swapContent(container, heading + loadingHtml('Расписание экзаменов загружается'), animate); return; }
       swapContent(container, heading + (examsLoadFailed ? warning : `<div class="notice-panel" role="status">
-        <div class="notice-title">${EXAMS_SCHEDULE ? 'Расписание экзаменов пока пусто' : 'Загружаем экзамены…'}</div>
-        <div class="notice-hint">${EXAMS_SCHEDULE ? 'Как только даты будут опубликованы, они появятся здесь.' : 'Получаем даты, время и аудитории.'}</div></div>`), animate);
+        <div class="notice-title">Расписание экзаменов пока пусто</div>
+        <div class="notice-hint">Как только даты будут опубликованы, они появятся здесь.</div></div>`), animate);
       return;
     }
     const sorted = [...EXAMS_SCHEDULE].sort((a, b) => examSortKey(a).localeCompare(examSortKey(b)));
