@@ -38,7 +38,7 @@
 | `GET /api/grades` | Журнал выбранного семестра |
 | `GET /api/umkd` | Дисциплины УМКД |
 | `GET /api/umkd-file` | Авторизованный PDF |
-| `GET /api/exams` | Личное расписание экзаменов с загрузкой всех страниц Platonus |
+| `GET /api/exams` | Личное расписание экзаменов из раздела Platonus v7 (`student/exam/initial/0/ru`) |
 | `GET /api/calendar` | Разобранный HTML академического календаря |
 | `GET /api/transcript` | Нормализованный личный транскрипт |
 | `/api/chat` | Действия переписок, профилей, присутствия и Telegram |

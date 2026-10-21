@@ -7,37 +7,46 @@ function examText(value) {
   return value.trim().slice(0, 1000);
 }
 
-// Same authenticated, person-scoped request as ShowExamScheduleController.
-// Source: Platonus ExamScheduleFactory.personExams and examSchedule/show.html.
+function examDate(value) {
+  if (!value || !queryInteger(value.year, 1900, 2200)
+    || !queryInteger(value.month, 1, 12) || !queryInteger(value.day, 1, 31)) throw new Error('invalid_exam_date');
+  const year = Number(value.year), month = Number(value.month), day = Number(value.day);
+  const date = new Date(Date.UTC(year, month - 1, day));
+  if (date.getUTCMonth() !== month - 1 || date.getUTCDate() !== day) throw new Error('invalid_exam_date');
+  // Platonus uses calendar months (1–12); avoid timezone conversion.
+  return `${String(day).padStart(2, '0')}.${String(month).padStart(2, '0')}.${year}`;
+}
+
+function examTime(value) {
+  if (typeof value === 'number') {
+    if (!queryInteger(value, 0, 23)) throw new Error('invalid_exam_time');
+    return `${String(value).padStart(2, '0')}:00`;
+  }
+  return examText(value);
+}
+
 export default async function handler(req, res) {
   res.setHeader('Cache-Control', 'no-store');
   if (!allowGet(req, res)) return;
   const session = getSessionFromRequest(req);
   if (!session) { res.status(401).json({ error: 'no_session' }); return; }
   try {
-    const exams = [], pages = new Set();
-    const signal = AbortSignal.timeout(20000);
-    for (let partNumber = 0; partNumber < 20; partNumber++) {
-      const reply = await fetch('https://platonus.kstu.kz/rest/exam_schedule/personExams/ru', {
-        method: 'POST', headers: buildPlatonusHeaders(session), signal,
-        body: JSON.stringify({ type: 1, partNumber, countInPart: 100 }),
-      });
-      if (reply.status === 401 || reply.status === 403) {
-        res.status(401).json({ error: 'session_expired' }); return;
-      }
-      if (!reply.ok) throw new Error('exams_unavailable');
-      const data = await reply.json();
-      if (!data || !Array.isArray(data.examList) || !queryInteger(data.total, 0, 2000)) throw new Error('invalid_exams');
-      const fingerprint = JSON.stringify(data.examList);
-      if (pages.has(fingerprint) && data.examList.length) throw new Error('repeated_page');
-      pages.add(fingerprint);
-      for (const exam of data.examList) {
-        if (!exam || typeof exam.subject !== 'string' || !exam.subject.trim()) throw new Error('invalid_exam');
-        exams.push({ subject: examText(exam.subject), date: examText(exam.date), time: examText(exam.time), room: examText(exam.auditoryName) });
-      }
-      if (exams.length >= Number(data.total)) { res.status(200).json({ exams }); return; }
-      if (!data.examList.length) throw new Error('incomplete_exams');
-    }
-    throw new Error('too_many_pages');
+    // Matches /v7/#/schedule/studentView/exam. ID 0 selects the signed-in
+    // student, as in Platonus's viewer; never use a client-supplied ID.
+    const reply = await fetch('https://platonus.kstu.kz/rest/schedule/userSchedule/student/exam/initial/0/ru', {
+      method: 'GET', headers: buildPlatonusHeaders(session), signal: AbortSignal.timeout(20000),
+    });
+    if (reply.status === 401 || reply.status === 403) { res.status(401).json({ error: 'session_expired' }); return; }
+    if (!reply.ok) throw new Error('exams_unavailable');
+    const data = await reply.json();
+    if (!data || !Array.isArray(data.examSchedules) || data.examSchedules.length > 2000) throw new Error('invalid_exams');
+    const exams = data.examSchedules.map(exam => {
+      if (!exam || typeof exam.subjectName !== 'string' || !exam.subjectName.trim()) throw new Error('invalid_exam');
+      return {
+        subject: examText(exam.subjectName), date: examDate(exam.examDate), time: examTime(exam.examTime),
+        room: [examText(exam.buildingName), examText(exam.auditoryName)].filter(Boolean).join(', '),
+      };
+    });
+    res.status(200).json({ exams });
   } catch { res.status(502).json({ error: 'exams_unavailable' }); }
 }
