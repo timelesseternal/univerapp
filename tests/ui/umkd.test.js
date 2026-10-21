@@ -7,7 +7,7 @@ const app = fs.readFileSync(new URL('../../assets/js/app.js', import.meta.url), 
 function setup(record) {
   const container = { innerHTML: '' }, back = { style: {} };
   const context = vm.createContext({
-    liveUmkdData: { records: [record] }, selectedUmkdSubject: null, haptic() {},
+    liveUmkdData: { records: [record] }, umkdLoadFailed:false, selectedUmkdSubject: null, haptic() {},
     document: { getElementById: () => container, querySelector: () => back },
     swapContent: (target, html) => { target.innerHTML = html; },
   });
@@ -24,6 +24,15 @@ test('UMKD subject and tutor names are escaped in both screens', () => {
   ui.context.selectUmkdSubject(0);
   assert.match(ui.container.innerHTML, /&lt;script&gt;danger\(&#39;tutor&#39;\)&lt;\/script&gt;/);
   assert.doesNotMatch(ui.container.innerHTML, /<img|<script/);
+});
+
+test('UMKD loading, a confirmed empty semester and a network failure have distinct states',()=>{
+  const ui=setup({});ui.context.liveUmkdData=null;ui.context.renderUmkdSubjects();
+  assert.match(ui.container.innerHTML,/Загружаем дисциплины/);
+  ui.context.liveUmkdData={records:[]};ui.context.renderUmkdSubjects();
+  assert.match(ui.container.innerHTML,/Дисциплин пока нет/);assert.doesNotMatch(ui.container.innerHTML,/Войдите в аккаунт/);
+  ui.context.umkdLoadFailed=true;ui.context.renderUmkdSubjects();
+  assert.match(ui.container.innerHTML,/Не удалось загрузить УМКД/);
 });
 
 test('UMKD actions accept safe positive document IDs and reject injected or invalid IDs', () => {

@@ -150,6 +150,7 @@ if ('serviceWorker' in navigator) {
   let liveJournalData = null;
   let gradesLoadFailed = false;
   let liveUmkdData = null;
+  let umkdLoadFailed = false;
   let scheduleLoadFailed = false;  // не удалось загрузить расписание
   let userNavigatedWeek = false;   // пользователь уже листал недели стрелками
   let liveLoadInFlight = false;    // идёт загрузка свежих данных
@@ -654,6 +655,10 @@ if ('serviceWorker' in navigator) {
     liveJournalData = null;
     gradesLoadFailed = false;
     liveUmkdData = null;
+    umkdLoadFailed = false;
+    EXAMS_SCHEDULE = null;
+    examsLoadFailed = false;
+    examsUpdatedAt = 0;
     browsedWeekInfo = null;
     trueCurrentWeekInfo = null;
     trueCurrentSchedule = {};
@@ -1089,14 +1094,22 @@ if ('serviceWorker' in navigator) {
     if (umkdRequest?.key === key) return umkdRequest.work;
     if (!force && umkdSnapshot?.key === key && Date.now() - umkdSnapshot.at < 300000) return Promise.resolve(liveUmkdData);
     const work = platonusFetch(`/api/umkd?year=${year}&term=${term}`).then(umkd => {
+      if (!umkd || !Array.isArray(umkd.records)) throw new Error('invalid_umkd');
       if (generation === authGeneration) {
         liveUmkdData = umkd;
+        umkdLoadFailed = false;
         umkdSnapshot = { key, at: Date.now() };
         if (currentSection === 'umkd' && selectedUmkdSubject === null) renderUmkdSubjects(false);
         saveCachedStudentData();
       }
       return umkd;
-    }).catch(() => null);
+    }).catch(() => {
+      if (generation === authGeneration) {
+        umkdLoadFailed = true;
+        if (currentSection === 'umkd' && selectedUmkdSubject === null) renderUmkdSubjects(false);
+      }
+      return null;
+    });
     const pending = { key, work };
     umkdRequest = pending;
     work.finally(() => { if (umkdRequest === pending) umkdRequest = null; });
@@ -1267,6 +1280,7 @@ if ('serviceWorker' in navigator) {
   }
   function refreshVisibleAcademicData() {
     if (document.hidden || !platonusSession) return;
+    if (currentSection === 'exams') fetchExams();
     const info = liveScheduleWeekInfo;
     if (currentSection === 'profile' && platonusStudent && !studentGroup(platonusStudent)) refreshStudyProfile();
     if (info?.selectedStudyYear && info?.selectedTerm) {
@@ -2393,11 +2407,13 @@ if ('serviceWorker' in navigator) {
     const container = document.getElementById('umkdContainer');
 
     if (!liveUmkdData || !Array.isArray(liveUmkdData.records) || liveUmkdData.records.length === 0) {
+      const failed = umkdLoadFailed;
+      const loaded = Array.isArray(liveUmkdData?.records);
       swapContent(container, `
         <span class="masthead-eyebrow" style="margin-bottom:10px; display:block;">УМКД</span>
         <div class="notice-panel">
-          <div class="notice-title">Список пока пуст</div>
-          <div class="notice-hint">Войдите в аккаунт, чтобы увидеть дисциплины текущего семестра.</div>
+          <div class="notice-title">${failed ? 'Не удалось загрузить УМКД' : loaded ? 'Дисциплин пока нет' : 'Загружаем дисциплины…'}</div>
+          <div class="notice-hint">${failed ? 'Проверьте интернет. Загрузка повторится автоматически.' : loaded ? 'Учебные материалы этого семестра ещё не опубликованы.' : 'Получаем учебные материалы текущего семестра.'}</div>
         </div>
       `, animate);
       return;
@@ -2647,46 +2663,55 @@ if ('serviceWorker' in navigator) {
   }
 
 
+  let EXAMS_SCHEDULE = null;
+  let examsLoadFailed = false, examsUpdatedAt = 0, examsRequest = null;
+  function fetchExams(force = false) {
+    const generation = authGeneration;
+    if (examsRequest?.generation === generation) return examsRequest.work;
+    if (!force && examsUpdatedAt && Date.now() - examsUpdatedAt < 60000) return Promise.resolve(EXAMS_SCHEDULE);
+    const work = platonusFetch('/api/exams').then(data => {
+      if (!data || !Array.isArray(data.exams)) throw new Error('invalid_exams');
+      if (generation !== authGeneration) return null;
+      EXAMS_SCHEDULE = data.exams;
+      examsLoadFailed = false;
+      examsUpdatedAt = Date.now();
+      if (currentSection === 'exams') renderExams(false);
+      return data.exams;
+    }).catch(() => {
+      if (generation === authGeneration) {
+        examsLoadFailed = true;
+        if (currentSection === 'exams') renderExams(false);
+      }
+      return null;
+    });
+    const pending = {generation, work};
+    examsRequest = pending;
+    work.finally(() => { if (examsRequest === pending) examsRequest = null; });
+    return work;
+  }
+  function examSortKey(exam) {
+    const date = String(exam.date || '');
+    const local = /^(\d{2})[./-](\d{2})[./-](\d{4})$/.exec(date);
+    return `${local ? `${local[3]}-${local[2]}-${local[1]}` : date || '9999-99-99'} ${exam.time || '99:99'}`;
+  }
   function renderExams(animate = true) {
     const container = document.getElementById('examsContainer');
-    if (!EXAMS_SCHEDULE || EXAMS_SCHEDULE.length === 0) {
-      swapContent(container, `
-        <span class="masthead-eyebrow" style="margin-bottom:10px; display:block;">Экзамены</span>
-        <div class="notice-panel">
-          <div class="notice-title">Расписание экзаменов пока пусто</div>
-          <div class="notice-hint">Как только сессия появится в системе, здесь будут даты, аудитории и преподаватели.</div>
-        </div>
-      `, animate);
+    const heading = '<span class="masthead-eyebrow" style="margin-bottom:10px;display:block;">Экзамены</span>';
+    const warning = examsLoadFailed ? '<div class="notice-panel" role="status"><div class="notice-hint">Не удалось обновить расписание экзаменов. Загрузка повторится автоматически.</div></div>' : '';
+    if (!EXAMS_SCHEDULE?.length) {
+      swapContent(container, heading + (examsLoadFailed ? warning : `<div class="notice-panel" role="status">
+        <div class="notice-title">${EXAMS_SCHEDULE ? 'Расписание экзаменов пока пусто' : 'Загружаем экзамены…'}</div>
+        <div class="notice-hint">${EXAMS_SCHEDULE ? 'Как только даты будут опубликованы, они появятся здесь.' : 'Получаем даты, время и аудитории.'}</div></div>`), animate);
       return;
     }
-
-    const sorted = [...EXAMS_SCHEDULE].sort((a, b) => (a.date + a.time).localeCompare(b.date + b.time));
-    let rowsHtml = '';
-    sorted.forEach((exam, index) => {
-      rowsHtml += `
-        <div class="list-row row-enter" style="animation-delay:${Math.min(index, 8) * 0.04}s;">
-          <div class="row-index">
-            <span class="row-index-main">${escapeHtml(exam.date)}</span>
-            <span class="row-index-sub">${escapeHtml(exam.time)}</span>
-          </div>
-          <div class="row-body">
-            <div class="row-top"><span class="row-title">${escapeHtml(exam.subject)}</span></div>
-            <div class="row-meta">${escapeHtml(exam.teacher || '')}<span class="meta-sep">·</span>ауд. ${escapeHtml(exam.room || '—')}</div>
-            <div class="row-tags"><span class="tag tag-fill">${escapeHtml(exam.examType || 'Экзамен')}</span></div>
-          </div>
-        </div>
-      `;
-    });
-
-    swapContent(container, `
-      <span class="masthead-eyebrow" style="margin-bottom:10px; display:block;">Экзамены</span>
-      <div class="list-card">${rowsHtml}</div>
-    `, animate);
+    const sorted = [...EXAMS_SCHEDULE].sort((a, b) => examSortKey(a).localeCompare(examSortKey(b)));
+    const cards = sorted.map(exam => `<article class="notice-panel exam-card">
+      <div class="exam-when">${escapeHtml(exam.date || 'Дата уточняется')} · ${escapeHtml(exam.time || 'Время уточняется')}</div>
+      <h2 class="exam-title">${escapeHtml(exam.subject)}</h2>
+      <div class="row-meta">${escapeHtml(exam.room ? `Аудитория: ${exam.room}` : 'Аудитория уточняется')}</div>
+    </article>`).join('');
+    swapContent(container, heading + warning + cards, animate);
   }
-
-  let EXAMS_SCHEDULE = [
-    // { subject: 'Операционные системы', examType: 'Экзамен', date: '2026-01-12', time: '09:00', room: 'Гк423', teacher: 'Толымбекова Г. С.' },
-  ];
 
   let restoringLogin = false;
   async function restoreSavedLogin() {

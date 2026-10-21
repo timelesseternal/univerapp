@@ -29,7 +29,7 @@ export default async function handler(req, res) {
     }
     if (!r.ok) { res.status(502).json({ error: 'platonus_unreachable' }); return; }
     const data = await r.json();
-    if (!data || typeof data !== 'object' || Array.isArray(data) || !Array.isArray(data.subjects)) {
+    if (!data || typeof data !== 'object' || Array.isArray(data) || !Array.isArray(data.records)) {
       res.status(502).json({ error: 'invalid_umkd' });
       return;
     }

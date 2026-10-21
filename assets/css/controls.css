@@ -22,6 +22,9 @@ html, body { height:100%; min-height:0; overflow:hidden; overscroll-behavior:non
 /* Closed overlays must also disappear from keyboard and screen-reader navigation. */
 .modal-overlay, .umkd-file-overlay { visibility:hidden; }
 .modal-overlay.active, .umkd-file-overlay.active { visibility:visible; }
+.exam-when { color:var(--accent); font-size:13px; font-weight:700; line-height:1.5; overflow-wrap:anywhere; }
+.exam-title { margin:8px 0; font-size:18px; line-height:1.45; letter-spacing:-.02em; overflow-wrap:anywhere; }
+.exam-card .row-meta { margin:0; overflow-wrap:anywhere; }
 /* Keep its layout rectangle for chat sizing while the software keyboard is open. */
 .chat-keyboard-open #bottomTabBar,
 .chat-keyboard-open .tab-scroll-fade { visibility:hidden; pointer-events:none; }

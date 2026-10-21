@@ -74,7 +74,7 @@ test('grades render while UMKD is pending, and repeated journal requests are sha
 test('UMKD renders without waiting for grades and fresh responses are reused',async()=>{
   let renders=0,calls=0;
   const ctx=vm.createContext({platonusStudent:{studentID:7},authGeneration:1,currentSection:'umkd',selectedUmkdSubject:null,
-    liveJournalData:null,liveUmkdData:null,platonusFetch:path=>{calls++;return path.includes('/umkd')?Promise.resolve({subjects:[]}):new Promise(()=>{});},
+    liveJournalData:null,liveUmkdData:null,platonusFetch:path=>{calls++;return path.includes('/umkd')?Promise.resolve({records:[]}):new Promise(()=>{});},
     renderUmkdSubjects(){renders++;},saveCachedStudentData(){}});
   vm.runInContext(source.slice(source.indexOf('  let journalRequest'),source.indexOf('  function retryGrades')),ctx);
   ctx.fetchGradesAndUmkd(2026,1);

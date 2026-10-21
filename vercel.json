@@ -3,6 +3,9 @@
     "fra1"
   ],
   "functions": {
+    "api/exams.js": {
+      "maxDuration": 30
+    },
     "api/login.js": {
       "maxDuration": 30
     },

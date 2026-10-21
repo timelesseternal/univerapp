@@ -57,3 +57,11 @@ test('invalid upstream GPA and UMKD payloads are not returned as successful data
     assert.equal(res.code,502);
   }
 });
+
+test('UMKD accepts the real records response, including a confirmed empty list',async t=>{
+  for(const records of [[],[{umkdID:4922,subjectName:'Web-технологии',tutorName:'Преподаватель'}]]){
+    t.mock.method(globalThis,'fetch',async()=>({ok:true,status:200,json:async()=>({records})}));
+    const res=response();await umkd({headers:headers(),query:{year:'2026',term:'1'}},res);
+    assert.equal(res.code,200);assert.deepEqual(res.body.records,records);
+  }
+});
