@@ -44,6 +44,7 @@ test('a missing version marker fails the build instead of publishing an untracke
 test('deployment runs the release builder and prevents cached release metadata',()=>{
   const config=JSON.parse(readFileSync(new URL('../../vercel.json',import.meta.url),'utf8'));
   assert.equal(config.buildCommand,'node scripts/build-release.mjs');
+  assert.equal(config.outputDirectory,'.', 'Static files are built in the repository root, not public/');
   assert.ok(config.headers.find(rule=>rule.source==='/version.json').headers.some(header=>header.key==='Cache-Control'&&header.value==='no-store'));
   assert.match(readFileSync(new URL('../../.vercelignore',import.meta.url),'utf8'),/!scripts\/build-release\.mjs/);
 });

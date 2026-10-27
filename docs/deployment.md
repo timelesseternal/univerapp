@@ -4,7 +4,7 @@
 
 1. Создай Supabase-проект. Vercel-функции настроены на Frankfurt (`fra1`), поэтому выбирай базу рядом с ними.
 2. Выполни [SQL-миграции](../supabase/migrations) в порядке **001 → 006**. Миграция 006 обязательна для входа: она ограничивает попытки по IP и аккаунту. [Настройка базы](chat-setup.md).
-3. Импортируй репозиторий в Vercel. Framework Preset — **Other**, Root Directory — корень. Команда сборки задана в `vercel.json`: `node scripts/build-release.mjs`. Она проставляет идентификатор опубликованной версии в HTML, service worker и `version.json`. Output Directory остаётся корнем, функции лежат в `api/`.
+3. Импортируй репозиторий в Vercel. Framework Preset — **Other**, Root Directory — корень. Команда сборки задана в `vercel.json`: `node scripts/build-release.mjs`. Она проставляет идентификатор опубликованной версии в HTML, service worker и `version.json`. Там же явно задано `outputDirectory: "."`: сайт публикуется из корня, функции лежат в `api/`. Если появляется `STATIC_BUILD_NO_OUT_DIR` с папкой `public`, проверь, что развёртывается коммит с этой настройкой.
 4. Добавь серверные переменные из [.env.example](../.env.example) для нужных окружений. Production и Preview настраиваются отдельно.
 5. Опубликуй проект. После изменения переменных требуется новое развёртывание.
 
