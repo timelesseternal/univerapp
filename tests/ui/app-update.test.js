@@ -27,7 +27,7 @@ function setup({ update = async () => {}, ok = true, online = true, version = 'd
       profileUpdateBadge: badge, 'section-profile': profileTab })[id],
     addEventListener(name, handler) { documentEvents[name] = handler; } };
   const navigator = { onLine: online, serviceWorker: { getRegistration: async () => registration } };
-  vm.runInNewContext(source, { window, navigator, document, setTimeout, clearTimeout, AbortSignal, Date: { now: () => now },
+  vm.runInNewContext(source, { window, navigator, document, setTimeout, clearTimeout, AbortSignal, AbortController, Date: { now: () => now },
     setInterval: callback => intervals.push(callback),
     fetch: async (url, options) => { versionCalls.push({url,options}); return versionFetch ? versionFetch() : {ok:true,json:async()=>({version})}; },
     localStorage: { clear() { throw new Error('must_preserve_account'); }, getItem: key => privateData.get(key) },
@@ -41,20 +41,47 @@ test('a changed release shows the profile notice without reloading or downloadin
   assert.equal(ui.notice.hidden,false);assert.equal(ui.button.textContent,'Обновить до новой версии');
   assert.equal(ui.badge.hidden,false);assert.match(ui.profileAttributes.get('aria-label'),/доступна новая версия/);
   assert.equal(ui.reloads,0);assert.equal(ui.refreshes,0);
-  assert.equal(ui.versionCalls[0].url,'/version.json');assert.equal(ui.versionCalls[0].options.cache,'no-store');
+  assert.match(ui.versionCalls[0].url,/^\/version\.json\?check=\d+$/);assert.equal(ui.versionCalls[0].options.cache,'no-store');
   assert.equal(ui.versionCalls[0].options.credentials,'omit');
   ui.notice.hidden=true;ui.window.unilinkUpdates.render();assert.equal(ui.notice.hidden,false);
 });
 
-test('release checks share pending work and are throttled across navigation and focus events', async () => {
+test('release checks share pending work and throttle only periodic background checks', async () => {
   let release;const ui=setup({versionFetch:()=>new Promise(resolve=>{release=resolve;})});
   const first=ui.window.unilinkUpdates.check();assert.equal(ui.window.unilinkUpdates.check(),first);
   assert.equal(ui.versionCalls.length,1);release({ok:true,json:async()=>({version:'development'})});await first;
-  ui.windowEvents.focus();ui.documentEvents.visibilitychange();ui.intervals[0]();
+  ui.intervals[0]();
   assert.equal(ui.versionCalls.length,1);assert.equal(ui.notice.hidden,true);assert.equal(ui.badge.hidden,true);
   assert.equal(ui.profileAttributes.get('aria-label'),'Профиль');
   ui.advance(60000);const next=ui.window.unilinkUpdates.check();assert.equal(ui.versionCalls.length,2);
   release({ok:true,json:async()=>({version:'development'})});await next;
+});
+
+test('tab checks bypass the minute throttle and foreground events detect a new deployment immediately', async () => {
+  let version='development';
+  const ui=setup({versionFetch:async()=>({ok:true,json:async()=>({version})})});
+  await ui.window.unilinkUpdates.check();
+  for (const trigger of [() => ui.window.unilinkUpdates.check(true),ui.windowEvents.pageshow,
+    ui.windowEvents.focus,ui.documentEvents.visibilitychange]) {
+    const before=ui.versionCalls.length;
+    version='release-2';
+    await trigger();
+    assert.equal(ui.versionCalls.length,before+1);
+    assert.equal(ui.badge.hidden,false);
+  }
+});
+
+test('even a repeated tap on the active tab requests a release check before any early return', async () => {
+  const app=readFileSync(new URL('../../assets/js/app.js',import.meta.url),'utf8');
+  const tab=app.slice(app.indexOf('  async function tapTab(section)'),app.indexOf('  function switchSection(section)'));
+  const section=app.slice(app.indexOf('  function switchSection(section)'),app.indexOf('  function switchSection(section)')+220);
+  const checks=[];
+  const context=vm.createContext({window:{unilinkUpdates:{check:force=>checks.push(force)}},
+    currentSection:'profile',refreshingTabs:new Set(['profile'])});
+  vm.runInContext(tab,context);
+  await vm.runInContext("tapTab('profile')",context);
+  assert.deepEqual(checks,[true]);
+  assert.ok(section.indexOf('check(true)') < section.indexOf('section === currentSection'));
 });
 
 test('hidden and offline apps skip background checks, then check when the connection returns', async () => {

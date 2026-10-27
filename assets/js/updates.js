@@ -4,7 +4,8 @@
   const CURRENT_VERSION = 'development';
   const currentVersion = CURRENT_VERSION;
   const htmlVersion = document.querySelector('meta[name="unilink-version"]')?.content;
-  let available = false, checkWork = null, lastCheck = -Infinity, errorMessage = '';
+  let available = Boolean(htmlVersion && htmlVersion !== currentVersion);
+  let checkWork = null, lastCheck = -Infinity, errorMessage = '';
   function render() {
     const notice = document.getElementById('appUpdateAvailable');
     const badge = document.getElementById('profileUpdateBadge');
@@ -34,9 +35,16 @@
     checkWork = (async () => {
       try {
         // Public release metadata bypasses both the worker and HTTP caches.
-        const response = await fetch('/version.json', { cache: 'no-store', credentials: 'omit', signal: AbortSignal.timeout(8000) });
-        if (!response.ok) return;
-        const data = await response.json();
+        // A unique URL also bypasses caches in older browser/WebView versions.
+        // AbortController works on older iPhones where AbortSignal.timeout is absent.
+        const controller = new AbortController();
+        const timer = setTimeout(() => controller.abort(), 8000);
+        let data;
+        try {
+          const response = await fetch(`/version.json?check=${Date.now()}`, { cache: 'no-store', credentials: 'omit', signal: controller.signal });
+          if (!response.ok) return;
+          data = await response.json();
+        } finally { clearTimeout(timer); }
         if (typeof data?.version !== 'string' || !/^[a-zA-Z0-9._-]{1,128}$/.test(data.version)) return;
         available = data.version !== currentVersion || Boolean(htmlVersion && htmlVersion !== currentVersion);
         render();
@@ -115,9 +123,11 @@
     }
   };
   window.unilinkUpdates = { check, render };
-  document.addEventListener('visibilitychange', () => { if (!document.hidden) check(); });
+  document.addEventListener('visibilitychange', () => { if (!document.hidden) check(true); });
+  window.addEventListener('pageshow', () => check(true));
   window.addEventListener('online', () => check(true));
-  window.addEventListener('focus', () => check());
+  window.addEventListener('focus', () => check(true));
   setInterval(() => check(), 60000);
-  check();
+  render();
+  check(true);
 })();

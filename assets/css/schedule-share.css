@@ -1,15 +1,18 @@
 .schedule-week-tools{display:flex;align-items:stretch;gap:10px;margin-bottom:12px}
 #sectionSchedule .schedule-week-tools .week-stepper{flex:1;min-width:0;margin:0}
-.schedule-share-launch{width:48px;flex:0 0 48px;display:grid;place-items:center;border:1px solid var(--line);border-radius:16px;background:var(--paper-2);color:var(--accent);cursor:pointer}
+.schedule-share-launch{width:48px;flex:0 0 48px;display:grid;place-items:center;border:1px solid var(--line);border-radius:16px;background:var(--paper-2);color:var(--accent);cursor:pointer;transition:transform .16s ease,background-color .16s ease}
+.schedule-share-launch:active{transform:scale(.92);background:var(--accent-tint-strong)}
 .schedule-share-launch svg{width:23px;height:23px}
 .schedule-share-dialog{position:fixed;inset:auto 0 0;width:calc(100% - 16px);max-width:520px;max-height:calc(100% - 24px - env(safe-area-inset-top,0px));margin:0 auto;border:1px solid var(--line);border-radius:28px 28px 0 0;padding:20px 20px calc(20px + env(safe-area-inset-bottom,0px));background:var(--paper);color:var(--ink);overflow:auto;overscroll-behavior:contain}
 .schedule-share-dialog::backdrop{background:rgb(0 0 0 / .65);backdrop-filter:blur(8px)}
+.schedule-share-dialog[open]{animation:scheduleShareEnter .32s cubic-bezier(.22,1,.36,1) both}
+.schedule-share-dialog[open]::backdrop{animation:scheduleShareBackdrop .24s ease-out both}
 .schedule-share-header{display:flex;justify-content:space-between;align-items:center;gap:12px;margin-bottom:16px}
 .schedule-share-header h2{font-size:20px;margin:0;letter-spacing:-.03em}
 .schedule-share-close{display:grid;place-items:center;width:40px;height:40px;flex:0 0 40px;padding:0;border:1px solid var(--line);border-radius:50%;background:var(--paper-2);color:var(--ink);cursor:pointer}
 .schedule-share-close svg{width:18px;height:18px}
 .schedule-share-preview{border-radius:20px;overflow:hidden;background:var(--paper-2);min-height:120px}
-.schedule-share-preview img{display:block;width:100%;height:auto}
+.schedule-share-preview img{display:block;width:100%;height:auto;animation:scheduleShareCard .28s ease-out both}
 .schedule-share-preview img[hidden]{display:none}
 .schedule-share-options{display:flex;align-items:center;gap:10px;font-size:14px;padding:16px 0;cursor:pointer}
 .schedule-share-options input{width:20px;height:20px;accent-color:var(--accent);flex-shrink:0}
@@ -21,3 +24,7 @@
 .schedule-share-open{display:block;margin-top:10px;text-decoration:none}
 .schedule-share-open[hidden]{display:none}
 @media(min-width:600px){.schedule-share-dialog{inset:0;margin:auto;height:fit-content;border-radius:28px}}
+@keyframes scheduleShareEnter{from{opacity:0;transform:translateY(32px)}to{opacity:1;transform:translateY(0)}}
+@keyframes scheduleShareBackdrop{from{opacity:0}to{opacity:1}}
+@keyframes scheduleShareCard{from{opacity:0;transform:translateY(8px) scale(.98)}to{opacity:1;transform:translateY(0) scale(1)}}
+@media(prefers-reduced-motion:reduce){.schedule-share-launch{transition:none}.schedule-share-launch:active{transform:none}.schedule-share-dialog[open],.schedule-share-dialog[open]::backdrop,.schedule-share-preview img{animation:none}}

@@ -2186,6 +2186,7 @@ if ('serviceWorker' in navigator) {
     return turn;
   }
   async function tapTab(section) {
+    window.unilinkUpdates?.check(true);
     if (section !== currentSection) { switchSection(section); return animateTabRefresh(section); }
     if (refreshingTabs.has(section)) return;
     refreshingTabs.add(section);
@@ -2220,10 +2221,10 @@ if ('serviceWorker' in navigator) {
   }
 
   function switchSection(section) {
+    window.unilinkUpdates?.check(true);
     if (section === currentSection) return;
     haptic('light');
     currentSection = section;
-    window.unilinkUpdates?.check();
     window.univerAcademic?.onSection(section);
 
     document.querySelectorAll('.bottom-tab-btn').forEach(btn => {
