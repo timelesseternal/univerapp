@@ -12,7 +12,8 @@
         if (!/^\d{4}-\d{2}-\d{2}$/.test(point.date) || typeof point.mark !== 'number'
           || !Number.isFinite(point.mark) || point.mark < 0 || point.mark > 100) throw new Error('invalid_point');
         const [year, month, day] = point.date.split('-');
-        return `<li class="grade-point"><time datetime="${point.date}">${day}.${month}.${year}</time><span class="grade-point-mark">${escape(String(point.mark).replace('.', ','))}</span></li>`;
+        const mark = point.mark.toLocaleString('ru-RU', { maximumFractionDigits: 2 });
+        return `<li class="grade-point"><time datetime="${point.date}">${day}.${month}.${year}</time><span class="grade-point-mark">${escape(mark)}</span></li>`;
       }).join('');
       return `<section class="grade-points-group"><h3>${escape(group.name)}</h3>${group.tutor ? `<p class="grade-points-tutor">${escape(group.tutor)}</p>` : ''}${rows ? `<ol class="grade-points-list" aria-label="Даты и оценки">${rows}</ol>` : '<p class="grade-points-empty">Оценок за контрольные точки пока нет</p>'}</section>`;
     }).join('');

@@ -53,3 +53,9 @@ test('group names and teachers are escaped; zero marks remain visible',()=>{
   assert.doesNotMatch(html,/<img|<script/);assert.match(html,/&lt;img/);assert.match(html,/>0</);
   assert.throws(()=>ui.api.groupsHtml([{marks:[{date:'bad',mark:85}]}]));
 });
+
+test('fractional Platonus marks display at most two decimal places',()=>{
+  const ui=setup(async()=>({groups:[]}));
+  const html=ui.api.groupsHtml([{name:'Лекция',marks:[{date:'2026-10-24',mark:82.85714285714286},{date:'2026-10-25',mark:85}]}]);
+  assert.match(html,/>82,86</);assert.match(html,/>85</);assert.doesNotMatch(html,/857142/);
+});
