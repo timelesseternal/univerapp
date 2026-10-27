@@ -33,6 +33,7 @@
   <link rel="stylesheet" href="./assets/css/controls.css">
   <link rel="stylesheet" href="./assets/css/wrapped.css">
   <link rel="stylesheet" href="./assets/css/academic.css">
+  <link rel="stylesheet" href="./assets/css/schedule-share.css">
 </head>
 <body class="login-screen">
 
@@ -148,10 +149,13 @@
       </div>
 
 
+      <div class="schedule-week-tools">
       <div class="week-stepper" id="weekStepper">
         <button class="week-step-btn" id="weekPrevBtn" data-action="stepWeek(-1)" aria-label="Предыдущая неделя"><svg aria-hidden="true" class="action-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m14 6-6 6 6 6"/></svg></button>
         <span class="week-step-label" id="weekStepLabel">Неделя —</span>
         <button class="week-step-btn" id="weekNextBtn" data-action="stepWeek(1)" aria-label="Следующая неделя"><svg aria-hidden="true" class="action-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m9 6 6 6-6 6"/></svg></button>
+      </div>
+      <button type="button" class="schedule-share-launch" id="scheduleShareLaunch" aria-label="Поделиться расписанием"><svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 15V3m-4 4 4-4 4 4M5 12v7a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-7"/></svg></button>
       </div>
 
       <div class="days-grid" id="daysGrid">
@@ -260,6 +264,7 @@
 <script defer src="./assets/js/academic.js"></script>
 <script defer src="./assets/js/device-session.js"></script>
 <script defer src="./assets/js/app.js"></script>
+<script defer src="./assets/js/schedule-share.js"></script>
 <script defer src="./assets/js/updates.js"></script>
 <script defer src="./assets/js/actions.js"></script>
 <script defer src="./assets/js/viewport-recovery.js"></script>

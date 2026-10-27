@@ -31,6 +31,8 @@
     if (close) add('recap', close);
     const logout = byID('logoutDialog');
     if (logout?.open) add('logout-dialog', logout.querySelector('.cancel'));
+    const scheduleShare = byID('scheduleShareDialog');
+    if (scheduleShare?.open) add('schedule-share', byID('scheduleShareClose'));
     return result;
   }
   function sync() {

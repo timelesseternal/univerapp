@@ -2292,6 +2292,22 @@ if ('serviceWorker' in navigator) {
     const type = item.lessonType ?? (legacy ? legacy[2] : '');
     return { name, type };
   }
+  // A snapshot of the displayed week, independent of live-day/finished screens.
+  function getScheduleShareSnapshot() {
+    if (!platonusSession || !browsedWeekInfo || weekStepBusy) return null;
+    return {
+      day: selectedDay,
+      week: browsedWeekInfo.week,
+      year: browsedWeekInfo.studyYear,
+      term: browsedWeekInfo.term,
+      group: studentGroup(platonusStudent || {}),
+      lessons: (SCHEDULE[selectedDay] || []).slice()
+        .sort((a, b) => parseInt(a.пара, 10) - parseInt(b.пара, 10))
+        .map(item => ({ ...lessonParts(item), teacher: item.teacher || '',
+          room: formatRoomLabel(item), start: LESSON_TIMES[item.пара]?.start || '—',
+          end: LESSON_TIMES[item.пара]?.end || '—' }))
+    };
+  }
   function lessonTitleHtml(item) {
     return '<span class="lesson-subject-wrap">' + escapeHtml(lessonParts(item).name) + '</span>';
   }
