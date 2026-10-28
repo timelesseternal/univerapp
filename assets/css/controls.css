@@ -144,11 +144,21 @@ html, body { height:100%; min-height:0; overflow:hidden; overscroll-behavior:non
   text-overflow: ellipsis;
   border-radius: 12px;
 }
-#sectionSchedule .week-stepper { margin-bottom: var(--card-gap); padding: 2px; }
-#sectionSchedule .week-step-btn { width: 36px; height: 36px; }
+#sectionSchedule { --schedule-control-height: 40px; }
+#sectionSchedule .week-stepper { margin-bottom: var(--card-gap); padding: 3px; }
+#sectionSchedule .week-step-btn { width: 40px; }
 #sectionSchedule .week-step-label { font-size: 14px; }
-#sectionSchedule .days-grid { margin-top: 0; margin-bottom: var(--card-gap); }
-#sectionSchedule .day-btn { padding-block: 8px; }
+#sectionSchedule .days-grid { margin-top: 0; margin-bottom: var(--card-gap); padding: 3px; }
+#sectionSchedule :is(.week-step-btn, .day-btn) {
+  box-sizing: border-box;
+  height: var(--schedule-control-height);
+  min-height: var(--schedule-control-height);
+  max-height: var(--schedule-control-height);
+  padding-block: 0;
+  display: grid;
+  place-items: center;
+  line-height: 1;
+}
 
 /* Times sit outside the cards on a single continuous timeline. */
 #scheduleContainer .list-card { display: grid; gap: var(--card-gap); }
