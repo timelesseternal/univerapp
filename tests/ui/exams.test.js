@@ -6,7 +6,7 @@ import {readFileSync} from 'node:fs';
 const source=readFileSync(new URL('../../assets/js/app.js',import.meta.url),'utf8');
 function setup(fetch){
   const element={innerHTML:''};
-  const ctx=vm.createContext({authGeneration:1,currentSection:'exams',platonusFetch:fetch,
+  const ctx=vm.createContext({navigator:{onLine:true},offlineStudyMode:false,saveCachedStudentData(){},authGeneration:1,currentSection:'exams',platonusFetch:fetch,
     document:{getElementById:()=>element},swapContent:(el,html)=>{el.innerHTML=html;}});
   installLoading(ctx);
   vm.runInContext(source.slice(source.indexOf('  function escapeHtml('),source.indexOf('  function studentGroup(')),ctx);

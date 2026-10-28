@@ -33,6 +33,7 @@
     if (logout?.open) add('logout-dialog', logout.querySelector('.cancel'));
     const scheduleShare = byID('scheduleShareDialog');
     if (scheduleShare?.open) add('schedule-share', byID('scheduleShareClose'));
+    if (byID('studyHistoryDialog')?.open) add('study-history', byID('studyHistoryClose'));
     return result;
   }
   function sync() {

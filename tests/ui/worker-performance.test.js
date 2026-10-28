@@ -17,6 +17,16 @@ function worker(cached, fetch, cacheStorage, deadline = AbortSignal) {
   } };
 }
 const response = { ok: true, clone() { return this; } };
+
+test('first installation saves the public shell for offline reopening and never requests private APIs',async()=>{
+  const handlers={},downloads=[],writes=[];let skipped=0,work;
+  vm.runInNewContext(source,{AbortSignal,caches:{open:async()=>({put:async(path)=>writes.push(path)})},
+    fetch:async path=>{downloads.push(path);return {ok:true};},
+    self:{addEventListener:(name,fn)=>{handlers[name]=fn;},skipWaiting:async()=>{skipped++;}}});
+  handlers.install({waitUntil:promise=>{work=promise;}});await work;
+  assert.ok(writes.includes('/'));assert.ok(writes.includes('/assets/js/study-history.js'));
+  assert.equal(downloads.some(path=>path.startsWith('/api/')),false);assert.equal(skipped,1);
+});
 test('warm code displays while the network is pending and updates its public cache afterwards', async () => {
   let resolve;
   const cached = {};

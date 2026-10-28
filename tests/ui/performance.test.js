@@ -8,7 +8,7 @@ const app = fs.readFileSync(new URL('../../assets/js/app.js', import.meta.url), 
 function storageContext(cloud = true) {
   const local = new Map();
   const calls = [];
-  const ctx = vm.createContext({
+  const ctx = vm.createContext({navigator:{onLine:true},offlineStudyMode:false,
     tg: cloud ? {
       initData: 'telegram', initDataUnsafe: { user: { id: 42 } },
       isVersionAtLeast: () => true,
@@ -78,7 +78,7 @@ test('a silent CloudStorage callback cannot hang startup', async () => {
 });
 test('parallel expired requests share one relogin', async () => {
   let logins = 0;
-  const ctx = vm.createContext({
+  const ctx = vm.createContext({navigator:{onLine:true},offlineStudyMode:false,
     API_BASE: '', platonusSession: 'old', authGeneration: 0, authStorageWork: Promise.resolve(),
     sessionCredentials: null, persistLogin: true,
     lsSafe: (fn, fallback) => { try { return fn(); } catch { return fallback; } },
@@ -94,11 +94,11 @@ test('parallel expired requests share one relogin', async () => {
 });
 test('cached studentID lets schedule render while GPA remains pending', async () => {
   let renders = 0, prefetches = 0;
-  const ctx = vm.createContext({
+  const ctx = vm.createContext({navigator:{onLine:true},offlineStudyMode:false,
     window: {univerAcademic:{prefetch(options){
       prefetches++;assert.ok(renders>0);assert.equal(ctx.liveLoadInFlight,false);
       assert.equal(options.student.studentID,7);assert.equal(options.fetch,ctx.platonusFetch);
-    }}}, liveLoadInFlight: false, scheduleLoadFailed: false, authGeneration: 0, ensureAuthGeneration() {},
+    }}}, platonusSession:null,liveLoadInFlight: false, scheduleLoadFailed: false, authGeneration: 0, ensureAuthGeneration() {},
     platonusStudent: { studentID: 7 }, liveScheduleWeekInfo: { selectedStudyYear: 2026, selectedTerm: 1 },
     currentSection: 'schedule', userNavigatedWeek: false, browsedWeekInfo: null,
     fetchGradesAndUmkd: async () => ({}),
@@ -117,8 +117,8 @@ test('cached studentID lets schedule render while GPA remains pending', async ()
 });
 test('ready grades refresh before the schedule and ignore late data after logout', async () => {
   let completeExtras, completeSchedule, renders = 0;
-  const ctx = vm.createContext({
-    window: {}, liveLoadInFlight: false, scheduleLoadFailed: false, authGeneration: 0, ensureAuthGeneration() {},
+  const ctx = vm.createContext({navigator:{onLine:true},offlineStudyMode:false,
+    window: {}, platonusSession:null,liveLoadInFlight: false, scheduleLoadFailed: false, authGeneration: 0, ensureAuthGeneration() {},
     platonusStudent: { studentID: 7 }, liveScheduleWeekInfo: { selectedStudyYear: 2026, selectedTerm: 1 },
     currentSection: 'grades', userNavigatedWeek: false, browsedWeekInfo: null,
     liveJournalData: null, liveUmkdData: null,
@@ -169,7 +169,7 @@ test('the relocated worker retains root scope and caches the complete public she
   assert.ok(workerHeaders.headers.some(h => h.key === 'Service-Worker-Allowed' && h.value === '/'));
   assert.ok(app.includes("register('./assets/js/sw.js', { scope: '/' })"));
   const worker = fs.readFileSync(new URL('../../assets/js/sw.js', import.meta.url), 'utf8');
-  const ctx = vm.createContext({ self: { addEventListener() {} } });
+  const ctx = vm.createContext({navigator:{onLine:true},offlineStudyMode:false, self: { addEventListener() {} } });
   vm.runInContext(worker + '\n globalThis.shellPaths = [...SHELL_PATHS];', ctx);
   const assets = [...html.matchAll(/(?:src|href)="\.\/(assets\/[^"\s]+)"/g)].map(match => '/' + match[1]);
   for (const path of assets) assert.ok(ctx.shellPaths.includes(path), `Shell cache misses ${path}`);

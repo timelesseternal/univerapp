@@ -1,0 +1,15 @@
+.study-status{display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px;padding:12px 14px;margin-bottom:var(--card-gap);border:1px solid var(--line);border-radius:16px;background:var(--paper-2);color:var(--ink-soft);font-size:13px}
+.study-status[hidden],.study-saved-note[hidden]{display:none}
+.study-status button{border:0;padding:4px 0;color:var(--accent);background:none;font:inherit;font-weight:700;cursor:pointer}
+.study-status b{display:inline-grid;place-items:center;min-width:22px;height:22px;padding-inline:5px;margin-left:6px;border-radius:20px;background:var(--accent);color:var(--accent-text)}
+.study-saved-note{font-size:12px;color:var(--ink-soft);line-height:1.5;margin:0 0 12px}
+.study-history-dialog{box-sizing:border-box;width:calc(100% - 24px);max-width:560px;max-height:calc(100dvh - 48px - env(safe-area-inset-top,0px));padding:20px;border:1px solid var(--line);border-radius:24px;background:var(--paper);color:var(--ink);overscroll-behavior:contain}
+.study-history-dialog::backdrop{background:rgb(0 0 0 / .6);backdrop-filter:blur(8px)}
+.study-history-dialog header{display:flex;align-items:center;justify-content:space-between;gap:12px}
+.study-history-dialog h2{font-size:22px;margin:0}
+.study-history-dialog header button{width:40px;height:40px;flex-shrink:0;border:1px solid var(--line);border-radius:50%;background:var(--paper-2);color:var(--ink);font-size:18px;cursor:pointer}
+.study-history-hint,.study-change-meta{font-size:12px;line-height:1.5;color:var(--ink-soft)}
+.study-change{padding:16px 0;border-top:1px solid var(--line);overflow-wrap:anywhere}
+.study-change h3{font-size:15px;margin:8px 0}
+.study-change p{font-size:14px;line-height:1.5;white-space:pre-line;margin:6px 0}
+.study-change-before{color:var(--ink-soft)}

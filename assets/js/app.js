@@ -186,6 +186,9 @@ if ('serviceWorker' in navigator) {
 
   function cacheWeekEntry(entry) {
     if (!entry || !entry.weekInfo) return;
+    entry.cachedAt = Date.now();
+    window.unilinkStudy?.bind(platonusStudent, localCacheKey('academic'));
+    window.unilinkStudy?.schedule(entry);
     const key = weekCacheKey(entry.weekInfo.studyYear, entry.weekInfo.term, entry.weekInfo.week);
     weekScheduleCache[key] = entry;
     window.UniverWrapped?.capture({ student: platonusStudent, period: entry.weekInfo, entry });
@@ -346,6 +349,7 @@ if ('serviceWorker' in navigator) {
   const META_CACHE_KEY = 'platonus_meta_cache';
   const JOURNAL_CACHE_KEY = 'platonus_journal_cache';
   const UMKD_CACHE_KEY = 'platonus_umkd_cache';
+  let offlineStudyMode = false;
 
   async function loadCachedStudentData() {
     const values = await csGetMany([META_CACHE_KEY, JOURNAL_CACHE_KEY, UMKD_CACHE_KEY]);
@@ -369,7 +373,7 @@ if ('serviceWorker' in navigator) {
     })();
     meta.browsedWeekInfo = normWeekInfo(meta.browsedWeekInfo);
     meta.trueCurrentWeekInfo = normWeekInfo(meta.trueCurrentWeekInfo);
-    if (!meta.cachedAt || meta.cachedAt < weekStartMs) {
+    if (navigator.onLine !== false && (!meta.cachedAt || meta.cachedAt < weekStartMs)) {
       meta.browsedWeekInfo = null;
       meta.trueCurrentWeekInfo = null;
     }
@@ -431,7 +435,10 @@ if ('serviceWorker' in navigator) {
   }
 
   async function saveCachedStudentData() {
-    if (!platonusSession) return;
+    if (!platonusSession || offlineStudyMode) return;
+    window.unilinkStudy?.bind(platonusStudent, localCacheKey('academic'));
+    const savedWeek = browsedWeekInfo && weekScheduleCache[weekCacheKey(browsedWeekInfo.studyYear, browsedWeekInfo.term, browsedWeekInfo.week)];
+    window.unilinkStudy?.save({student:platonusStudent,scheduleEntry:savedWeek,exams:EXAMS_SCHEDULE,examsAt:examsUpdatedAt});
     const generation = authGeneration;
     // Разбито на несколько маленьких ключей вместо одного большого блока:
     // у Telegram CloudStorage жёсткий лимит в 4096 символов на значение,
@@ -602,6 +609,8 @@ if ('serviceWorker' in navigator) {
       document.getElementById('passwordInput').value = '';
 
       showLoginOverlay(false);
+      offlineStudyMode = false;
+      window.unilinkStudy?.offline(false);
       loadLiveStudentData(); // грузим в фоне, экран не блокируем
       window.univerChat?.onLogin?.();
     } catch (err) {
@@ -629,6 +638,9 @@ if ('serviceWorker' in navigator) {
 
   function logout(forget = true) {
     haptic('medium');
+    offlineStudyMode = false;
+    window.unilinkStudy?.bind(platonusStudent, localCacheKey('academic'));
+    window.unilinkStudy?.reset(forget);
     // An offline DELETE cannot clear an HttpOnly cookie. Remember the explicit
     // sign-out locally so a later launch cannot silently reuse that cookie.
     if (forget) lsSafe(() => localStorage.setItem(localCacheKey('signed_out'), '1'));
@@ -741,6 +753,7 @@ if ('serviceWorker' in navigator) {
   }
 
   async function platonusFetch(path) {
+    if (navigator.onLine === false || offlineStudyMode) throw new Error('offline');
     if (!platonusSession) throw new Error('no_session');
     const generation = authGeneration;
     const requestSession = platonusSession;
@@ -978,12 +991,13 @@ if ('serviceWorker' in navigator) {
 
       <button type="button" class="wrapped-launch" data-action="openSemesterWrapped()"><span class="wrapped-launch-kicker">UNILINK · RECAP</span><span class="wrapped-launch-title">Твой семестр в историях <span aria-hidden="true">↗</span></span><span class="wrapped-launch-caption">Твой ритм. Твои предметы. Твои результаты.</span></button>
       <div id="appUpdateAvailable" class="profile-update-available" role="status" hidden><span class="profile-update-dot" aria-hidden="true"></span>Доступна новая версия</div>
+      <button type="button" class="profile-update-btn" data-study-history>Что изменилось · <span data-study-history-count>Оценки и расписание</span></button>
       <button type="button" id="appUpdateButton" class="profile-update-btn" data-action="updateApplication(this)">Обновить приложение</button>
       <p id="appUpdateStatus" class="profile-update-status" role="status"></p>
       <button class="profile-logout-btn" data-action="confirmLogout()">Выйти из аккаунта</button>
     `;
 
-    swapContent(container, html, animate, () => window.unilinkUpdates?.render());
+    swapContent(container, html, animate, () => { window.unilinkUpdates?.render(); window.unilinkStudy?.render(); });
   }
 
   function renderGrades(animate = true) {
@@ -1067,6 +1081,7 @@ if ('serviceWorker' in navigator) {
   let journalSnapshot = null, umkdRequest = null, umkdSnapshot = null;
   let desiredJournalKey = null, desiredUmkdKey = null;
   function fetchJournal(year, term, force = false) {
+    if (navigator.onLine === false || offlineStudyMode) return Promise.resolve(liveJournalData);
     const studentID = platonusStudent && platonusStudent.studentID;
     const generation = authGeneration;
     const key = `${generation}-${studentID}-${year}-${term}`;
@@ -1088,6 +1103,8 @@ if ('serviceWorker' in navigator) {
             return null;
           }
           liveJournalData = journal;
+          window.unilinkStudy?.bind(platonusStudent, localCacheKey('academic'));
+          window.unilinkStudy?.grades(`${year}/${term}`, journal);
           journalSnapshot = { key, at: Date.now() };
           window.UniverWrapped?.capture({ student: platonusStudent, period: { studyYear: year, term }, journal });
           gradesLoadFailed = false;
@@ -1153,6 +1170,7 @@ if ('serviceWorker' in navigator) {
   }
 
   async function loadLiveStudentData() {
+    if (navigator.onLine === false || offlineStudyMode) return;
     if (liveLoadInFlight) return;
     const generation = authGeneration;
     liveLoadInFlight = true;
@@ -1281,6 +1299,7 @@ if ('serviceWorker' in navigator) {
       if (generation === authGeneration) {
         liveLoadInFlight = false;
         if (platonusStudent) window.univerAcademic?.prefetch?.({student:platonusStudent,fetch:platonusFetch});
+        if (platonusStudent && platonusSession) fetchExams();
       }
     }
   }
@@ -2065,6 +2084,12 @@ if ('serviceWorker' in navigator) {
       return;
     }
 
+    if (navigator.onLine === false || offlineStudyMode) {
+      weekStepBusy = false;
+      updateWeekStepperUI();
+      return;
+    }
+
     weekStepBusy = true;
     updateWeekStepperUI();
 
@@ -2221,6 +2246,7 @@ if ('serviceWorker' in navigator) {
   }
 
   function switchSection(section) {
+    if (offlineStudyMode && ['chat','calendar','transcript','umkd'].includes(section)) return;
     window.unilinkUpdates?.check(true);
     if (section === currentSection) return;
     haptic('light');
@@ -2295,7 +2321,7 @@ if ('serviceWorker' in navigator) {
   }
   // A snapshot of the displayed week, independent of live-day/finished screens.
   function getScheduleShareSnapshot() {
-    if (!platonusSession || !browsedWeekInfo || weekStepBusy) return null;
+    if ((!platonusSession && !offlineStudyMode) || !browsedWeekInfo || weekStepBusy) return null;
     return {
       day: selectedDay,
       week: browsedWeekInfo.week,
@@ -2319,6 +2345,10 @@ if ('serviceWorker' in navigator) {
 
   function renderSchedule(animate = true) {
     const container = document.getElementById('scheduleContainer');
+    if (offlineStudyMode && !browsedWeekInfo) {
+      swapContent(container, '<div class="notice-panel">Расписание ещё не сохранено. Открой его при подключении к интернету.</div>', animate);
+      return;
+    }
 
     // Пока расписание не пришло, не показываем «пар нет» — это было бы неправдой.
     if (!browsedWeekInfo && platonusSession) {
@@ -2711,6 +2741,7 @@ if ('serviceWorker' in navigator) {
   let EXAMS_SCHEDULE = null;
   let examsLoadFailed = false, examsUpdatedAt = 0, examsRequest = null;
   function fetchExams(force = false) {
+    if (navigator.onLine === false || offlineStudyMode) return Promise.resolve(EXAMS_SCHEDULE);
     const generation = authGeneration;
     if (examsRequest?.generation === generation) return examsRequest.work;
     if (!force && examsUpdatedAt && Date.now() - examsUpdatedAt < 60000) return Promise.resolve(EXAMS_SCHEDULE);
@@ -2720,6 +2751,7 @@ if ('serviceWorker' in navigator) {
       EXAMS_SCHEDULE = data.exams;
       examsLoadFailed = false;
       examsUpdatedAt = Date.now();
+      saveCachedStudentData();
       if (currentSection === 'exams') renderExams(false);
       return data.exams;
     }).catch(() => {
@@ -2742,6 +2774,10 @@ if ('serviceWorker' in navigator) {
   function renderExams(animate = true) {
     const container = document.getElementById('examsContainer');
     const heading = '<span class="masthead-eyebrow" style="margin-bottom:10px;display:block;">Экзамены</span>';
+    if (offlineStudyMode && !EXAMS_SCHEDULE) {
+      swapContent(container, heading + '<div class="notice-panel">Экзамены ещё не сохранены. Открой приложение при подключении к интернету.</div>', animate);
+      return;
+    }
     const warning = examsLoadFailed ? '<div class="notice-panel" role="status"><div class="notice-hint">Не удалось обновить расписание экзаменов. Загрузка повторится автоматически.</div></div>' : '';
     if (!EXAMS_SCHEDULE?.length) {
       if (!EXAMS_SCHEDULE && !examsLoadFailed) { swapContent(container, heading + loadingHtml('Расписание экзаменов загружается'), animate); return; }
@@ -2760,6 +2796,30 @@ if ('serviceWorker' in navigator) {
   }
 
   let restoringLogin = false;
+  async function activateOfflineStudy(saved) {
+    if (navigator.onLine !== false || saved?.platonus_remember !== '1'
+      || lsSafe(() => localStorage.getItem(localCacheKey('signed_out')), null) === '1') return false;
+    let student;
+    try { student = JSON.parse(saved.platonus_student || 'null'); } catch {return false;}
+    if (!Number.isSafeInteger(Number(student?.studentID)) || Number(student.studentID) <= 0) return false;
+    window.unilinkStudy?.bind(student, localCacheKey('academic'));
+    const savedStudy = window.unilinkStudy?.read();
+    if (!savedStudy) return false;
+    const generation = authGeneration;
+    platonusStudent = student;
+    const cache = await loadCachedStudentData();
+    if (generation !== authGeneration) return false;
+    if (Number(cache?.meta?.student?.studentID) === Number(student.studentID)) applyCachedStudentData(cache);
+    if (savedStudy.scheduleEntry) applyWeekCacheEntry(savedStudy.scheduleEntry);
+    trueCurrentWeekInfo = null; // A saved week is never labelled as the live current week.
+    EXAMS_SCHEDULE = Array.isArray(savedStudy.exams) ? savedStudy.exams : null;
+    examsUpdatedAt = savedStudy.examsAt || 0;
+    offlineStudyMode = true;
+    window.unilinkStudy?.offline(true);
+    showLoginOverlay(false);
+    detectToday(true); updateWeekStepperUI(); renderCurrentSection();
+    return true;
+  }
   async function restoreSavedLogin() {
     if (restoringLogin) return;
     restoringLogin = true;
@@ -2769,6 +2829,7 @@ if ('serviceWorker' in navigator) {
     try {
       saved = await csGetMany(['platonus_student', 'platonus_remember']);
       if (generation !== authGeneration) return;
+      if (await activateOfflineStudy(saved)) {setLoginRestoreState(''); return;}
       restored = await silentRelogin();
       // Give the browser a brief chance to restore its cookie store on a cold launch.
       // The saved preference is only a retry hint, never proof of authentication.
@@ -2781,6 +2842,8 @@ if ('serviceWorker' in navigator) {
         }
       }
     } catch {
+      // Connection may disappear while the initial session check is pending.
+      if (generation === authGeneration && await activateOfflineStudy(saved)) {setLoginRestoreState(''); return;}
       if (generation === authGeneration) setLoginRestoreState('retry');
       return;
     } finally {
@@ -2794,6 +2857,11 @@ if ('serviceWorker' in navigator) {
     catch (e) { platonusStudent = null; }
 
     if (restored) {
+      offlineStudyMode = false;
+      window.unilinkStudy?.bind(platonusStudent, localCacheKey('academic'));
+      window.unilinkStudy?.offline(false);
+      const savedStudy = window.unilinkStudy?.read();
+      if (Array.isArray(savedStudy?.exams)) {EXAMS_SCHEDULE = savedStudy.exams; examsUpdatedAt = savedStudy.examsAt || 0;}
       showLoginOverlay(false);
       document.getElementById('loginOverlay').style.display = 'none';
 
@@ -2860,8 +2928,32 @@ if ('serviceWorker' in navigator) {
     document.addEventListener('visibilitychange', refreshVisibleAcademicData);
     document.addEventListener('visibilitychange', refreshLiveUI);
     window.dispatchEvent(new Event('univer-ready'));
+    // Visible-only polling; browsers suspend this while the PWA is closed.
+    let studyCheckBusy = false;
+    const checkStudyChanges = async () => {
+      if (studyCheckBusy || document.hidden || !platonusSession || offlineStudyMode || navigator.onLine === false || liveLoadInFlight) return;
+      const info = browsedWeekInfo;
+      if (!info || currentSection === 'grades') return; // Grades already refresh with their selected semester.
+      studyCheckBusy = true;
+      try { await Promise.allSettled([fetchJournal(info.studyYear, info.term), refreshWeekInBackground(info.studyYear, info.term, info.week)]); }
+      finally { studyCheckBusy = false; }
+    };
+    setInterval(checkStudyChanges, 60000);
+    document.addEventListener('visibilitychange', checkStudyChanges);
 
     await restoreSavedLogin();
 
 
+  });
+  window.addEventListener('offline', () => {
+    if (!platonusStudent || (!platonusSession && !offlineStudyMode)) return;
+    offlineStudyMode = true;
+    window.unilinkStudy?.bind(platonusStudent, localCacheKey('academic'));
+    window.unilinkStudy?.offline(true);
+  });
+  window.addEventListener('online', () => {
+    if (!offlineStudyMode) return;
+    if (platonusSession) {
+      offlineStudyMode = false; window.unilinkStudy?.offline(false); loadLiveStudentData();
+    } else restoreSavedLogin();
   });

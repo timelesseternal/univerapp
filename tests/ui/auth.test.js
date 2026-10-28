@@ -26,7 +26,7 @@ function setup() {
   };
   const storage = new Map();
   const ctx = vm.createContext({
-    document, window: {}, AbortSignal, localStorage: {
+    document, window: {}, navigator:{onLine:true}, AbortSignal, localStorage: {
       getItem: key => storage.get(key) ?? null,
       setItem: (key, value) => storage.set(key, value),
       removeItem: key => storage.delete(key),
@@ -286,6 +286,30 @@ function setupRestore() {
   vm.runInContext(app.slice(app.indexOf('  let restoringLogin'), app.indexOf("  document.addEventListener('DOMContentLoaded'")), env.ctx);
   return env;
 }
+
+test('remembered offline launch opens only local study data without inventing an authenticated session',async()=>{
+  const env=setupRestore();env.ctx.navigator.onLine=false;
+  env.read('platonusSession = null');
+  const saved={weekInfo:{studyYear:2026,term:1,week:9},schedule:{Вторник:[]},lessonTimes:{}};
+  let applied=0,offline=false,network=0;
+  env.ctx.fetch=async()=>{network++;throw new Error('offline');};
+  env.ctx.window.unilinkStudy={bind(){},read:()=>({scheduleEntry:saved,exams:[],examsAt:1000}),offline:value=>{offline=value;}};
+  env.ctx.applyWeekCacheEntry=entry=>{assert.equal(entry,saved);applied++;};
+  env.ctx.detectToday=()=>{};env.ctx.renderCurrentSection=()=>{};
+  await env.ctx.restoreSavedLogin();
+  assert.equal(network,0);assert.equal(applied,1);assert.equal(offline,true);
+  assert.equal(env.read('platonusSession'),null);assert.equal(env.read('offlineStudyMode'),true);
+  assert.equal(env.document.body.classList.contains('login-screen'),false);
+});
+
+test('offline study restoration requires remembering the account and respects explicit sign-out',async()=>{
+  const env=setupRestore();env.ctx.navigator.onLine=false;
+  const saved={platonus_student:'{"studentID":1}',platonus_remember:'1'};
+  env.ctx.window.unilinkStudy={bind(){throw new Error('must_not_read_private_cache');}};
+  assert.equal(await env.ctx.activateOfflineStudy({...saved,platonus_remember:'0'}),false);
+  env.storage.set('signed_out','1');
+  assert.equal(await env.ctx.activateOfflineStudy(saved),false);
+});
 
 test('a fresh launch restores a remembered session without asking for credentials', async () => {
   const env = setupRestore();

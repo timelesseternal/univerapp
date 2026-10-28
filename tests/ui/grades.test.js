@@ -6,7 +6,7 @@ import {readFileSync} from 'node:fs';
 const source=readFileSync(new URL('../../assets/js/app.js',import.meta.url),'utf8');
 
 test('grade fields remain text and an upstream color cannot inject SVG attributes',()=>{
-  const ctx=vm.createContext({});
+  const ctx=vm.createContext({navigator:{onLine:true},offlineStudyMode:false,});
   vm.runInContext(source.slice(source.indexOf('  function orderGradeMetrics('),source.indexOf('  function studentGroup(')),ctx);
   const attack='<img src=x onerror="alert(1)">';
   const html=ctx.buildGradeCardHtml({subjectName:attack,tutorList:attack,centerMark:75,
@@ -18,7 +18,7 @@ test('grade fields remain text and an upstream color cannot inject SVG attribute
 });
 function setup(journal,failed=false){
   const element={innerHTML:''};
-  const ctx=vm.createContext({document:{getElementById:()=>element},platonusStudent:{studentID:7},liveJournalData:journal,
+  const ctx=vm.createContext({navigator:{onLine:true},offlineStudyMode:false,document:{getElementById:()=>element},platonusStudent:{studentID:7},liveJournalData:journal,
     gradesLoadFailed:failed,swapContent:(target,html)=>{target.innerHTML=html;},buildGradeCardHtml:()=>'<article>Предмет</article>'});
   installLoading(ctx);
   vm.runInContext(source.slice(source.indexOf('  function renderGrades('),source.indexOf('  function renderCurrentSection(')),ctx);
@@ -33,7 +33,7 @@ test('empty journals retry promptly and never overwrite cached grades or recap w
   let now=0,calls=0,saves=0,captures=0;
   const saved=[{subjectName:'Предмет'}];
   const responses=[[],saved,[]];
-  const ctx=vm.createContext({Date:{now:()=>now},window:{UniverWrapped:{capture(){captures++;}}},
+  const ctx=vm.createContext({navigator:{onLine:true},offlineStudyMode:false,Date:{now:()=>now},window:{UniverWrapped:{capture(){captures++;}}},
     platonusStudent:{studentID:7},authGeneration:1,currentSection:'grades',gradesLoadFailed:false,
     liveJournalData:saved,platonusFetch:async()=>{calls++;return responses.shift();},renderGrades(){},saveCachedStudentData(){saves++;}});
   vm.runInContext(source.slice(source.indexOf('  let journalRequest'),source.indexOf('  function retryGrades')),ctx);
@@ -46,7 +46,7 @@ test('empty journals retry promptly and never overwrite cached grades or recap w
 });
 
 test('an empty response for another semester cannot keep the previous semester cards',async()=>{
-  const ctx=vm.createContext({window:{},platonusStudent:{studentID:7},authGeneration:1,currentSection:'grades',
+  const ctx=vm.createContext({navigator:{onLine:true},offlineStudyMode:false,window:{},platonusStudent:{studentID:7},authGeneration:1,currentSection:'grades',
     liveJournalData:null,platonusFetch:async path=>path.includes('term=1')?[{subjectName:'Первый семестр'}]:[],
     renderGrades(){},saveCachedStudentData(){}});
   vm.runInContext(source.slice(source.indexOf('  let journalRequest'),source.indexOf('  function retryGrades')),ctx);
@@ -64,7 +64,7 @@ test('a failed cold load displays an error instead of an endless spinner',()=>{
 });
 test('grades render while UMKD is pending, and repeated journal requests are shared',async()=>{
   let renders=0,calls=0;
-  const ctx=vm.createContext({platonusStudent:{studentID:7},authGeneration:1,currentSection:'grades',gradesLoadFailed:false,
+  const ctx=vm.createContext({navigator:{onLine:true},offlineStudyMode:false,platonusStudent:{studentID:7},authGeneration:1,currentSection:'grades',gradesLoadFailed:false,
     liveJournalData:null,platonusFetch:path=>{calls++;return path.includes('/grades')?Promise.resolve([{subjectName:'Предмет'}]):new Promise(()=>{});},
     renderGrades(){renders++;},saveCachedStudentData(){}});
   vm.runInContext(source.slice(source.indexOf('  let journalRequest'),source.indexOf('  function retryGrades')),ctx);
@@ -75,7 +75,7 @@ test('grades render while UMKD is pending, and repeated journal requests are sha
 
 test('UMKD renders without waiting for grades and fresh responses are reused',async()=>{
   let renders=0,calls=0;
-  const ctx=vm.createContext({platonusStudent:{studentID:7},authGeneration:1,currentSection:'umkd',selectedUmkdSubject:null,
+  const ctx=vm.createContext({navigator:{onLine:true},offlineStudyMode:false,platonusStudent:{studentID:7},authGeneration:1,currentSection:'umkd',selectedUmkdSubject:null,
     liveJournalData:null,liveUmkdData:null,platonusFetch:path=>{calls++;return path.includes('/umkd')?Promise.resolve({records:[]}):new Promise(()=>{});},
     renderUmkdSubjects(){renders++;},saveCachedStudentData(){}});
   vm.runInContext(source.slice(source.indexOf('  let journalRequest'),source.indexOf('  function retryGrades')),ctx);
@@ -87,7 +87,7 @@ test('UMKD renders without waiting for grades and fresh responses are reused',as
 
 test('grades reuse fresh data, explicit refresh bypasses freshness, and another login cannot reuse it',async()=>{
   let calls=0;
-  const ctx=vm.createContext({platonusStudent:{studentID:7},authGeneration:1,currentSection:'schedule',
+  const ctx=vm.createContext({navigator:{onLine:true},offlineStudyMode:false,platonusStudent:{studentID:7},authGeneration:1,currentSection:'schedule',
     liveJournalData:null,platonusFetch:async()=>{calls++;return [];},saveCachedStudentData(){}});
   vm.runInContext(source.slice(source.indexOf('  let journalRequest'),source.indexOf('  function retryGrades')),ctx);
   await ctx.fetchJournal(2026,1);await ctx.fetchJournal(2026,1);
@@ -98,7 +98,7 @@ test('grades reuse fresh data, explicit refresh bypasses freshness, and another 
 
 test('academic refresh pauses when hidden and retries the visible section automatically',()=>{
   const calls=[];
-  const ctx=vm.createContext({document:{hidden:true},platonusSession:'session',
+  const ctx=vm.createContext({navigator:{onLine:true},offlineStudyMode:false,document:{hidden:true},platonusSession:'session',
     liveScheduleWeekInfo:{selectedStudyYear:2026,selectedTerm:1},currentSection:'grades',
     fetchJournal:(...args)=>calls.push(['grades',...args]),fetchUmkd:(...args)=>calls.push(['umkd',...args])});
   vm.runInContext(source.slice(source.indexOf('  function refreshVisibleAcademicData()'),source.indexOf('  const CITY_COORDS')),ctx);
@@ -111,7 +111,7 @@ test('academic refresh pauses when hidden and retries the visible section automa
 test('late responses or errors from an old semester cannot replace current grades and UMKD',async()=>{
   for(const kind of ['journal','umkd'])for(const outcome of ['data','empty','error']){
     const requests=[];let saves=0;
-    const ctx=vm.createContext({window:{},platonusStudent:{studentID:7},authGeneration:1,currentSection:'schedule',
+    const ctx=vm.createContext({navigator:{onLine:true},offlineStudyMode:false,window:{},platonusStudent:{studentID:7},authGeneration:1,currentSection:'schedule',
       liveJournalData:null,liveUmkdData:null,gradesLoadFailed:false,umkdLoadFailed:false,
       platonusFetch:()=>new Promise((resolve,reject)=>requests.push({resolve,reject})),saveCachedStudentData(){saves++;}});
     vm.runInContext(source.slice(source.indexOf('  let journalRequest'),source.indexOf('  function retryGrades')),ctx);
@@ -130,7 +130,7 @@ test('late responses or errors from an old semester cannot replace current grade
 test('returning to a fresh cached semester also invalidates a pending request for another semester',async()=>{
   for(const kind of ['journal','umkd']){
     const requests=[];
-    const ctx=vm.createContext({window:{},platonusStudent:{studentID:7},authGeneration:1,currentSection:'schedule',
+    const ctx=vm.createContext({navigator:{onLine:true},offlineStudyMode:false,window:{},platonusStudent:{studentID:7},authGeneration:1,currentSection:'schedule',
       liveJournalData:null,liveUmkdData:null,platonusFetch:()=>new Promise(resolve=>requests.push(resolve)),saveCachedStudentData(){}});
     vm.runInContext(source.slice(source.indexOf('  let journalRequest'),source.indexOf('  function retryGrades')),ctx);
     const fetch=kind==='journal'?ctx.fetchJournal:ctx.fetchUmkd;

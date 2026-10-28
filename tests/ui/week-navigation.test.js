@@ -10,7 +10,7 @@ const oldWeek = () => ({ weekInfo: info(8), lessonTimes: { 1: { start: '08:00', 
 const emptyResponse = () => ({ selectedStudyYear: 2026, selectedTerm: 1, selectedWeek: 8, timetable: { days: {} } });
 function setup() {
   const storage = new Map(), views = [], calls = [], elements = new Map();
-  const context = vm.createContext({
+  const context = vm.createContext({navigator:{onLine:true},offlineStudyMode:false,
     platonusStudent: { studentID: 7 }, weekScheduleCache: {}, trueCurrentWeekInfo: null,
     browsedWeekInfo: info(7), SCHEDULE: {}, LESSON_TIMES: {}, liveScheduleWeekInfo: null,
     userNavigatedWeek: false, weekStepBusy: false, authGeneration: 1, MAX_TERM_WEEKS: 15, window: {},

@@ -18,6 +18,8 @@ SHELL_PATHS.add('/assets/js/loading.js');
 SHELL_PATHS.add('/assets/js/grade-details.js');
 SHELL_PATHS.add('/assets/js/schedule-share.js');
 SHELL_PATHS.add('/assets/css/schedule-share.css');
+SHELL_PATHS.add('/assets/js/study-history.js');
+SHELL_PATHS.add('/assets/css/study-history.css');
 SHELL_PATHS.add('/assets/icons/unilink-dark-maskable-512.png');
 SHELL_PATHS.add('/assets/icons/unilink-dark-favicon-32.png');
 
@@ -80,7 +82,16 @@ self.addEventListener('message', event => {
   })());
 });
 
-self.addEventListener('install', () => self.skipWaiting());
+self.addEventListener('install', event => {
+  event.waitUntil((async () => {
+    // Prime the public shell on the first visit too, before this worker controls a page.
+    await Promise.allSettled([...SHELL_PATHS].map(async path => {
+      const response = await fetch(path, {cache:'reload',credentials:'omit',signal:AbortSignal.timeout(12000)});
+      if (response.ok) await rememberResponse(path, response);
+    }));
+    await self.skipWaiting();
+  })());
+});
 self.addEventListener('activate', event => {
   // Keep working fallbacks until the new shell has actually downloaded.
   // Only public shell caches belong to this worker.
