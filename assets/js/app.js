@@ -632,7 +632,9 @@ if ('serviceWorker' in navigator) {
     if (!dialog.open) dialog.showModal();
   }
   function closeLogoutConfirmation(confirmed = false) {
-    document.getElementById('logoutDialog').close();
+    const dialog = document.getElementById('logoutDialog');
+    if (!confirmed && window.unilinkMotion) window.unilinkMotion.closeDialog(dialog);
+    else dialog.close();
     if (confirmed) logout();
   }
 
@@ -1728,9 +1730,9 @@ if ('serviceWorker' in navigator) {
     const reduced = window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
     if (animate && !document.hidden && !reduced && container.animate) {
       const transition = container.animate([
-        { opacity: 0, transform: 'translateY(14px)' },
+        { opacity: 0, transform: 'translateY(6px)' },
         { opacity: 1, transform: 'translateY(0)' },
-      ], { duration: 420, easing: 'cubic-bezier(.16,1,.3,1)' });
+      ], { duration: 240, easing: 'cubic-bezier(.16,1,.3,1)' });
       contentAnimations.set(container, transition);
     }
   }
@@ -2290,11 +2292,14 @@ if ('serviceWorker' in navigator) {
       openAcademicSection(section);
     }
     refreshVisibleAcademicData();
+    const sectionIDs = {schedule:'sectionSchedule',grades:'sectionGrades',profile:'sectionProfile',chat:'sectionChat',umkd:'sectionUmkd',exams:'sectionExams',calendar:'sectionCalendar',transcript:'sectionTranscript'};
+    window.unilinkMotion?.enter(document.getElementById(sectionIDs[section]));
   }
 
   function selectDay(dayName, btnElement, force = false) {
     if (!force && dayName === selectedDay) return;
     if (!force) haptic('light');
+    const previousDay = selectedDay;
     selectedDay = dayName;
     document.querySelectorAll('.day-btn').forEach(b => b.classList.remove('active'));
     if (btnElement) {
@@ -2305,7 +2310,8 @@ if ('serviceWorker' in navigator) {
       if (targetBtn) targetBtn.classList.add('active');
     }
     updateDayIndicator();
-    renderSchedule();
+    renderSchedule(false);
+    if (!force) window.unilinkMotion?.day(document.getElementById('scheduleContainer'), previousDay, dayName);
     updateStatusBarAndLive();
   }
 

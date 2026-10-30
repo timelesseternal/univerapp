@@ -6,7 +6,7 @@ const source = readFileSync(new URL('../../assets/js/app.js', import.meta.url), 
 test('browser logout uses the application dialog even when Telegram SDK exists', () => {
   let count = 0;
   const dialog = { open: false, showModal() { this.open = true; }, close() { this.open = false; } };
-  const context = vm.createContext({ document: { getElementById: () => dialog }, haptic() {},
+  const context = vm.createContext({ window:{}, document: { getElementById: () => dialog }, haptic() {},
     tg: { showConfirm() { throw new Error('Unavailable outside Telegram'); } },
     logout() { count++; } });
   vm.runInContext(source.slice(source.indexOf('  function confirmLogout'), source.indexOf('  function logout(')), context);

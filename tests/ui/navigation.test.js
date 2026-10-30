@@ -7,6 +7,7 @@ function setup(){
   const nodes=new Map(),events={},stack=[null],actions=[];
   let index=0,observer,loggedOut=false;
   function node(id){if(!nodes.has(id))nodes.set(id,{shown:false,getClientRects(){return this.shown?[{}]:[];},
+    hasAttribute(name){return name==='data-motion-closing' && !!this.closing;},
     classList:{contains:()=>false},querySelector:()=>null,click(){actions.push(id);}});return nodes.get(id);}
   const history={get state(){return stack[index];},replaceState(state){stack[index]=state;},pushState(state){stack.splice(++index);stack.push(state);},go(n){index+=n;},back(){this.go(-1);}};
   const window={history,addEventListener:(event,fn)=>events[event]=fn,MutationObserver:class{constructor(fn){observer=fn;}observe(){}}};
@@ -41,6 +42,16 @@ test('ordinary updates do not add entries and leaving a tab clears nested histor
 test('logout consumes private navigation without invoking old chat actions',()=>{
   const app=setup();app.node('sectionChat').shown=true;app.node('chatThread').shown=true;app.observer();
   app.logout();app.pop();assert.deepEqual(app.actions,[]);assert.equal(app.history.state.unilinkNavigation.depth,0);
+});
+
+test('native Back cannot re-add a dialog while its closing animation is still running',()=>{
+  const app=setup(),dialog=app.node('scheduleShareDialog');dialog.open=true;
+  app.node('scheduleShareClose').click=()=>{dialog.closing=true;};
+  app.observer();assert.equal(app.history.state.unilinkNavigation.depth,1);
+  app.nativeBack();assert.equal(dialog.open,true);
+  assert.equal(app.history.state.unilinkNavigation.depth,0);
+  dialog.open=false;dialog.closing=false;app.observer();
+  assert.equal(app.history.state.unilinkNavigation.depth,0);
 });
 
 test('city and accent pickers do not participate in native back history',()=>{

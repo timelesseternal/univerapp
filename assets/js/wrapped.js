@@ -111,9 +111,10 @@
     dialog.querySelector('.wrapped-count').textContent = `${current + 1} / ${slides.length}`;
     dialog.querySelector('.wrapped-prev').disabled = current === 0;
     dialog.querySelector('.wrapped-next').disabled = current === slides.length - 1;
+    window.unilinkMotion?.enter(dialog.querySelector('.wrapped-story-content'), {x:12,duration:320});
   }
   function go(step) { current = Math.max(0, Math.min(slides.length - 1, current + step)); render(); }
-  function close() { dialog?.close(); }
+  function close() { if (window.unilinkMotion) window.unilinkMotion.closeDialog(dialog); else dialog?.close(); }
   function open({ student, period }) {
     const key = keyFor(student, period);
     if (!key) return;

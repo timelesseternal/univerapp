@@ -27,13 +27,14 @@
     }
     if (visible(byID('umkdFileOverlay')) && byID('umkdFileOverlay').classList.contains('active'))
       add('pdf', byID('umkdFileOverlay').querySelector('.navigation-back'));
-    const close = document.querySelector('dialog[open] .wrapped-close');
+    const close = document.querySelector('dialog[open]:not([data-motion-closing]) .wrapped-close');
     if (close) add('recap', close);
     const logout = byID('logoutDialog');
-    if (logout?.open) add('logout-dialog', logout.querySelector('.cancel'));
+    if (logout?.open && !logout.hasAttribute('data-motion-closing')) add('logout-dialog', logout.querySelector('.cancel'));
     const scheduleShare = byID('scheduleShareDialog');
-    if (scheduleShare?.open) add('schedule-share', byID('scheduleShareClose'));
-    if (byID('studyHistoryDialog')?.open) add('study-history', byID('studyHistoryClose'));
+    if (scheduleShare?.open && !scheduleShare.hasAttribute('data-motion-closing')) add('schedule-share', byID('scheduleShareClose'));
+    const studyHistory = byID('studyHistoryDialog');
+    if (studyHistory?.open && !studyHistory.hasAttribute('data-motion-closing')) add('study-history', byID('studyHistoryClose'));
     return result;
   }
   function sync() {
@@ -70,6 +71,6 @@
     sync();
   });
   const observer = new window.MutationObserver(sync);
-  observer.observe(document.body,{subtree:true,childList:true,attributes:true,attributeFilter:['class','style','hidden','open']});
+  observer.observe(document.body,{subtree:true,childList:true,attributes:true,attributeFilter:['class','style','hidden','open','data-motion-closing']});
   sync();
 })();

@@ -154,7 +154,7 @@
       dialog.setAttribute('aria-labelledby', 'scheduleShareTitle');
       dialog.innerHTML = `<header class="schedule-share-header"><h2 id="scheduleShareTitle">Расписание для друга</h2><button type="button" id="scheduleShareClose" class="schedule-share-close" aria-label="Закрыть"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="m6 6 12 12M18 6 6 18"/></svg></button></header><div class="schedule-share-preview"><img id="scheduleShareImage" alt="Карточка выбранного дня" hidden></div><label class="schedule-share-options"><input id="scheduleShareTeachers" type="checkbox">Показывать преподавателей</label><div class="schedule-share-actions"><button type="button" id="scheduleShareSend" class="schedule-share-primary" disabled>Поделиться</button><button type="button" id="scheduleShareSave" disabled>Сохранить PNG</button></div><a id="scheduleShareOpen" class="schedule-share-open" target="_blank" rel="noopener" hidden>Открыть изображение</a><p class="schedule-share-status" id="scheduleShareStatus" role="status" aria-live="polite"></p>`;
       document.body.append(dialog);
-      byId('scheduleShareClose').addEventListener('click', () => dialog.close());
+      byId('scheduleShareClose').addEventListener('click', () => window.unilinkMotion ? window.unilinkMotion.closeDialog(dialog) : dialog.close());
       dialog.addEventListener('close', release);
       byId('scheduleShareTeachers').addEventListener('change', prepare);
       byId('scheduleShareSend').addEventListener('click', share);

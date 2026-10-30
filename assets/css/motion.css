@@ -1,21 +1,20 @@
 /* One motion rhythm. Background loops and live progress keep their own clocks. */
 :root {
-  --motion-fast: 200ms;
-  --motion-normal: 420ms;
+  --motion-fast: 180ms;
+  --motion-normal: 260ms;
   --motion-ease: cubic-bezier(.16, 1, .3, 1);
 }
 @keyframes interfaceEnter {
-  from { opacity: 0; transform: translateY(16px); }
-  to { opacity: 1; transform: translateY(0); }
+  from { opacity: 0; }
+  to { opacity: 1; }
 }
-.app-section { animation: interfaceEnter var(--motion-normal) var(--motion-ease); }
+.app-section { animation: none; }
 @keyframes panelEnter {
   from { opacity: 0; transform: translateY(10px) scale(.97); }
   to { opacity: 1; transform: translateY(0) scale(1); }
 }
-.chat-thread:not([hidden]), .profile-menu[open] .profile-menu-items,
-.profile-gpa[open] .profile-gpa-extra { animation: interfaceEnter var(--motion-normal) var(--motion-ease); }
-.profile-menu[open] .profile-menu-items { animation-name: panelEnter; transform-origin: top right; }
+.chat-thread:not([hidden]) { animation: interfaceEnter var(--motion-normal) var(--motion-ease); }
+.profile-menu[open] .profile-menu-items, .profile-gpa[open] .profile-gpa-extra { animation:none; }
 /* Content owns the transition: refreshed rows must never replay staggered fades. */
 .row-enter, .bottom-tab-icon.icon-filled.pop { animation: none !important; }
 #scheduleContainer, .section-inner { transition: none; }
@@ -45,6 +44,14 @@ button, .day-btn, .theme-btn, .profile-menu summary, .profile-gpa summary,
 }
 .modal-card { transform: translateY(18px) scale(.96); }
 .modal-overlay.active .modal-card { transform: translateY(0) scale(1); }
+dialog[open]:is(.schedule-share-dialog,.study-history-dialog,.logout-dialog){animation:unilinkDialogIn .26s var(--motion-ease) both}
+dialog[open]:is(.schedule-share-dialog,.study-history-dialog,.logout-dialog,.wrapped-dialog)::backdrop{animation:unilinkBackdropIn .22s ease-out both}
+dialog[data-motion-closing]::backdrop{animation:unilinkBackdropOut .18s ease-in both!important}
+details[data-motion-expanded="false"] :is(.profile-gpa-arrow,.academic-chevron){transform:rotate(0deg)}
+details[data-motion-expanded="true"] :is(.profile-gpa-arrow,.academic-chevron){transform:rotate(90deg)}
+@keyframes unilinkDialogIn{from{opacity:0;transform:scale(.97)}to{opacity:1;transform:scale(1)}}
+@keyframes unilinkBackdropIn{from{opacity:0}to{opacity:1}}
+@keyframes unilinkBackdropOut{from{opacity:1}to{opacity:0}}
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after {
     animation: none !important;

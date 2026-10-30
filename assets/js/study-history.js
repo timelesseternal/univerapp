@@ -107,7 +107,7 @@
     }
     const events = state.events || [];
     dialog.innerHTML = `<header><h2>Что изменилось</h2><button type="button" id="studyHistoryClose" aria-label="Закрыть">✕</button></header><p class="study-history-hint">Последние 80 изменений на этом устройстве. Дата — время обнаружения, а не выставления оценки.</p>${events.length ? events.map(event => `<article class="study-change"><div class="study-change-meta">${event.kind === 'grades' ? 'Оценки' : 'Расписание'} · ${escape(event.period)} · ${stamp(event.time)}</div><h3>${escape(event.title)}</h3><p class="study-change-before">Было: ${escape(event.before)}</p><p>Стало: ${escape(event.after)}</p></article>`).join('') : '<p>Изменений пока нет. Сравним данные при следующем обновлении.</p>'}`;
-    document.getElementById('studyHistoryClose').addEventListener('click', () => dialog.close());
+    document.getElementById('studyHistoryClose').addEventListener('click', () => window.unilinkMotion ? window.unilinkMotion.closeDialog(dialog) : dialog.close());
     dialog.showModal(); state.seen = Math.max(Date.now(), Number(events[0]?.time || 0)); persist();
   }
   document.addEventListener('click', event => { if (event.target.closest?.('[data-study-history]')) open(); });

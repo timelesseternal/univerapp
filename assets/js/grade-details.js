@@ -3,6 +3,7 @@
   const cache = new Map(), opened = new Set();
   let epoch = 0;
   const escape = value => String(value).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+  const paint = (body, html) => { if (window.unilinkMotion) window.unilinkMotion.replace(body, html); else body.innerHTML = html; };
   function groupsHtml(groups) {
     if (!Array.isArray(groups)) throw new Error('invalid_details');
     if (!groups.length) return '<p class="grade-points-empty">Оценок за контрольные точки пока нет</p>';
@@ -25,7 +26,7 @@
     const queryID = Number(subject?.queryID);
     const querySuffix = Number.isSafeInteger(queryID) && queryID > 0 ? `&queryID=${queryID}` : '';
     if (!Number.isSafeInteger(subjectID) || subjectID < 1 || !context.year || context.term == null) {
-      body.innerHTML = '<p class="grade-points-empty">Подробные оценки пока недоступны. Обнови список дисциплин.</p>';
+      paint(body, '<p class="grade-points-empty">Подробные оценки пока недоступны. Обнови список дисциплин.</p>');
       return;
     }
     const key = `${context.generation}:${context.studentID}:${context.year}:${context.term}:${subjectID}${querySuffix}`;
@@ -34,8 +35,8 @@
     const revision = epoch;
     let entry = cache.get(key);
     if (!entry) { entry = {}; cache.set(key, entry); }
-    if (entry.html) body.innerHTML = entry.html;
-    else body.innerHTML = window.unilinkLoading.html('Контрольные точки загружаются');
+    if (entry.html) paint(body, entry.html);
+    else paint(body, window.unilinkLoading.html('Контрольные точки загружаются'));
     if (!entry.work && (!entry.at || Date.now() - entry.at >= 60000)) {
       entry.work = context.fetch(`/api/grade-details?year=${context.year}&term=${context.term}&subjectID=${subjectID}${querySuffix}`)
         .then(data => {
@@ -46,10 +47,10 @@
     }
     try {
       if (entry.work) await entry.work;
-      if (revision === epoch && body.isConnected) body.innerHTML = entry.html;
+      if (revision === epoch && body.isConnected) paint(body, entry.html);
     } catch {
       if (revision !== epoch || !body.isConnected) return;
-      body.innerHTML = (entry.html || '') + '<div class="grade-points-error" role="status"><p>Не удалось загрузить контрольные точки.</p><button type="button" class="grade-points-retry">Попробовать снова</button></div>';
+      paint(body, (entry.html || '') + '<div class="grade-points-error" role="status"><p>Не удалось загрузить контрольные точки.</p><button type="button" class="grade-points-retry">Попробовать снова</button></div>');
       body.querySelector('.grade-points-retry').addEventListener('click', () => load(details, context));
     }
   }
