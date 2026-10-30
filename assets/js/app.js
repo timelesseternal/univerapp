@@ -1482,7 +1482,8 @@ if ('serviceWorker' in navigator) {
       <div class="weather-card-avatar" aria-hidden="true">${escapeHtml((platonusStudent?.studentName || '').split(' ').filter(Boolean).slice(0, 2).map(name => name[0]).join('') || 'U')}</div>
       <div class="weather-location"><svg aria-hidden="true" viewBox="0 0 24 24"><path d="M20 10c0 6-8 11-8 11S4 16 4 10a8 8 0 1 1 16 0Z"/><circle cx="12" cy="10" r="2.5"/></svg><span>${escapeHtml(city)}</span></div>
       <div class="weather-scene">
-        <svg class="weather-solar-path" viewBox="0 0 320 165" preserveAspectRatio="none" aria-hidden="true"><path d="${arcPath}" vector-effect="non-scaling-stroke"/>${validArc && !night ? '<circle cx="' + x.toFixed(1) + '" cy="' + y.toFixed(1) + '" r="7"/>' : ''}</svg>
+        <svg class="weather-solar-path" viewBox="0 0 320 165" preserveAspectRatio="none" aria-hidden="true"><path d="${arcPath}" vector-effect="non-scaling-stroke"/></svg>
+        ${validArc && !night ? `<svg class="weather-solar-sun" style="left:${(x / 320 * 100).toFixed(2)}%;top:${(y / 165 * 100).toFixed(2)}%" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="4"/><path d="M12 2v2m0 16v2M2 12h2m16 0h2M5 5l1.4 1.4m11.2 11.2L19 19M5 19l1.4-1.4M17.6 6.4 19 5"/></svg>` : ''}
         <div class="weather-temperature">${metric(cur.temperature_2m)}°</div>
         <div class="weather-caption">${weatherDescription(cur.weather_code)}</div>
         <div class="weather-solar-times"><span>Восход ${clock(rise)}</span><span>Закат ${clock(set)}</span></div>

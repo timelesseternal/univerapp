@@ -4,6 +4,18 @@ import vm from 'node:vm';
 import { readFileSync } from 'node:fs';
 const source = readFileSync(new URL('../../assets/js/app.js', import.meta.url), 'utf8');
 
+test('the solar marker is a separate square sun, never a circle stretched with the chart',()=>{
+  const ctx=vm.createContext({platonusStudent:null,escapeHtml:value=>String(value),weatherDescription:()=> 'Ясно'});
+  vm.runInContext(source.slice(source.indexOf('  function smartWeatherHtml('),source.indexOf('  async function loadWeather(')),ctx);
+  const data={current:{is_day:1,time:150,temperature_2m:10},daily:{sunrise:[100],sunset:[200]}};
+  const html=ctx.smartWeatherHtml('Караганда',data);
+  const chart=html.match(/<svg class="weather-solar-path"[\s\S]*?<\/svg>/)[0];
+  assert.doesNotMatch(chart,/<circle/);
+  assert.match(html,/<svg class="weather-solar-sun"[^>]*viewBox="0 0 24 24"/);
+  assert.match(html,/left:58\.13%;top:16\.97%/);
+  assert.doesNotMatch(ctx.smartWeatherHtml('Караганда',{...data,current:{...data.current,is_day:0}}),/class="weather-solar-sun"/);
+});
+
 test('blocked local storage does not break the weather card',()=>{
   const element={innerHTML:''};
   const ctx=vm.createContext({document:{getElementById:()=>element},
