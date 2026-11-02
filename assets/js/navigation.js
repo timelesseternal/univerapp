@@ -35,6 +35,8 @@
     if (scheduleShare?.open && !scheduleShare.hasAttribute('data-motion-closing')) add('schedule-share', byID('scheduleShareClose'));
     const studyHistory = byID('studyHistoryDialog');
     if (studyHistory?.open && !studyHistory.hasAttribute('data-motion-closing')) add('study-history', byID('studyHistoryClose'));
+    const chatActions = byID('chatActionsDialog');
+    if (chatActions?.open && !chatActions.hasAttribute('data-motion-closing')) add('chat-actions', byID('chatActionsClose'));
     return result;
   }
   function sync() {

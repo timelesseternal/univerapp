@@ -11,6 +11,158 @@
     monitoring: false, badgeTimer: null, badgeBusy: false, peerProfileOpen: false, peerProfileVersion: 0,
     inbox: [], inboxRenderKey: null, previewKey: null, previewOwnerID: null, canResume: false };
   const warming = new Set();
+  let replyTarget = null, actionsMessage = null, actionsVersion = 0, actionsBusy = false;
+  let deletionRevision = '0', actionsAvailable = false;
+  const deletedMessages = new Set();
+  function setReply(message, focus = false) {
+    replyTarget = message && !message.deleted ? message : null;
+    byID('chatReply').hidden = !replyTarget;
+    byID('chatReplyName').textContent = replyTarget ? (replyTarget.senderID === state.profile?.id ? 'Ответ себе' : state.conversation?.peer.name || 'Ответ') : '';
+    byID('chatReplyText').textContent = replyTarget?.text || '';
+    if (focus) byID('chatText').focus();
+    fitConversation();
+  }
+  function closeActions() {
+    actionsVersion++;
+    actionsMessage = null;
+    byID('chatActionsDialog').close?.();
+  }
+  function actionButton(text, callback, className = '') {
+    const button = node('button', `chat-action-button ${className}`, text);
+    button.type = 'button';
+    button.addEventListener('click', callback);
+    return button;
+  }
+  function eraseMessage(id) {
+    deletedMessages.add(id);
+    for (const message of state.messages.values()) {
+      if (message.id === id) Object.assign(message,{text:'Сообщение удалено',deleted:true,reply:null,forwardedName:null});
+      if (message.reply?.id === id) message.reply = {...message.reply,text:'Сообщение удалено',deleted:true};
+    }
+    // Discard stale previews too; replies must not retain erased message text.
+    for (const entry of state.history.values()) for (const message of entry.messages) {
+      if (message.id === id) Object.assign(message,{text:'Сообщение удалено',deleted:true,reply:null,forwardedName:null});
+      if (message.reply?.id === id) message.reply = {...message.reply,text:'Сообщение удалено',deleted:true};
+    }
+    if (replyTarget?.id === id) setReply(null);
+    if (actionsMessage?.id === id && !actionsBusy) closeActions();
+  }
+  function openActions(message) {
+    if (!state.profile || !actionsAvailable || message.deleted || deletedMessages.has(message.id)) return;
+    closeActions();
+    actionsMessage = message;
+    byID('chatActionsTitle').textContent = 'Сообщение';
+    byID('chatActionsPreview').textContent = message.text;
+    byID('chatActionsStatus').textContent = '';
+    const content = byID('chatActionsContent');
+    content.replaceChildren(actionButton('Ответить', () => { closeActions(); setReply(message,true); }),
+      actionButton('Переслать', () => chooseForward(message)));
+    if (message.senderID === state.profile.id) content.append(actionButton('Удалить', () => confirmDelete(message),'chat-action-danger'));
+    byID('chatActionsDialog').showModal?.();
+  }
+  function confirmDelete(message) {
+    byID('chatActionsTitle').textContent = 'Удалить сообщение?';
+    byID('chatActionsStatus').textContent = 'Сообщение будет удалено у вас и собеседника. Отменить это действие нельзя.';
+    const conversationID = state.conversation.id, epoch = state.epoch;
+    byID('chatActionsContent').replaceChildren(actionButton('Удалить у всех', async event => {
+      if (actionsBusy) return;
+      actionsBusy = true; event.currentTarget.disabled = true;
+      const version = actionsVersion;
+      try {
+        await request('messages',{method:'DELETE',body:{conversationID,messageID:message.id}});
+        if (stale(epoch)) return;
+        // Deletion can finish after the user has opened another conversation.
+        if (state.conversation?.id === conversationID) { eraseMessage(message.id); drawMessages(); rememberHistory(); }
+        else state.history.delete(conversationID);
+        state.inboxAt = 0; state.inboxRenderKey = null;
+        if (version === actionsVersion) closeActions();
+      } catch (error) { if (!stale(epoch) && version === actionsVersion) byID('chatActionsStatus').textContent = labels[error.message] || 'Не удалось удалить. Попробуйте ещё раз.'; }
+      finally { actionsBusy = false; event.currentTarget.disabled = false; }
+    },'chat-action-danger'),actionButton('Отмена',closeActions));
+  }
+  function chooseForward(message) {
+    const version = ++actionsVersion, epoch = state.epoch;
+    byID('chatActionsTitle').textContent = 'Кому переслать?';
+    const search = node('input','chat-forward-search');
+    search.type = 'search'; search.placeholder = 'Найти студента'; search.setAttribute('aria-label','Найти получателя');
+    const list = node('div','chat-forward-list');
+    const valid = () => version === actionsVersion && !stale(epoch);
+    let searchSequence = 0, searchTimer;
+    const choose = (peer, conversation) => {
+      if (!valid()) return;
+      searchSequence++;
+      byID('chatActionsTitle').textContent = `Переслать: ${peer.name}`;
+      byID('chatActionsStatus').textContent = 'Получатель увидит текст сообщения и имя его автора.';
+      const clientID = crypto.randomUUID();
+      byID('chatActionsContent').replaceChildren(actionButton('Переслать сообщение', async event => {
+        if (actionsBusy || !valid()) return;
+        actionsBusy = true; event.currentTarget.disabled = true;
+        try {
+          const target = conversation || (await request('conversations',{method:'POST',body:{peerID:peer.id}})).conversation;
+          if (!valid()) return;
+          const data = await request('messages',{method:'POST',body:{conversationID:target.id,forwardID:message.id,clientID}});
+          if (stale(epoch)) return;
+          state.history.delete(target.id); state.inboxAt = 0;
+          if (state.conversation?.id === target.id) { state.messages.set(data.message.id,data.message); drawMessages({scroll:'bottom'}); rememberHistory(); }
+          if (valid()) { byID('chatActionsContent').replaceChildren(actionButton('Готово',closeActions)); byID('chatActionsStatus').textContent = 'Сообщение переслано'; }
+        } catch (error) { if (valid()) byID('chatActionsStatus').textContent = labels[error.message] || 'Не удалось переслать. Попробуйте ещё раз.'; }
+        finally { actionsBusy = false; event.currentTarget.disabled = false; }
+      },'chat-action-primary'),actionButton('Назад к получателям',() => chooseForward(message)));
+    };
+    const recent = () => {
+      list.replaceChildren(...state.inbox.map(conversation => actionButton(conversation.peer.name,() => choose(conversation.peer,conversation))));
+      if (!state.inbox.length) list.append(node('p','chat-actions-status','Введите имя получателя в поиске'));
+    };
+    recent();
+    search.addEventListener('input', () => {
+      clearTimeout(searchTimer);
+      const sequence = ++searchSequence, query = search.value.trim();
+      if (query.length < 2) { recent(); return; }
+      searchTimer = setTimeout(async () => {
+        if (!valid() || sequence !== searchSequence) return;
+        try {
+          const data = await request('users',{params:{q:query.slice(0,60)}});
+          if (!valid() || sequence !== searchSequence) return;
+          list.replaceChildren(...data.users.map(peer => actionButton(peer.name,() => choose(peer))));
+          if (!data.users.length) list.append(node('p','chat-actions-status','Никого не нашли'));
+        } catch { if (valid() && sequence === searchSequence) byID('chatActionsStatus').textContent = 'Не удалось выполнить поиск'; }
+      },300);
+    });
+    byID('chatActionsStatus').textContent = '';
+    byID('chatActionsContent').replaceChildren(search,list);
+  }
+  function bindMessageActions(article, message) {
+    if (message.deleted || !actionsAvailable) return;
+    const conversationID = state.conversation?.id, epoch = state.epoch;
+    const valid = () => !stale(epoch) && state.visible && state.conversation?.id === conversationID && !deletedMessages.has(message.id);
+    let start = null, hold = null, swiped = false;
+    const reset = () => { clearTimeout(hold); start = null; article.style.transform = ''; };
+    article.addEventListener('contextmenu',event => { event.preventDefault(); reset(); if (valid()) openActions(message); });
+    article.addEventListener('pointerdown',event => {
+      if (event.button !== 0 || event.isPrimary === false || event.target.closest?.('button')) return;
+      // Keep screen-edge navigation gestures independent from message gestures.
+      if (event.clientX < 24 || event.clientX > window.innerWidth - 24) return;
+      start = {x:event.clientX,y:event.clientY,id:event.pointerId}; swiped = false;
+      hold = setTimeout(() => { reset(); if (valid()) openActions(message); },500);
+    });
+    article.addEventListener('pointermove',event => {
+      if (!start || event.pointerId !== start.id) return;
+      const dx = event.clientX-start.x, dy = event.clientY-start.y;
+      if (Math.abs(dx)>8 || Math.abs(dy)>8) clearTimeout(hold);
+      if (Math.abs(dy)>Math.max(12,Math.abs(dx))) { reset(); return; }
+      if (dx < -10 && Math.abs(dx)>Math.abs(dy)*1.5) {
+        swiped = true; article.setPointerCapture?.(event.pointerId);
+        article.style.transform = `translateX(${Math.max(-64,dx*.65)}px)`;
+      }
+    });
+    article.addEventListener('pointerup',event => {
+      const reply = start && swiped && event.clientX-start.x < -50;
+      reset();
+      if (reply && valid()) { setReply(message,true); telegramApp?.HapticFeedback?.impactOccurred?.('light'); }
+    });
+    article.addEventListener('pointercancel',reset);
+    article.addEventListener('lostpointercapture',reset);
+  }
   const presenceClientID = crypto.randomUUID();
   let presenceSequence = 0, presenceTimer = null, peerPresenceTimer = null;
   function publishPresence(active = true) {
@@ -164,6 +316,7 @@
     chat_rate_limit: 'Слишком много сообщений. Подождите минуту и попробуйте снова.',
     chat_message_length: 'Сообщение должно содержать от 1 до 2000 символов.',
     chat_search_length: 'Для поиска введите от 2 до 60 символов.',
+    invalid_chat_request: 'Сообщение уже недоступно. Обновите переписку и попробуйте снова.',
     platonus_unreachable: 'Platonus сейчас недоступен. Попробуйте подключиться позже.',
   };
   function stale(epoch) { return epoch !== state.epoch; }
@@ -381,10 +534,31 @@
       const day = date.toLocaleDateString('ru-RU', { day: 'numeric', month: 'long', year: 'numeric' });
       if (day !== lastDay) { list.append(node('div', 'chat-date', day)); lastDay = day; }
       const article = node('article', message.senderID === (state.profile?.id || state.previewOwnerID) ? 'chat-message chat-message-own' : 'chat-message');
+      article.setAttribute('data-message-id',message.id);
+      if (message.deleted) article.classList.add('chat-message-deleted');
+      if (message.forwardedName && !message.deleted) article.append(node('span','chat-forward-label',`Переслано от ${message.forwardedName}`));
+      if (message.reply && !message.deleted) {
+        const quote = node('button','chat-message-quote'); quote.type = 'button';
+        quote.append(node('strong','',message.reply.senderID === state.profile?.id ? 'Вы' : message.reply.name || 'Ответ'),
+          node('span','',message.reply.deleted ? 'Сообщение удалено' : message.reply.text));
+        quote.addEventListener('click',() => {
+          const target = [...list.children].find(element => element.getAttribute?.('data-message-id') === message.reply.id);
+          if (!target) { status('Это сообщение выше в истории — нажмите «Предыдущие сообщения».'); return; }
+          target.scrollIntoView?.({block:'center',behavior:window.matchMedia?.('(prefers-reduced-motion: reduce)').matches ? 'instant' : 'smooth'});
+          target.classList.add('chat-message-highlight'); setTimeout(() => target.classList.remove('chat-message-highlight'),1200);
+        });
+        article.append(quote);
+      }
       article.append(node('p', 'chat-message-text', message.text));
       const time = node('time', 'chat-message-time', date.toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' }));
       time.dateTime = message.createdAt;
-      article.append(time);
+      const footer = node('div','chat-message-footer'); footer.append(time);
+      if (!message.deleted && actionsAvailable) {
+        const more = node('button','chat-message-more','···'); more.type = 'button';
+        more.setAttribute('aria-label','Действия с сообщением'); more.addEventListener('click',() => openActions(message)); footer.append(more);
+      }
+      article.append(footer);
+      bindMessageActions(article,message);
       list.append(article);
       if (newIDs.has(message.id)) animateMessage(article);
     }
@@ -414,24 +588,33 @@
     if (!state.conversation) return;
     const epoch = state.epoch, id = state.conversation.id;
     const messages = orderedMessages();
-    const params = { conversationID: id };
+    const params = { conversationID: id, revision: deletionRevision };
     if (older && messages.length) params.before = messages[0].id;
     // Catch up from the cached boundary, including on reopening. A latest page
     // can skip messages between the cache and that page after a long absence.
     else if (messages.length) params.after = after || messages.at(-1).id;
     const data = await request('messages', { params });
     if (stale(epoch) || state.conversation?.id !== id) return;
+    const previousActions = actionsAvailable;
+    actionsAvailable = data.actionsAvailable === true;
+    if (typeof data.revision === 'string' && /^\d{1,19}$/.test(data.revision) && BigInt(data.revision) > BigInt(deletionRevision)) deletionRevision = data.revision;
     showTyping(data.peerTyping === true && state.visible && !state.peerProfileOpen);
     peerStatus(data.peerPresence);
     if (!params.after) state.hasOlder = data.hasMore;
     const newIDs = new Set(data.messages.filter(message => !state.messages.has(message.id)).map(message => message.id));
-    let changed = newIDs.size > 0;
+    let changed = newIDs.size > 0 || previousActions !== actionsAvailable;
     // Initial fetches contain the latest page, not the complete conversation.
     // Merge it so refreshes cannot discard loaded history or a just-sent message.
     for (const message of data.messages) {
+      if (JSON.stringify(state.messages.get(message.id)) !== JSON.stringify(message)) changed = true;
       state.messages.set(message.id, message);
       if (message.senderID === state.profile.id && state.pending.delete(message.clientID)) changed = true;
     }
+    for (const message of data.messages) if (message.deleted) deletedMessages.add(message.id);
+    if (Array.isArray(data.deletedIDs)) for (const deletedID of data.deletedIDs) {
+      if (typeof deletedID === 'string' && /^[1-9]\d{0,18}$/.test(deletedID)) { deletedMessages.add(deletedID); changed = true; }
+    }
+    for (const deletedID of deletedMessages) eraseMessage(deletedID);
     rememberHistory();
     if (changed || initial || older) drawMessages({ scroll: initial ? 'bottom' : older ? 'older' : 'keep',
       newIDs: initial || older ? new Set() : newIDs });
@@ -532,15 +715,18 @@
     if (state.conversation) {
       const old = state.drafts.get(state.conversation.id);
       const text = byID('chatText').value;
-      state.drafts.set(state.conversation.id, { text, clientID: old?.text === text ? old.clientID : null });
+      state.drafts.set(state.conversation.id, { text, replyTarget, replyTo:replyTarget?.id || null,
+        clientID: old?.text === text && old?.replyTo === (replyTarget?.id || null) ? old.clientID : null });
     }
   }
   async function openConversation(conversation) {
+    closeActions(); deletionRevision = '0'; actionsAvailable = false; deletedMessages.clear();
     stopTyping(); showTyping(false);
     closePeerProfile();
     saveDraft();
     rememberHistory();
     state.conversation = conversation;
+    setReply(state.drafts.get(conversation.id)?.replyTarget || null);
     peerStatus(null);
     const cached = state.history.get(conversation.id);
     state.messages = new Map((cached?.messages || []).map(message => [message.id, message]));
@@ -564,11 +750,13 @@
     } catch (error) { if (!stale(epoch) && state.conversation?.id === conversation.id) showError(error); }
   }
   function closeConversation() {
+    closeActions(); actionsAvailable = false; deletedMessages.clear();
     stopTyping(); showTyping(false);
     closePeerProfile();
     saveDraft();
     rememberHistory();
     state.conversation = null;
+    setReply(null);
     fitConversation();
     state.messages.clear();
     root.classList.remove('chat-in-thread');
@@ -656,8 +844,9 @@
     stopTyping();
     const epoch = state.epoch, id = state.conversation.id;
     const previous = state.drafts.get(id);
-    const clientID = previous?.text?.trim() === text && previous.clientID ? previous.clientID : crypto.randomUUID();
-    state.drafts.set(id, { text: byID('chatText').value, clientID });
+    const replyTo = replyTarget?.id || null;
+    const clientID = previous?.text?.trim() === text && previous.replyTo === replyTo && previous.clientID ? previous.clientID : crypto.randomUUID();
+    state.drafts.set(id, { text: byID('chatText').value, clientID, replyTo, replyTarget });
     state.pending.set(clientID, { conversationID: id, clientID, text, failed: false });
     drawMessages({ scroll: 'bottom', pendingID:clientID });
     state.sending = true;
@@ -667,7 +856,7 @@
     try {
       await ensureSession();
       if (stale(epoch)) return;
-      const data = await request('messages', { method: 'POST', body: { conversationID: id, text, clientID } });
+      const data = await request('messages', { method: 'POST', body: { conversationID: id, text, clientID, ...(replyTo ? {replyTo} : {}) } });
       if (stale(epoch)) return;
       state.pending.delete(clientID);
       const currentDraft = state.conversation?.id === id ? byID('chatText').value : state.drafts.get(id)?.text;
@@ -681,7 +870,8 @@
       if (state.conversation?.id === id) {
         state.messages.set(data.message.id, data.message);
         rememberHistory();
-        if (byID('chatText').value === draftText) byID('chatText').value = '';
+        if (byID('chatText').value === draftText && (replyTarget?.id || null) === replyTo) byID('chatText').value = '';
+        if (replyTarget?.id === replyTo) setReply(null);
         drawMessages({ scroll: 'bottom' });
         status();
       }
@@ -704,6 +894,7 @@
     }
   }
   function reset() {
+    closeActions(); setReply(null); deletionRevision = '0'; actionsAvailable = false; deletedMessages.clear();
     clearTimeout(presenceTimer); peerStatus(null);
     stopTyping(); showTyping(false);
     closePeerProfile();
@@ -781,6 +972,7 @@
     },
     onSection(section) {
       if (section !== 'chat') {
+        closeActions();
         if (document.activeElement === byID('chatText')) byID('chatText').blur();
         stopTyping(); showTyping(false);
       }
@@ -803,6 +995,9 @@
     state.searchTimer = setTimeout(search, 300);
   });
   byID('chatBack').addEventListener('click', closeConversation);
+  byID('chatReplyCancel').addEventListener('click',() => setReply(null));
+  byID('chatActionsClose').addEventListener('click',closeActions);
+  byID('chatActionsDialog').addEventListener('cancel',event => { event.preventDefault(); closeActions(); });
   byID('chatPeerAvatar').addEventListener('click', openPeerProfile);
   byID('chatProfileBack').addEventListener('click', () => { closePeerProfile(); window.univerChat.refreshNow(); });
   byID('chatOlder').addEventListener('click', async () => {

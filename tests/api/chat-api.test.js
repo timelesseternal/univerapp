@@ -26,6 +26,30 @@ async function call({ method = 'GET', action = 'inbox', headers = {}, query = {}
 }
 const reply = (data, status = 200) => ({ ok: status < 400, status, json: async () => data });
 
+test('message actions validate IDs and derive the actor from the session',async t=>{
+  const calls=[];
+  setup(t,async(url,options)=>{
+    if(url.includes('/chat_sessions?'))return reply([{user_id:user}]);
+    calls.push({url,body:JSON.parse(options.body)});
+    return reply(url.endsWith('/chat_delete_message')?true:{id:'9',text:'Ответ'});
+  });
+  const headers={cookie:`${COOKIE_NAME}=${'a'.repeat(64)}`,origin:'https://univer.test'};
+  const sent=await call({method:'POST',action:'messages',headers,body:{conversationID:conversation,clientID:client,text:'Ответ',replyTo:'7',userID:client}});
+  assert.equal(sent.code,200);
+  assert.ok(calls[0].url.endsWith('/chat_send_message_v2'));
+  assert.equal(calls[0].body.p_user_id,user);
+  assert.equal(calls[0].body.p_reply_to,'7');
+  const forward=await call({method:'POST',action:'messages',headers,body:{conversationID:conversation,clientID:client,forwardID:'8'}});
+  assert.equal(forward.code,200);assert.equal(calls[1].body.p_forward_id,'8');
+  const deleted=await call({method:'DELETE',action:'messages',headers,body:{conversationID:conversation,messageID:'9',userID:client}});
+  assert.equal(deleted.code,200);assert.equal(calls[2].body.p_user_id,user);
+  for(const invalid of ['0','-1','1 OR 1=1','9223372036854775808',7]) {
+    assert.equal((await call({method:'DELETE',action:'messages',headers,body:{conversationID:conversation,messageID:invalid}})).code,400);
+  }
+  assert.equal((await call({method:'POST',action:'messages',headers,body:{conversationID:conversation,clientID:client,text:'x',replyTo:'7',forwardID:'8'}})).code,400);
+  assert.equal(calls.length,3);
+});
+
 test('a verified student recovers saved study details across devices without replacing fresh fields',async t=>{
   let calls=0;
   setup(t,async url=>{
@@ -159,6 +183,7 @@ test('presence identity and session are server-derived; invalid activity is reje
 test('messages remain available before the optional typing migration is applied', async t => {
   setup(t, async url => {
     if (url.includes('/chat_sessions?')) return reply([{ user_id: user }]);
+    if (url.endsWith('/rpc/chat_read_messages_v2')) return reply({code:'PGRST202'},404);
     if (url.endsWith('/rpc/chat_read_messages')) return reply({ messages: [], hasMore: false });
     if (url.endsWith('/rpc/chat_peer_typing')) return reply({ code: 'PGRST202' }, 404);
     if (url.endsWith('/rpc/chat_peer_presence')) return reply({ code: 'PGRST202' }, 404);
@@ -167,7 +192,7 @@ test('messages remain available before the optional typing migration is applied'
   const result = await call({ action: 'messages', query: { conversationID: conversation },
     headers: { cookie: `${COOKIE_NAME}=${'a'.repeat(64)}` } });
   assert.equal(result.code, 200);
-  assert.deepEqual(result.body, { messages: [], hasMore: false, peerTyping: false, peerPresence:null });
+  assert.deepEqual(result.body, { messages: [], hasMore: false, actionsAvailable:false, peerTyping: false, peerPresence:null });
 });
 
 test('slow Platonus transcript refresh does not delay the inbox and still syncs verified study details', async t => {

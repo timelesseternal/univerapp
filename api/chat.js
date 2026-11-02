@@ -2,6 +2,22 @@ import { ChatError, checkOrigin, configuration, currentUser, database, readPeerP
 import { waitUntil } from '@vercel/functions';
 import { linkTelegram, processNotifications } from './_lib/telegram.js';
 
+function messageID(value, optional = false) {
+  if (optional && value == null) return null;
+  if (typeof value !== 'string' || !/^[1-9]\d{0,18}$/.test(value) || BigInt(value) > 9223372036854775807n)
+    throw new ChatError(400, 'invalid_chat_request');
+  return value;
+}
+
+async function readMessages(userID, conversationID, before, after, revision) {
+  const params = { p_user_id:userID, p_conversation_id:conversationID, p_before:before || null, p_after:after || null };
+  try { return { ...await rpc('chat_read_messages_v2', {...params,p_revision:revision}), actionsAvailable:true }; }
+  catch (error) {
+    if (!(error instanceof ChatError) || error.code !== 'chat_setup_required') throw error;
+    return { ...await rpc('chat_read_messages',params), actionsAvailable:false };
+  }
+}
+
 export default async function handler(req, res) {
   res.setHeader('Cache-Control', 'no-store, private');
   res.setHeader('Vary', 'Cookie');
@@ -81,22 +97,28 @@ export default async function handler(req, res) {
       }
       if (before && after) throw new ChatError(400, 'invalid_chat_request');
       const conversationID = uuid(req.query.conversationID);
+      const revision = req.query.revision === undefined || req.query.revision === '0' ? '0' : messageID(req.query.revision);
       const [messages, peerTyping, peerPresence] = await Promise.all([
-        rpc('chat_read_messages', {
-          p_user_id: userID, p_conversation_id: conversationID, p_before: before || null, p_after: after || null,
-        }),
+        readMessages(userID, conversationID, before, after, revision),
         rpc('chat_peer_typing', { p_user_id: userID, p_conversation_id: conversationID }, { timeoutMs: 600 }).catch(() => false),
         rpc('chat_peer_presence', { p_user_id:userID, p_conversation_id:conversationID }, { timeoutMs:600 }).catch(() => null),
       ]);
       res.status(200).json({ ...messages, peerTyping: peerTyping === true, peerPresence });
       waitUntil(processNotifications(userID,'delete'));
+    } else if (action === 'messages' && req.method === 'DELETE') {
+      await rpc('chat_delete_message', {p_user_id:userID,p_conversation_id:uuid(req.body?.conversationID),p_message_id:messageID(req.body?.messageID)});
+      res.status(200).json({ok:true});
     } else if (action === 'messages' && req.method === 'POST') {
       const text = typeof req.body?.text === 'string' ? req.body.text.trim() : '';
-      if (!text || text.length > 2000) throw new ChatError(400, 'chat_message_length');
-      res.status(200).json({ message: await rpc('chat_send_message', {
+      const replyTo = messageID(req.body?.replyTo, true), forwardID = messageID(req.body?.forwardID, true);
+      if (replyTo && forwardID) throw new ChatError(400,'invalid_chat_request');
+      if ((!text && !forwardID) || text.length > 2000) throw new ChatError(400, 'chat_message_length');
+      const params = {
         p_user_id: userID, p_conversation_id: uuid(req.body?.conversationID),
         p_body: text, p_client_id: uuid(req.body?.clientID),
-      }) });
+      };
+      res.status(200).json({ message: await rpc(replyTo || forwardID ? 'chat_send_message_v2' : 'chat_send_message',
+        replyTo || forwardID ? {...params,p_reply_to:replyTo,p_forward_id:forwardID} : params) });
       waitUntil(processNotifications(userID,'send'));
     } else throw new ChatError(404, 'chat_action_not_found');
   } catch (error) {

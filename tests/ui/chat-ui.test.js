@@ -13,6 +13,9 @@ class Element {
   replaceChildren(...children) { this.children = children; }
   addEventListener(type, fn) { this.listeners[type] = fn; }
   setAttribute() {}
+  focus() {}
+  showModal() { this.open = true; }
+  close() { this.open = false; }
 }
 function setup(fetch, options = {}) {
   const elements = new Map();
@@ -76,6 +79,71 @@ test('chat does not request or poll until opened, and stops polling on leaving',
 
 const conversation = { id: 'conversation', peer: { id: 'peer', name: 'Друг' }, unread: 0 };
 const message = { id: '1', senderID: 'peer', text: 'История', createdAt: '2026-10-06T10:00:00Z', clientID: 'incoming' };
+
+const findClass = (element,name) => element.className?.split(' ').includes(name) ? element : element.children?.map(child=>findClass(child,name)).find(Boolean);
+async function actionUI(options={}) {
+  const calls=[];
+  const ui=setup(async(url,request)=>{
+    calls.push({url,...request});
+    if(url.includes('action=session'))return reply({profile,conversations:[conversation]});
+    if(url.includes('action=messages')&&request.method==='DELETE')return reply({ok:true});
+    if(url.includes('action=messages')&&request.method==='POST') {
+      const body=JSON.parse(request.body);
+      return reply({message:{...message,id:'2',senderID:'me',text:body.text || 'История',reply:body.replyTo?{...message,name:'Друг'}:null}});
+    }
+    if(url.includes('action=messages'))return reply({messages:[{...message,...options.message}],hasMore:false,actionsAvailable:true,revision:'0',deletedIDs:[],...options.page?.()});
+    return reply({ok:true});
+  },{window:{innerWidth:390}});
+  ui.api.onSection('chat');await settle();
+  await ui.elements.get('chatInbox').children[0].listeners.click();
+  return {...ui,calls};
+}
+test('swiping left selects a quote, vertical scrolling does not, and send includes the reply ID',async()=>{
+  const ui=await actionUI();
+  const article=findClass(ui.elements.get('chatMessages'),'chat-message');
+  const down={button:0,clientX:200,clientY:100,pointerId:1,target:{}};
+  article.listeners.pointerdown(down);
+  article.listeners.pointermove({...down,clientX:194,clientY:160});
+  article.listeners.pointerup({...down,clientX:130,clientY:160});
+  assert.equal(ui.elements.get('chatReply').hidden,true);
+  article.listeners.pointerdown(down);
+  article.listeners.pointermove({...down,clientX:130});
+  article.listeners.pointerup({...down,clientX:130});
+  assert.equal(ui.elements.get('chatReplyText').textContent,'История');
+  ui.elements.get('chatText').value='Ответ';
+  await ui.elements.get('chatComposer').listeners.submit({preventDefault(){}});
+  const sent=ui.calls.find(call=>call.url.includes('action=messages')&&call.method==='POST');
+  assert.equal(JSON.parse(sent.body).replyTo,'1');
+  assert.equal(ui.elements.get('chatReply').hidden,true);
+});
+test('own-message deletion requires confirmation and synchronizes quotes from incremental results',async()=>{
+  let removed=false;
+  const ui=await actionUI({message:{senderID:'me'},page:()=>removed?{messages:[],deletedIDs:['1'],revision:'1'}:{}});
+  findClass(ui.elements.get('chatMessages'),'chat-message-more').listeners.click();
+  const content=ui.elements.get('chatActionsContent');
+  assert.equal(content.children.length,3);
+  content.children[2].listeners.click();
+  assert.equal(ui.calls.some(call=>call.method==='DELETE'),false);
+  const button=content.children[0];await button.listeners.click({currentTarget:button});
+  assert.equal(ui.calls.filter(call=>call.method==='DELETE').length,1);
+  assert.equal(findClass(ui.elements.get('chatMessages'),'chat-message-text').textContent,'Сообщение удалено');
+  removed=true;await ui.api.refreshNow();
+  assert.equal(findClass(ui.elements.get('chatMessages'),'chat-message-more'),undefined);
+});
+test('forwarding shows a recipient and confirmation before sending source ID with no client-authored text',async()=>{
+  const ui=await actionUI();
+  findClass(ui.elements.get('chatMessages'),'chat-message-more').listeners.click();
+  const content=ui.elements.get('chatActionsContent');
+  assert.equal(content.children.length,2); // Incoming messages cannot be deleted for everyone.
+  content.children[1].listeners.click();
+  content.children[1].children[0].listeners.click();
+  assert.equal(ui.calls.some(call=>call.method==='POST'&&call.url.includes('action=messages')),false);
+  const button=content.children[0];await button.listeners.click({currentTarget:button});
+  const sent=ui.calls.find(call=>call.method==='POST'&&call.url.includes('action=messages'));
+  assert.equal(JSON.parse(sent.body).forwardID,'1');
+  assert.equal(JSON.parse(sent.body).text,undefined);
+  assert.equal(ui.elements.get('chatActionsStatus').textContent,'Сообщение переслано');
+});
 
 test('malformed chat snapshots offer retry without corrupting the saved inbox',async()=>{
   let broken=false;
