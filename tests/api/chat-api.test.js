@@ -36,7 +36,7 @@ test('message actions validate IDs and derive the actor from the session',async 
   const headers={cookie:`${COOKIE_NAME}=${'a'.repeat(64)}`,origin:'https://univer.test'};
   const sent=await call({method:'POST',action:'messages',headers,body:{conversationID:conversation,clientID:client,text:'Ответ',replyTo:'7',userID:client}});
   assert.equal(sent.code,200);
-  assert.ok(calls[0].url.endsWith('/chat_send_message_v2'));
+  assert.ok(calls[0].url.endsWith('/chat_send_message_v3'));
   assert.equal(calls[0].body.p_user_id,user);
   assert.equal(calls[0].body.p_reply_to,'7');
   const forward=await call({method:'POST',action:'messages',headers,body:{conversationID:conversation,clientID:client,forwardID:'8'}});
@@ -48,6 +48,24 @@ test('message actions validate IDs and derive the actor from the session',async 
   }
   assert.equal((await call({method:'POST',action:'messages',headers,body:{conversationID:conversation,clientID:client,text:'x',replyTo:'7',forwardID:'8'}})).code,400);
   assert.equal(calls.length,3);
+});
+
+test('scoped deletion uses only explicit self/everyone scopes and verifies the session actor',async t=>{
+  const calls=[];
+  setup(t,async(url,options)=>{
+    if(url.includes('/chat_sessions?'))return reply([{user_id:user}]);
+    calls.push({url,body:JSON.parse(options.body)});return reply(true);
+  });
+  const headers={cookie:`${COOKIE_NAME}=${'a'.repeat(64)}`,origin:'https://univer.test'};
+  for(const scope of ['self','everyone']) {
+    const result=await call({method:'DELETE',action:'messages',headers,body:{conversationID:conversation,messageID:'7',scope,userID:client}});
+    assert.equal(result.code,200);assert.equal(calls.at(-1).body.p_scope,scope);
+    assert.equal(calls.at(-1).body.p_user_id,user);
+    assert.ok(calls.at(-1).url.endsWith('/chat_delete_message_v2'));
+  }
+  for(const scope of ['',null,'all',true]) assert.equal((await call({method:'DELETE',action:'messages',headers,
+    body:{conversationID:conversation,messageID:'7',scope}})).code,400);
+  assert.equal(calls.length,2);
 });
 
 test('a verified student recovers saved study details across devices without replacing fresh fields',async t=>{
@@ -183,6 +201,7 @@ test('presence identity and session are server-derived; invalid activity is reje
 test('messages remain available before the optional typing migration is applied', async t => {
   setup(t, async url => {
     if (url.includes('/chat_sessions?')) return reply([{ user_id: user }]);
+    if (url.endsWith('/rpc/chat_read_messages_v3')) return reply({code:'PGRST202'},404);
     if (url.endsWith('/rpc/chat_read_messages_v2')) return reply({code:'PGRST202'},404);
     if (url.endsWith('/rpc/chat_read_messages')) return reply({ messages: [], hasMore: false });
     if (url.endsWith('/rpc/chat_peer_typing')) return reply({ code: 'PGRST202' }, 404);

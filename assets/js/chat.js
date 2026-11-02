@@ -12,7 +12,7 @@
     inbox: [], inboxRenderKey: null, previewKey: null, previewOwnerID: null, canResume: false };
   const warming = new Set();
   let replyTarget = null, actionsMessage = null, actionsVersion = 0, actionsBusy = false;
-  let deletionRevision = '0', actionsAvailable = false;
+  let deletionRevision = '0', actionsAvailable = false, deleteScopes = false, selectedBubble = null;
   const deletedMessages = new Set();
   function setReply(message, focus = false) {
     replyTarget = message && !message.deleted ? message : null;
@@ -25,62 +25,90 @@
   function closeActions() {
     actionsVersion++;
     actionsMessage = null;
+    selectedBubble?.classList.remove('chat-message-selected'); selectedBubble = null;
     byID('chatActionsDialog').close?.();
   }
   function actionButton(text, callback, className = '') {
     const button = node('button', `chat-action-button ${className}`, text);
     button.type = 'button';
+    const paths = { 'Ответить':'M10 8 4 12l6 4v-3h4c3 0 5 2 6 5 0-7-3-10-10-10Z',
+      'Переслать':'m14 8 6 4-6 4v-3h-4c-3 0-5 2-6 5 0-7 3-10 10-10Z',
+      'Удалить':'M4 7h16M9 7V4h6v3M6 7l1 13h10l1-13M10 10v7m4-7v7' };
+    if (paths[text]) {
+      const icon = node('span','chat-action-symbol'); icon.setAttribute('aria-hidden','true');
+      icon.innerHTML = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="${paths[text]}"/></svg>`;
+      button.append(icon);
+    }
     button.addEventListener('click', callback);
     return button;
   }
   function eraseMessage(id) {
     deletedMessages.add(id);
     for (const message of state.messages.values()) {
-      if (message.id === id) Object.assign(message,{text:'Сообщение удалено',deleted:true,reply:null,forwardedName:null});
+      if (message.id === id) Object.assign(message,{text:'Сообщение удалено',deleted:true,hidden:true,reply:null,forwardedName:null});
       if (message.reply?.id === id) message.reply = {...message.reply,text:'Сообщение удалено',deleted:true};
     }
     // Discard stale previews too; replies must not retain erased message text.
     for (const entry of state.history.values()) for (const message of entry.messages) {
-      if (message.id === id) Object.assign(message,{text:'Сообщение удалено',deleted:true,reply:null,forwardedName:null});
+      if (message.id === id) Object.assign(message,{text:'Сообщение удалено',deleted:true,hidden:true,reply:null,forwardedName:null});
       if (message.reply?.id === id) message.reply = {...message.reply,text:'Сообщение удалено',deleted:true};
     }
     if (replyTarget?.id === id) setReply(null);
     if (actionsMessage?.id === id && !actionsBusy) closeActions();
   }
-  function openActions(message) {
+  function openActions(message, bubble) {
     if (!state.profile || !actionsAvailable || message.deleted || deletedMessages.has(message.id)) return;
     closeActions();
     actionsMessage = message;
+    selectedBubble = bubble || null; selectedBubble?.classList.add('chat-message-selected');
+    const dialog = byID('chatActionsDialog'); dialog.setAttribute('data-view','menu');
+    dialog.style.left = dialog.style.top = ''; byID('chatActionsPreview').hidden = true;
     byID('chatActionsTitle').textContent = 'Сообщение';
     byID('chatActionsPreview').textContent = message.text;
     byID('chatActionsStatus').textContent = '';
     const content = byID('chatActionsContent');
     content.replaceChildren(actionButton('Ответить', () => { closeActions(); setReply(message,true); }),
       actionButton('Переслать', () => chooseForward(message)));
-    if (message.senderID === state.profile.id) content.append(actionButton('Удалить', () => confirmDelete(message),'chat-action-danger'));
-    byID('chatActionsDialog').showModal?.();
+    if (deleteScopes || message.senderID === state.profile.id) content.append(actionButton('Удалить', () => confirmDelete(message),'chat-action-danger'));
+    dialog.showModal?.();
+    if (bubble?.getBoundingClientRect && dialog.getBoundingClientRect) {
+      const rect = bubble.getBoundingClientRect(), size = dialog.getBoundingClientRect(), viewport = window.visualViewport;
+      const top = viewport?.offsetTop || 0, width = viewport?.width || window.innerWidth, height = viewport?.height || window.innerHeight;
+      dialog.style.left = `${Math.max(12,Math.min(width-size.width-12,message.senderID === state.profile.id ? rect.right-size.width : rect.left))}px`;
+      dialog.style.top = `${Math.max(top+12,Math.min(top+height-size.height-12,rect.bottom+8))}px`;
+    }
   }
   function confirmDelete(message) {
+    const scopedDeletion = deleteScopes;
+    const dialog = byID('chatActionsDialog'); dialog.setAttribute('data-view','delete'); dialog.style.left = dialog.style.top = '';
+    byID('chatActionsPreview').hidden = false;
     byID('chatActionsTitle').textContent = 'Удалить сообщение?';
-    byID('chatActionsStatus').textContent = 'Сообщение будет удалено у вас и собеседника. Отменить это действие нельзя.';
+    byID('chatActionsStatus').textContent = scopedDeletion ? '«У меня» — только из вашей истории. «У всех» — у обоих участников. Отменить удаление нельзя.' : 'Сообщение будет удалено у вас и собеседника. Отменить это действие нельзя.';
     const conversationID = state.conversation.id, epoch = state.epoch;
-    byID('chatActionsContent').replaceChildren(actionButton('Удалить у всех', async event => {
+    const remove = scope => async event => {
       if (actionsBusy) return;
       actionsBusy = true; event.currentTarget.disabled = true;
       const version = actionsVersion;
       try {
-        await request('messages',{method:'DELETE',body:{conversationID,messageID:message.id}});
+        await request('messages',{method:'DELETE',body:{conversationID,messageID:message.id,...(scopedDeletion ? {scope} : {})}});
         if (stale(epoch)) return;
         // Deletion can finish after the user has opened another conversation.
         if (state.conversation?.id === conversationID) { eraseMessage(message.id); drawMessages(); rememberHistory(); }
         else state.history.delete(conversationID);
+        state.inbox = state.inbox.map(item=>item.id===conversationID ? {...item,lastMessage:null,unread:0} : item);
+        persistPreview();
         state.inboxAt = 0; state.inboxRenderKey = null;
         if (version === actionsVersion) closeActions();
       } catch (error) { if (!stale(epoch) && version === actionsVersion) byID('chatActionsStatus').textContent = labels[error.message] || 'Не удалось удалить. Попробуйте ещё раз.'; }
       finally { actionsBusy = false; event.currentTarget.disabled = false; }
-    },'chat-action-danger'),actionButton('Отмена',closeActions));
+    };
+    const buttons = scopedDeletion ? [actionButton('Удалить у меня',remove('self'),'chat-action-danger')] : [];
+    buttons.push(actionButton('Удалить у всех',remove('everyone'),'chat-action-danger'),actionButton('Отмена',closeActions));
+    byID('chatActionsContent').replaceChildren(...buttons);
   }
   function chooseForward(message) {
+    const dialog = byID('chatActionsDialog'); dialog.setAttribute('data-view','forward'); dialog.style.left = dialog.style.top = '';
+    byID('chatActionsPreview').hidden = false;
     const version = ++actionsVersion, epoch = state.epoch;
     byID('chatActionsTitle').textContent = 'Кому переслать?';
     const search = node('input','chat-forward-search');
@@ -135,33 +163,85 @@
     if (message.deleted || !actionsAvailable) return;
     const conversationID = state.conversation?.id, epoch = state.epoch;
     const valid = () => !stale(epoch) && state.visible && state.conversation?.id === conversationID && !deletedMessages.has(message.id);
-    let start = null, hold = null, swiped = false;
-    const reset = () => { clearTimeout(hold); start = null; article.style.transform = ''; };
-    article.addEventListener('contextmenu',event => { event.preventDefault(); reset(); if (valid()) openActions(message); });
+    let start = null, hold = null, direction = null, distance = 0, suppressClick = false, returnMotion = null;
+    const indicator = node('span','chat-swipe-reply','↩'); indicator.setAttribute('aria-hidden','true'); article.append(indicator);
+    const reset = (animate = true) => {
+      clearTimeout(hold); start = null; direction = null; distance = 0;
+      const transform = article.style.transform; article.style.transform = '';
+      article.classList.remove('chat-message-swiping','chat-message-reply-ready');
+      returnMotion?.cancel(); returnMotion = null;
+      if (animate && transform && article.animate && !window.matchMedia?.('(prefers-reduced-motion: reduce)').matches)
+        returnMotion = article.animate([{transform},{transform:'translateX(0)'}],{duration:170,easing:'cubic-bezier(.2,.8,.2,1)'});
+    };
+    const begin = (x,y,id) => {
+      if (!valid()) return;
+      reset(false); suppressClick = false;
+      if (x < 16 || x > window.innerWidth-16) return;
+      start = {x,y,id};
+      hold = setTimeout(() => {
+        if (!start || !valid()) return;
+        suppressClick = true; reset(); openActions(message,article);
+        telegramApp?.HapticFeedback?.impactOccurred?.('light');
+      },450);
+    };
+    const move = (x,y,event) => {
+      if (!start) return;
+      const dx = x-start.x, dy = y-start.y;
+      if (Math.abs(dx)>7 || Math.abs(dy)>7) clearTimeout(hold);
+      if (!direction && Math.max(Math.abs(dx),Math.abs(dy))>10) {
+        if (Math.abs(dy)>Math.abs(dx)*.8 || dx>0) { reset(); return; }
+        direction = 'reply';
+      }
+      if (direction !== 'reply') return;
+      if (event.cancelable) event.preventDefault();
+      distance = Math.max(0,-dx); suppressClick = true;
+      article.classList.add('chat-message-swiping');
+      article.classList.toggle?.('chat-message-reply-ready',distance>=52);
+      article.style.transform = `translateX(${-Math.min(72,distance*.7)}px)`;
+    };
+    const finish = () => {
+      const reply = start && direction === 'reply' && distance>=52 && valid();
+      reset();
+      if (reply) { setReply(message,true); telegramApp?.HapticFeedback?.impactOccurred?.('light'); }
+    };
+    // iOS can cancel pointer events when the scroll container takes the gesture.
+    // Handle real touches directly; pointer handlers below are for a mouse/pen.
+    article.addEventListener('touchstart',event => {
+      if (event.touches.length!==1) { reset(); return; }
+      const touch=event.touches[0]; begin(touch.clientX,touch.clientY,touch.identifier);
+    },{passive:true});
+    article.addEventListener('touchmove',event => {
+      if (event.touches.length!==1) { reset(); return; }
+      const touch=event.touches[0]; if (start?.id===touch.identifier) move(touch.clientX,touch.clientY,event);
+    },{passive:false});
+    article.addEventListener('touchend',event => {
+      if (!start || ![...event.changedTouches].some(touch=>touch.identifier===start.id)) return;
+      if (suppressClick && event.cancelable) event.preventDefault();
+      finish();
+    },{passive:false});
+    article.addEventListener('touchcancel',() => reset());
+    article.addEventListener('contextmenu',event => {
+      event.preventDefault(); reset();
+      if (valid() && !byID('chatActionsDialog').open) openActions(message,article);
+    });
+    article.addEventListener('click',event => { if (suppressClick) { event.preventDefault(); event.stopPropagation(); suppressClick=false; } },true);
     article.addEventListener('pointerdown',event => {
-      if (event.button !== 0 || event.isPrimary === false || event.target.closest?.('button')) return;
-      // Keep screen-edge navigation gestures independent from message gestures.
-      if (event.clientX < 24 || event.clientX > window.innerWidth - 24) return;
-      start = {x:event.clientX,y:event.clientY,id:event.pointerId}; swiped = false;
-      hold = setTimeout(() => { reset(); if (valid()) openActions(message); },500);
+      if (event.pointerType==='touch' || event.button!==0 || event.isPrimary===false) return;
+      begin(event.clientX,event.clientY,event.pointerId);
+      if (start) article.setPointerCapture?.(event.pointerId);
     });
     article.addEventListener('pointermove',event => {
-      if (!start || event.pointerId !== start.id) return;
-      const dx = event.clientX-start.x, dy = event.clientY-start.y;
-      if (Math.abs(dx)>8 || Math.abs(dy)>8) clearTimeout(hold);
-      if (Math.abs(dy)>Math.max(12,Math.abs(dx))) { reset(); return; }
-      if (dx < -10 && Math.abs(dx)>Math.abs(dy)*1.5) {
-        swiped = true; article.setPointerCapture?.(event.pointerId);
-        article.style.transform = `translateX(${Math.max(-64,dx*.65)}px)`;
-      }
+      if (event.pointerType!=='touch' && start?.id===event.pointerId) move(event.clientX,event.clientY,event);
     });
-    article.addEventListener('pointerup',event => {
-      const reply = start && swiped && event.clientX-start.x < -50;
-      reset();
-      if (reply && valid()) { setReply(message,true); telegramApp?.HapticFeedback?.impactOccurred?.('light'); }
+    article.addEventListener('pointerup',event => { if (event.pointerType!=='touch' && start?.id===event.pointerId) finish(); });
+    article.addEventListener('pointercancel',event => { if (event.pointerType!=='touch') reset(); });
+    article.addEventListener('lostpointercapture',event => { if (event.pointerType!=='touch' && start) reset(); });
+    article.tabIndex = 0;
+    article.setAttribute('aria-label',`Сообщение: ${message.text.slice(0,100)}. Действия — Enter`);
+    article.addEventListener('keydown',event => {
+      if (event.target!==article || !['Enter','ContextMenu'].includes(event.key)) return;
+      event.preventDefault(); if (valid()) openActions(message,article);
     });
-    article.addEventListener('pointercancel',reset);
-    article.addEventListener('lostpointercapture',reset);
   }
   const presenceClientID = crypto.randomUUID();
   let presenceSequence = 0, presenceTimer = null, peerPresenceTimer = null;
@@ -529,7 +609,8 @@
     const nearBottom = previousHeight - previousTop - list.clientHeight < 90;
     list.replaceChildren();
     let lastDay = '';
-    for (const message of orderedMessages()) {
+    const visibleMessages = orderedMessages().filter(message=>!message.deleted && !message.hidden);
+    for (const message of visibleMessages) {
       const date = new Date(message.createdAt);
       const day = date.toLocaleDateString('ru-RU', { day: 'numeric', month: 'long', year: 'numeric' });
       if (day !== lastDay) { list.append(node('div', 'chat-date', day)); lastDay = day; }
@@ -553,10 +634,6 @@
       const time = node('time', 'chat-message-time', date.toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' }));
       time.dateTime = message.createdAt;
       const footer = node('div','chat-message-footer'); footer.append(time);
-      if (!message.deleted && actionsAvailable) {
-        const more = node('button','chat-message-more','···'); more.type = 'button';
-        more.setAttribute('aria-label','Действия с сообщением'); more.addEventListener('click',() => openActions(message)); footer.append(more);
-      }
       article.append(footer);
       bindMessageActions(article,message);
       list.append(article);
@@ -570,7 +647,7 @@
       list.append(article);
       if (pendingID === message.clientID) animateMessage(article);
     }
-    if (!state.messages.size && !pending.length) list.append(node('p', 'chat-empty', 'Это начало вашей переписки. Поздоровайтесь!'));
+    if (!visibleMessages.length && !pending.length) list.append(node('p', 'chat-empty', 'Пока нет сообщений. Поздоровайтесь!'));
     byID('chatOlder').hidden = !state.hasOlder;
     if (scroll === 'bottom' || (scroll === 'keep' && nearBottom)) list.scrollTop = list.scrollHeight;
     else if (scroll === 'older') list.scrollTop = previousTop + list.scrollHeight - previousHeight;
@@ -597,12 +674,13 @@
     if (stale(epoch) || state.conversation?.id !== id) return;
     const previousActions = actionsAvailable;
     actionsAvailable = data.actionsAvailable === true;
+    const previousScopes = deleteScopes; deleteScopes = data.deleteScopes === true;
     if (typeof data.revision === 'string' && /^\d{1,19}$/.test(data.revision) && BigInt(data.revision) > BigInt(deletionRevision)) deletionRevision = data.revision;
     showTyping(data.peerTyping === true && state.visible && !state.peerProfileOpen);
     peerStatus(data.peerPresence);
     if (!params.after) state.hasOlder = data.hasMore;
     const newIDs = new Set(data.messages.filter(message => !state.messages.has(message.id)).map(message => message.id));
-    let changed = newIDs.size > 0 || previousActions !== actionsAvailable;
+    let changed = newIDs.size > 0 || previousActions !== actionsAvailable || previousScopes !== deleteScopes;
     // Initial fetches contain the latest page, not the complete conversation.
     // Merge it so refreshes cannot discard loaded history or a just-sent message.
     for (const message of data.messages) {
@@ -613,6 +691,9 @@
     for (const message of data.messages) if (message.deleted) deletedMessages.add(message.id);
     if (Array.isArray(data.deletedIDs)) for (const deletedID of data.deletedIDs) {
       if (typeof deletedID === 'string' && /^[1-9]\d{0,18}$/.test(deletedID)) { deletedMessages.add(deletedID); changed = true; }
+    }
+    if (Array.isArray(data.hiddenIDs)) for (const hiddenID of data.hiddenIDs) {
+      if (typeof hiddenID === 'string' && /^[1-9]\d{0,18}$/.test(hiddenID)) { deletedMessages.add(hiddenID); changed = true; }
     }
     for (const deletedID of deletedMessages) eraseMessage(deletedID);
     rememberHistory();
@@ -998,6 +1079,12 @@
   byID('chatReplyCancel').addEventListener('click',() => setReply(null));
   byID('chatActionsClose').addEventListener('click',closeActions);
   byID('chatActionsDialog').addEventListener('cancel',event => { event.preventDefault(); closeActions(); });
+  byID('chatActionsDialog').addEventListener('click',event => {
+    const dialog=byID('chatActionsDialog');
+    if (event.target!==dialog || !dialog.getBoundingClientRect) return;
+    const rect=dialog.getBoundingClientRect();
+    if (event.clientX<rect.left || event.clientX>rect.right || event.clientY<rect.top || event.clientY>rect.bottom) closeActions();
+  });
   byID('chatPeerAvatar').addEventListener('click', openPeerProfile);
   byID('chatProfileBack').addEventListener('click', () => { closePeerProfile(); window.univerChat.refreshNow(); });
   byID('chatOlder').addEventListener('click', async () => {

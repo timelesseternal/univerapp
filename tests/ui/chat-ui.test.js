@@ -91,7 +91,7 @@ async function actionUI(options={}) {
       const body=JSON.parse(request.body);
       return reply({message:{...message,id:'2',senderID:'me',text:body.text || 'История',reply:body.replyTo?{...message,name:'Друг'}:null}});
     }
-    if(url.includes('action=messages'))return reply({messages:[{...message,...options.message}],hasMore:false,actionsAvailable:true,revision:'0',deletedIDs:[],...options.page?.()});
+    if(url.includes('action=messages'))return reply({messages:[{...message,...options.message}],hasMore:false,actionsAvailable:true,deleteScopes:true,revision:'0',deletedIDs:[],...options.page?.()});
     return reply({ok:true});
   },{window:{innerWidth:390}});
   ui.api.onSection('chat');await settle();
@@ -116,25 +116,81 @@ test('swiping left selects a quote, vertical scrolling does not, and send includ
   assert.equal(JSON.parse(sent.body).replyTo,'1');
   assert.equal(ui.elements.get('chatReply').hidden,true);
 });
+test('real touch swipe works on a quote, ignores touch-pointer cancellation, and cancels vertical or interrupted touches',async()=>{
+  const ui=await actionUI();
+  const article=findClass(ui.elements.get('chatMessages'),'chat-message');
+  const touch=(x,y)=>({identifier:4,clientX:x,clientY:y});
+  const start=()=>article.listeners.touchstart({touches:[touch(230,100)],target:{closest:()=>({tagName:'BUTTON'})}});
+  start();
+  article.listeners.pointercancel({pointerType:'touch'});
+  let prevented=false;
+  article.listeners.touchmove({touches:[touch(160,105)],cancelable:true,preventDefault(){prevented=true;}});
+  article.listeners.touchend({changedTouches:[touch(160,105)],cancelable:true,preventDefault(){}});
+  assert.equal(prevented,true);assert.equal(ui.elements.get('chatReply').hidden,false);
+  ui.elements.get('chatReplyCancel').listeners.click();
+  start();article.listeners.touchmove({touches:[touch(225,160)],cancelable:true,preventDefault(){throw new Error('Vertical scroll was blocked');}});
+  article.listeners.touchend({changedTouches:[touch(160,160)]});
+  assert.equal(ui.elements.get('chatReply').hidden,true);
+  start();article.listeners.touchmove({touches:[touch(160,105)],cancelable:true,preventDefault(){}});
+  article.listeners.touchcancel();
+  article.listeners.touchend({changedTouches:[touch(160,105)]});
+  assert.equal(ui.elements.get('chatReply').hidden,true);
+});
+test('holding opens three actions, while a short swipe and scrolling never open the menu',async()=>{
+  const ui=await actionUI();
+  const article=findClass(ui.elements.get('chatMessages'),'chat-message');
+  article.listeners.touchstart({touches:[{identifier:1,clientX:200,clientY:100}]});
+  const hold=[...ui.timers.values()].find(timer=>timer.delay===450);hold.fn();
+  assert.equal(ui.elements.get('chatActionsDialog').open,true);
+  assert.deepEqual(ui.elements.get('chatActionsContent').children.map(button=>button.textContent),['Ответить','Переслать','Удалить']);
+  ui.elements.get('chatActionsClose').listeners.click();
+  article.listeners.touchstart({touches:[{identifier:1,clientX:200,clientY:100}]});
+  article.listeners.touchmove({touches:[{identifier:1,clientX:175,clientY:100}],cancelable:true,preventDefault(){}});
+  article.listeners.touchend({changedTouches:[{identifier:1,clientX:175,clientY:100}],cancelable:true,preventDefault(){}});
+  assert.equal(ui.elements.get('chatReply').hidden,true);assert.equal(ui.elements.get('chatActionsDialog').open,false);
+});
+test('personal deletion sends self scope and late history responses cannot restore its bubble',async()=>{
+  const ui=await actionUI();
+  findClass(ui.elements.get('chatMessages'),'chat-message').listeners.contextmenu({preventDefault(){}});
+  ui.elements.get('chatActionsContent').children[2].listeners.click();
+  const button=ui.elements.get('chatActionsContent').children[0];
+  await button.listeners.click({currentTarget:button});
+  assert.equal(JSON.parse(ui.calls.find(call=>call.method==='DELETE').body).scope,'self');
+  assert.equal(findClass(ui.elements.get('chatMessages'),'chat-message'),undefined);
+  await ui.api.refreshNow();
+  assert.equal(findClass(ui.elements.get('chatMessages'),'chat-message'),undefined);
+});
+test('a capability refresh cannot turn a confirmed personal deletion into deletion for both',async()=>{
+  let scopes=true;
+  const ui=await actionUI({page:()=>({deleteScopes:scopes})});
+  findClass(ui.elements.get('chatMessages'),'chat-message').listeners.contextmenu({preventDefault(){}});
+  ui.elements.get('chatActionsContent').children[2].listeners.click();
+  const personal=ui.elements.get('chatActionsContent').children[0];
+  scopes=false;await ui.api.refreshNow();
+  await personal.listeners.click({currentTarget:personal});
+  assert.equal(JSON.parse(ui.calls.find(call=>call.method==='DELETE').body).scope,'self');
+});
 test('own-message deletion requires confirmation and synchronizes quotes from incremental results',async()=>{
   let removed=false;
   const ui=await actionUI({message:{senderID:'me'},page:()=>removed?{messages:[],deletedIDs:['1'],revision:'1'}:{}});
-  findClass(ui.elements.get('chatMessages'),'chat-message-more').listeners.click();
+  findClass(ui.elements.get('chatMessages'),'chat-message').listeners.contextmenu({preventDefault(){}});
   const content=ui.elements.get('chatActionsContent');
   assert.equal(content.children.length,3);
   content.children[2].listeners.click();
   assert.equal(ui.calls.some(call=>call.method==='DELETE'),false);
-  const button=content.children[0];await button.listeners.click({currentTarget:button});
+  assert.equal(content.children[0].textContent,'Удалить у меня');
+  const button=content.children[1];await button.listeners.click({currentTarget:button});
   assert.equal(ui.calls.filter(call=>call.method==='DELETE').length,1);
-  assert.equal(findClass(ui.elements.get('chatMessages'),'chat-message-text').textContent,'Сообщение удалено');
+  assert.equal(findClass(ui.elements.get('chatMessages'),'chat-message-text'),undefined);
+  assert.equal(JSON.parse(ui.calls.find(call=>call.method==='DELETE').body).scope,'everyone');
   removed=true;await ui.api.refreshNow();
   assert.equal(findClass(ui.elements.get('chatMessages'),'chat-message-more'),undefined);
 });
 test('forwarding shows a recipient and confirmation before sending source ID with no client-authored text',async()=>{
   const ui=await actionUI();
-  findClass(ui.elements.get('chatMessages'),'chat-message-more').listeners.click();
+  findClass(ui.elements.get('chatMessages'),'chat-message').listeners.contextmenu({preventDefault(){}});
   const content=ui.elements.get('chatActionsContent');
-  assert.equal(content.children.length,2); // Incoming messages cannot be deleted for everyone.
+  assert.equal(content.children.length,3);
   content.children[1].listeners.click();
   content.children[1].children[0].listeners.click();
   assert.equal(ui.calls.some(call=>call.method==='POST'&&call.url.includes('action=messages')),false);
@@ -223,7 +279,7 @@ test('uncached history shows phantom bubbles, then replaces them with a confirme
   const ghost=ui.elements.get('chatMessages').children[0];
   assert.match(ghost.className,/chat-loading-history/);assert.equal(ghost.children.length,6);
   await settle();finishHistory(reply({messages:[],hasMore:false}));await opening;
-  assert.match(ui.elements.get('chatMessages').children[0].textContent,/Это начало вашей переписки/);
+  assert.match(ui.elements.get('chatMessages').children[0].textContent,/Пока нет сообщений/);
 });
 
 test('recent conversations prefetch history without marking it read',async()=>{

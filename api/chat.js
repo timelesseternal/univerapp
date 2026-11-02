@@ -11,10 +11,14 @@ function messageID(value, optional = false) {
 
 async function readMessages(userID, conversationID, before, after, revision) {
   const params = { p_user_id:userID, p_conversation_id:conversationID, p_before:before || null, p_after:after || null };
-  try { return { ...await rpc('chat_read_messages_v2', {...params,p_revision:revision}), actionsAvailable:true }; }
+  try { return { ...await rpc('chat_read_messages_v3', {...params,p_revision:revision}), actionsAvailable:true }; }
   catch (error) {
     if (!(error instanceof ChatError) || error.code !== 'chat_setup_required') throw error;
-    return { ...await rpc('chat_read_messages',params), actionsAvailable:false };
+    try { return { ...await rpc('chat_read_messages_v2',{...params,p_revision:revision}),actionsAvailable:true,deleteScopes:false }; }
+    catch (older) {
+      if (!(older instanceof ChatError) || older.code !== 'chat_setup_required') throw older;
+      return { ...await rpc('chat_read_messages',params), actionsAvailable:false };
+    }
   }
 }
 
@@ -106,7 +110,11 @@ export default async function handler(req, res) {
       res.status(200).json({ ...messages, peerTyping: peerTyping === true, peerPresence });
       waitUntil(processNotifications(userID,'delete'));
     } else if (action === 'messages' && req.method === 'DELETE') {
-      await rpc('chat_delete_message', {p_user_id:userID,p_conversation_id:uuid(req.body?.conversationID),p_message_id:messageID(req.body?.messageID)});
+      const scope = req.body?.scope;
+      if (scope !== undefined && !['self','everyone'].includes(scope)) throw new ChatError(400,'invalid_chat_request');
+      const params = {p_user_id:userID,p_conversation_id:uuid(req.body?.conversationID),p_message_id:messageID(req.body?.messageID)};
+      // Old clients keep their sender-only deletion semantics until refreshed.
+      await rpc(scope ? 'chat_delete_message_v2' : 'chat_delete_message',scope ? {...params,p_scope:scope} : params);
       res.status(200).json({ok:true});
     } else if (action === 'messages' && req.method === 'POST') {
       const text = typeof req.body?.text === 'string' ? req.body.text.trim() : '';
@@ -117,8 +125,14 @@ export default async function handler(req, res) {
         p_user_id: userID, p_conversation_id: uuid(req.body?.conversationID),
         p_body: text, p_client_id: uuid(req.body?.clientID),
       };
-      res.status(200).json({ message: await rpc(replyTo || forwardID ? 'chat_send_message_v2' : 'chat_send_message',
-        replyTo || forwardID ? {...params,p_reply_to:replyTo,p_forward_id:forwardID} : params) });
+      const details = {...params,p_reply_to:replyTo,p_forward_id:forwardID};
+      let message;
+      try { message = await rpc('chat_send_message_v3',details); }
+      catch (error) {
+        if (!(error instanceof ChatError) || error.code !== 'chat_setup_required') throw error;
+        message = await rpc(replyTo || forwardID ? 'chat_send_message_v2' : 'chat_send_message',replyTo || forwardID ? details : params);
+      }
+      res.status(200).json({ message });
       waitUntil(processNotifications(userID,'send'));
     } else throw new ChatError(404, 'chat_action_not_found');
   } catch (error) {
