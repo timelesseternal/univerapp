@@ -1,23 +1,55 @@
 (() => {
   'use strict';
   const cache = new Map(), opened = new Set();
+  const pageSize = 4;
   let epoch = 0;
   const escape = value => String(value).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
   const paint = (body, html) => { if (window.unilinkMotion) window.unilinkMotion.replace(body, html); else body.innerHTML = html; };
-  function groupsHtml(groups) {
+  function groupLabel(name, index) {
+    if (/(?:-Lab$|лаборатор)/i.test(name)) return 'Лаб.';
+    if (/(?:-SRSP$|срсп)/i.test(name)) return 'СРСП';
+    if (/(?:-L$|лекци)/i.test(name)) return 'Лекции';
+    if (/(?:-P$|практи)/i.test(name)) return 'Практика';
+    return name || `Группа ${index+1}`;
+  }
+  function groupsHtml(groups, view = {}) {
     if (!Array.isArray(groups)) throw new Error('invalid_details');
     if (!groups.length) return '<p class="grade-points-empty">Оценок за контрольные точки пока нет</p>';
-    return groups.map(group => {
+    groups.forEach(group => {
       if (!group || !Array.isArray(group.marks)) throw new Error('invalid_group');
-      const rows = group.marks.map(point => {
+      group.marks.forEach(point => {
         if (!/^\d{4}-\d{2}-\d{2}$/.test(point.date) || typeof point.mark !== 'number'
           || !Number.isFinite(point.mark) || point.mark < 0 || point.mark > 100) throw new Error('invalid_point');
-        const [year, month, day] = point.date.split('-');
-        const mark = point.mark.toLocaleString('ru-RU', { maximumFractionDigits: 2 });
-        return `<li class="grade-point"><time datetime="${point.date}">${day}.${month}.${year}</time><span class="grade-point-mark">${escape(mark)}</span></li>`;
-      }).join('');
-      return `<section class="grade-points-group"><h3>${escape(group.name)}</h3>${group.tutor ? `<p class="grade-points-tutor">${escape(group.tutor)}</p>` : ''}${rows ? `<ol class="grade-points-list" aria-label="Даты и оценки">${rows}</ol>` : '<p class="grade-points-empty">Оценок за контрольные точки пока нет</p>'}</section>`;
+      });
+    });
+    const selected = Number.isInteger(view.selected) && groups[view.selected] ? view.selected : Math.max(0,groups.findIndex(group=>group.marks.length));
+    const group = groups[selected];
+    const pageCount = Math.max(1,Math.ceil(group.marks.length/pageSize));
+    const page = Math.max(0,Math.min(pageCount-1,view.pages?.[selected] || 0));
+    const points = group.marks.slice(page*pageSize,(page+1)*pageSize);
+    const tabs = groups.length>1 ? `<nav class="grade-point-tabs" aria-label="Вид занятия">${groups.map((item,index)=>`<button type="button" data-grade-group="${index}" aria-pressed="${index===selected}">${escape(groupLabel(item.name,index))}<span>${item.marks.length}</span></button>`).join('')}</nav>` : '';
+    const dates = points.map(point=>{
+      const [year,month,day]=point.date.split('-');
+      return `<th scope="col"><time datetime="${point.date}" aria-label="${day}.${month}.${year}" title="${day}.${month}.${year}">${day}.${month}<small>${year}</small></time></th>`;
     }).join('');
+    const marks = points.map(point=>`<td><span class="grade-point-mark">${escape(point.mark.toLocaleString('ru-RU',{maximumFractionDigits:2}))}</span></td>`).join('');
+    const table = points.length ? `<table class="grade-points-table" aria-label="Даты и оценки"><thead><tr><th scope="col">Дата</th>${dates}</tr></thead><tbody><tr><th scope="row">Оценка</th>${marks}</tr></tbody></table>` : '<p class="grade-points-empty">Оценок за контрольные точки пока нет</p>';
+    const pager = pageCount>1 ? `<div class="grade-points-pages"><button type="button" data-grade-page="${page-1}" aria-label="Предыдущие оценки" ${page===0?'disabled':''}>‹</button><span aria-live="polite">${page*pageSize+1}–${Math.min((page+1)*pageSize,group.marks.length)} из ${group.marks.length}</span><button type="button" data-grade-page="${page+1}" aria-label="Следующие оценки" ${page===pageCount-1?'disabled':''}>›</button></div>` : '';
+    return `${tabs}<section class="grade-points-group"><h3>${escape(group.name)}</h3>${group.tutor ? `<p class="grade-points-tutor" title="${escape(group.tutor)}">${escape(group.tutor)}</p>` : ''}${table}${pager}</section>`;
+  }
+  function paintGroups(body, entry, revision, details) {
+    const view=entry.view ||= {selected:Math.max(0,entry.groups.findIndex(group=>group.marks.length)),pages:{}};
+    paint(body,groupsHtml(entry.groups,view));
+    body.onclick=event=>{
+      const button=event.target.closest?.('button[data-grade-group],button[data-grade-page]');
+      if (!button || !body.contains(button) || button.disabled || revision!==epoch || !details.open) return;
+      const group=button.getAttribute('data-grade-group'), page=button.getAttribute('data-grade-page');
+      if (group!==null) view.selected=Number(group);
+      else view.pages[view.selected]=Number(page);
+      paintGroups(body,entry,revision,details);
+      const selector=group!==null ? `button[data-grade-group="${view.selected}"]` : `button[aria-label="${button.getAttribute('aria-label')}"]`;
+      body.querySelector(selector)?.focus?.({preventScroll:true});
+    };
   }
   async function load(details, context) {
     const body = details.querySelector('.grade-details-body');
@@ -35,7 +67,7 @@
     const revision = epoch;
     let entry = cache.get(key);
     if (!entry) { entry = {}; cache.set(key, entry); }
-    if (entry.html) paint(body, entry.html);
+    if (entry.groups) paintGroups(body,entry,revision,details);
     else paint(body, window.unilinkLoading.html('Контрольные точки загружаются'));
     if (!entry.work && (!entry.at || Date.now() - entry.at >= 60000)) {
       entry.work = context.fetch(`/api/grade-details?year=${context.year}&term=${context.term}&subjectID=${subjectID}${querySuffix}`)
@@ -43,14 +75,15 @@
           const html = groupsHtml(data?.groups);
           if (revision !== epoch) return;
           entry.html = html; entry.at = Date.now();
+          entry.groups = data.groups;
         }).finally(() => { entry.work = null; });
     }
     try {
       if (entry.work) await entry.work;
-      if (revision === epoch && body.isConnected) paint(body, entry.html);
+      if (revision === epoch && body.isConnected) paintGroups(body,entry,revision,details);
     } catch {
       if (revision !== epoch || !body.isConnected) return;
-      paint(body, (entry.html || '') + '<div class="grade-points-error" role="status"><p>Не удалось загрузить контрольные точки.</p><button type="button" class="grade-points-retry">Попробовать снова</button></div>');
+      paint(body, (entry.groups ? groupsHtml(entry.groups,entry.view) : '') + '<div class="grade-points-error" role="status"><p>Не удалось загрузить контрольные точки.</p><button type="button" class="grade-points-retry">Попробовать снова</button></div>');
       body.querySelector('.grade-points-retry').addEventListener('click', () => load(details, context));
     }
   }

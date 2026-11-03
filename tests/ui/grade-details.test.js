@@ -8,7 +8,7 @@ const flush=()=>new Promise(resolve=>setImmediate(resolve));
 function setup(fetch) {
   const ctx=vm.createContext({window:{}});installLoading(ctx);vm.runInContext(source,ctx);
   const api=ctx.window.unilinkGradeDetails;
-  const body={innerHTML:'',isConnected:true,querySelector:()=>({addEventListener(){}})};
+  const body={innerHTML:'',isConnected:true,contains:()=>true,querySelector:()=>({addEventListener(){}})};
   const details={open:true,dataset:{gradeIndex:'0'},querySelector:()=>body,matches:()=>true};
   const root={addEventListener(){},removeEventListener(){},querySelectorAll:()=>[details]};
   const context={studentID:7,generation:1,year:2026,term:1,subjects:[{subjectID:9048,queryID:253432,studyGroupId:45903}],fetch};
@@ -58,4 +58,24 @@ test('fractional Platonus marks display at most two decimal places',()=>{
   const ui=setup(async()=>({groups:[]}));
   const html=ui.api.groupsHtml([{name:'Лекция',marks:[{date:'2026-10-24',mark:82.85714285714286},{date:'2026-10-25',mark:85}]}]);
   assert.match(html,/>82,86</);assert.match(html,/>85</);assert.doesNotMatch(html,/857142/);
+});
+
+test('compact tables page four points and switch lesson groups without requesting data again',async()=>{
+  let calls=0;
+  const marks=Array.from({length:9},(_,i)=>({date:`2026-10-${String(i+1).padStart(2,'0')}`,mark:80+i}));
+  const ui=setup(async()=>{calls++;return {groups:[{name:'NBD-1-L',marks},{name:'NBD-1-Lab',marks:[]}]};});
+  ui.open();await flush();
+  assert.match(ui.body.innerHTML,/<table/);assert.match(ui.body.innerHTML,/Лекции/);
+  assert.equal((ui.body.innerHTML.match(/<time /g)||[]).length,4);
+  assert.match(ui.body.innerHTML,/1–4 из 9/);assert.doesNotMatch(ui.body.innerHTML,/>88</);
+  const click=attributes=>ui.body.onclick({target:{closest:()=>({getAttribute:name=>attributes[name]??null})}});
+  click({'data-grade-page':'1','aria-label':'Следующие оценки'});
+  assert.match(ui.body.innerHTML,/5–8 из 9/);assert.match(ui.body.innerHTML,/>87</);
+  click({'data-grade-group':'1'});
+  assert.match(ui.body.innerHTML,/Оценок за контрольные точки пока нет/);
+  click({'data-grade-group':'0'});assert.match(ui.body.innerHTML,/5–8 из 9/);
+  click({'data-grade-page':'2','aria-label':'Следующие оценки'});
+  assert.match(ui.body.innerHTML,/9–9 из 9/);assert.match(ui.body.innerHTML,/>88</);
+  ui.open();await flush();assert.match(ui.body.innerHTML,/9–9 из 9/);
+  assert.equal(calls,1);
 });

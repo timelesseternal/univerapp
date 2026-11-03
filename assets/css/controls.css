@@ -293,12 +293,22 @@ html, body { height:100%; min-height:0; overflow:hidden; overscroll-behavior:non
 .grade-details-link { display:flex; align-items:center; justify-content:space-between; gap:12px; margin-top:16px; color:var(--accent); font-size:13px; font-weight:700; }
 .grade-card[open] .profile-gpa-arrow { transform:rotate(90deg); }
 .grade-details-body { border-top:1px solid var(--glass-border); margin-top:16px; padding-top:16px; }
-.grade-points-group + .grade-points-group { margin-top:20px; }
-.grade-points-group h3 { font-size:14px; line-height:1.5; margin:0; overflow-wrap:anywhere; }
-.grade-points-tutor { margin:4px 0 12px; font-size:12px; line-height:1.5; color:var(--ink-soft); }
-.grade-points-list { list-style:none; margin:10px 0 0; padding:0; }
-.grade-point { display:flex; justify-content:space-between; align-items:center; gap:16px; padding:10px 0; font-size:14px; color:var(--ink-soft); }
-.grade-point + .grade-point { border-top:1px solid var(--glass-border); }
-.grade-point-mark { display:inline-flex; justify-content:center; min-width:44px; padding:6px 10px; border-radius:12px; color:var(--accent); background:var(--paper); font-size:16px; font-weight:800; font-variant-numeric:tabular-nums; }
+.grade-point-tabs { display:flex; flex-wrap:wrap; gap:6px; margin-bottom:12px; }
+.grade-point-tabs button { display:flex; align-items:center; justify-content:center; gap:6px; flex:1; min-width:0; min-height:40px; padding:8px; border:1px solid var(--glass-border); border-radius:12px; background:transparent; color:var(--ink-soft); font:inherit; font-size:12px; font-weight:650; cursor:pointer; }
+.grade-point-tabs button[aria-pressed="true"] { color:var(--accent); background:var(--highlight-bg); border-color:var(--accent); }
+.grade-point-tabs button span { font-size:10px; opacity:.7; font-variant-numeric:tabular-nums; }
+.grade-points-group { min-width:0; }
+.grade-points-group h3 { font-size:13px; line-height:1.5; margin:0; overflow-wrap:anywhere; }
+.grade-points-tutor { margin:3px 0 10px; font-size:12px; line-height:1.5; color:var(--ink-soft); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+.grade-points-table { table-layout:fixed; width:100%; border-collapse:collapse; margin-top:10px; font-variant-numeric:tabular-nums; }
+.grade-points-table th, .grade-points-table td { padding:7px 3px; text-align:center; border-bottom:1px solid var(--glass-border); }
+.grade-points-table th { color:var(--ink-soft); font-size:11px; font-weight:500; }
+.grade-points-table th:first-child { width:42px; padding-left:0; text-align:left; }
+.grade-points-table time { display:block; white-space:nowrap; font-size:12px; }
+.grade-points-table time small { display:block; font-size:10px; opacity:.65; margin-top:2px; }
+.grade-point-mark { display:inline-flex; box-sizing:border-box; justify-content:center; width:100%; max-width:54px; padding:7px 2px; border-radius:10px; color:var(--accent); background:var(--paper); font-size:15px; font-weight:800; font-variant-numeric:tabular-nums; }
+.grade-points-pages { display:flex; align-items:center; justify-content:flex-end; gap:10px; margin-top:8px; color:var(--ink-soft); font-size:11px; font-variant-numeric:tabular-nums; }
+.grade-points-pages button { width:36px; min-height:36px; border:1px solid var(--glass-border); border-radius:10px; color:var(--accent); background:transparent; font:inherit; font-size:22px; cursor:pointer; }
+.grade-points-pages button:disabled { opacity:.3; cursor:default; }
 .grade-points-empty, .grade-points-error { margin:0; color:var(--ink-soft); font-size:13px; line-height:1.6; }
 .grade-points-retry { margin-top:8px; padding:8px 12px; border:1px solid var(--glass-border); border-radius:12px; background:var(--paper-2); color:var(--accent); font:inherit; cursor:pointer; }
