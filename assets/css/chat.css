@@ -4,7 +4,7 @@
 .chat-reply-compose strong { color:var(--accent); font-size:12px; }
 .chat-reply-compose p { margin:3px 0 0; font-size:13px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
 .chat-reply-compose button, .chat-actions-dialog header button { border:0; background:transparent; color:var(--text-secondary); min-width:44px; min-height:44px; font-size:26px; cursor:pointer; }
-.chat-message-quote { display:block; width:100%; text-align:left; font:inherit; color:inherit; background:rgba(0,0,0,.08); border:0; border-left:3px solid currentColor; border-radius:8px; margin-bottom:6px; padding:6px 8px; cursor:pointer; }
+.chat-message-quote { display:block; box-sizing:border-box; width:100%; min-width:0; overflow-wrap:anywhere; text-align:left; font:inherit; color:inherit; background:rgba(0,0,0,.08); border:0; border-left:3px solid currentColor; border-radius:8px; margin-bottom:6px; padding:6px 8px; cursor:pointer; }
 .chat-message-quote strong { display:block; font-size:11px; }
 .chat-message-quote span { display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; overflow:hidden; font-size:12px; line-height:1.4; }
 .chat-forward-label { display:block; font-size:11px; font-weight:650; margin:0 0 5px; opacity:.8; overflow-wrap:anywhere; }
@@ -12,8 +12,8 @@
 .chat-message-deleted { opacity:.65; font-style:italic; }
 .chat-message { position:relative; touch-action:pan-y; -webkit-touch-callout:none; -webkit-user-select:none; user-select:none; }
 .chat-message-selected { box-shadow:0 0 0 2px var(--accent),0 8px 24px rgba(0,0,0,.15); }
-.chat-swipe-reply { position:absolute; right:-36px; top:calc(50% - 14px); display:grid; place-items:center; width:28px; height:28px; border-radius:50%; background:var(--paper-2); color:var(--accent); font-size:23px; opacity:0; transform:scale(.7); pointer-events:none; transition:opacity .12s,transform .12s; }
-.chat-message-swiping .chat-swipe-reply { opacity:.55; }
+.chat-swipe-reply { position:absolute; right:-36px; top:calc(50% - 14px); display:none; place-items:center; width:28px; height:28px; border-radius:50%; background:var(--paper-2); color:var(--accent); font-size:23px; opacity:0; transform:scale(.7); pointer-events:none; transition:opacity .12s,transform .12s; }
+.chat-message-swiping .chat-swipe-reply { display:grid; opacity:.55; }
 .chat-message-reply-ready .chat-swipe-reply { opacity:1; transform:scale(1); }
 .chat-message:focus-visible { outline:2px solid var(--accent); outline-offset:3px; }
 .chat-message-highlight { outline:2px solid var(--accent); outline-offset:3px; }
@@ -126,9 +126,9 @@
 .chat-peer-caption { font-size: var(--text-xs); }
 .chat-peer-caption { display:block; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
 .chat-older { align-self: center; flex-shrink: 0; font-size: var(--text-xs); }
-.chat-messages { flex: 1; min-height: 0; overflow-y: auto; overscroll-behavior: contain; padding: 18px 2px; display: flex; flex-direction: column; gap: 8px; }
+.chat-messages { flex: 1; min-width:0; min-height: 0; overflow-x:hidden; overflow-y: auto; overscroll-behavior: contain; padding: 18px 2px; display: flex; flex-direction: column; gap: 8px; }
 .chat-date { text-align: center; color: var(--text-secondary); font-size: var(--text-xs); margin: 10px 0; }
-.chat-message { align-self: flex-start; max-width: 86%; padding: 10px 14px 8px; border-radius: 18px 18px 18px 5px; background: var(--paper-2); border: 1px solid var(--line); }
+.chat-message { box-sizing:border-box; min-width:0; align-self: flex-start; max-width: 86%; padding: 10px 14px 8px; border-radius: 18px 18px 18px 5px; background: var(--paper-2); border: 1px solid var(--line); }
 .chat-message-own { align-self: flex-end; background: var(--highlight-bg); border-color: var(--highlight-bg); border-radius: 18px 18px 5px 18px; }
 .chat-message-text { margin: 0; font-size: var(--text-body); line-height: 1.55; white-space: pre-wrap; overflow-wrap: anywhere; }
 .chat-message-time { display: block; color: var(--text-secondary); text-align: right; margin-top: 5px; font-size: 0.6875rem; line-height: 1.3; font-variant-numeric: tabular-nums; }
