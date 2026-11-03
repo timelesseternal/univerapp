@@ -293,11 +293,8 @@ html, body { height:100%; min-height:0; overflow:hidden; overscroll-behavior:non
 .grade-details-link { display:flex; align-items:center; justify-content:space-between; gap:12px; margin-top:16px; color:var(--accent); font-size:13px; font-weight:700; }
 .grade-card[open] .profile-gpa-arrow { transform:rotate(90deg); }
 .grade-details-body { border-top:1px solid var(--glass-border); margin-top:16px; padding-top:16px; }
-.grade-point-tabs { display:flex; flex-wrap:wrap; gap:6px; margin-bottom:12px; }
-.grade-point-tabs button { display:flex; align-items:center; justify-content:center; gap:6px; flex:1; min-width:0; min-height:40px; padding:8px; border:1px solid var(--glass-border); border-radius:12px; background:transparent; color:var(--ink-soft); font:inherit; font-size:12px; font-weight:650; cursor:pointer; }
-.grade-point-tabs button[aria-pressed="true"] { color:var(--accent); background:var(--highlight-bg); border-color:var(--accent); }
-.grade-point-tabs button span { font-size:10px; opacity:.7; font-variant-numeric:tabular-nums; }
 .grade-points-group { min-width:0; }
+.grade-points-group + .grade-points-group { margin-top:14px; padding-top:14px; border-top:1px solid var(--glass-border); }
 .grade-points-group h3 { font-size:13px; line-height:1.5; margin:0; overflow-wrap:anywhere; }
 .grade-points-tutor { margin:3px 0 10px; font-size:12px; line-height:1.5; color:var(--ink-soft); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
 .grade-points-scroll { max-width:100%; min-width:0; overflow-x:auto; overflow-y:hidden; overscroll-behavior-x:contain; margin-top:10px; scrollbar-width:thin; scrollbar-color:var(--glass-border) transparent; }

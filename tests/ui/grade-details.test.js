@@ -60,19 +60,16 @@ test('fractional Platonus marks display at most two decimal places',()=>{
   assert.match(html,/>82,86</);assert.match(html,/>85</);assert.doesNotMatch(html,/857142/);
 });
 
-test('all marks of a lesson group share one row and switching groups reuses data',async()=>{
+test('every lesson group is visible immediately with all its marks on one row',async()=>{
   let calls=0;
   const marks=Array.from({length:9},(_,i)=>({date:`2026-10-${String(i+1).padStart(2,'0')}`,mark:80+i}));
-  const ui=setup(async()=>{calls++;return {groups:[{name:'NBD-1-L',marks},{name:'NBD-1-Lab',marks:[]}]};});
+  const ui=setup(async()=>{calls++;return {groups:[{name:'NBD-1-L',marks},{name:'NBD-1-Lab',marks:[{date:'2026-10-20',mark:95}]},{name:'NBD-1-SRSP',marks:[]}]};});
   ui.open();await flush();
-  assert.match(ui.body.innerHTML,/<table/);assert.match(ui.body.innerHTML,/Лекции/);
-  assert.equal((ui.body.innerHTML.match(/<time /g)||[]).length,9);
-  assert.equal((ui.body.innerHTML.match(/<tbody><tr>/g)||[]).length,1);
-  assert.match(ui.body.innerHTML,/>88</);assert.doesNotMatch(ui.body.innerHTML,/data-grade-page/);
-  const click=attributes=>ui.body.onclick({target:{closest:()=>({getAttribute:name=>attributes[name]??null})}});
-  click({'data-grade-group':'1'});
+  assert.match(ui.body.innerHTML,/Лекции/);assert.match(ui.body.innerHTML,/Лабораторные/);assert.match(ui.body.innerHTML,/СРСП/);
+  assert.equal((ui.body.innerHTML.match(/<time /g)||[]).length,10);
+  assert.equal((ui.body.innerHTML.match(/<tbody><tr>/g)||[]).length,2);
+  assert.match(ui.body.innerHTML,/>88</);assert.match(ui.body.innerHTML,/>95</);
   assert.match(ui.body.innerHTML,/Оценок за контрольные точки пока нет/);
-  click({'data-grade-group':'0'});assert.match(ui.body.innerHTML,/>88</);
-  ui.open();await flush();assert.equal((ui.body.innerHTML.match(/<time /g)||[]).length,9);
-  assert.equal(calls,1);
+  assert.doesNotMatch(ui.body.innerHTML,/data-grade-group|data-grade-page|grade-point-tabs/);
+  ui.open();await flush();assert.equal(calls,1);
 });

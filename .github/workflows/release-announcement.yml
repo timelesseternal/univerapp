@@ -1,0 +1,31 @@
+name: Announce successful production release
+
+on:
+  status:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: release-announcement-${{ github.event.sha }}
+  cancel-in-progress: false
+
+jobs:
+  announce:
+    if: github.event.state == 'success' && github.event.context == 'Vercel' && contains(github.event.branches.*.name, 'main')
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          ref: ${{ github.event.sha }}
+          persist-credentials: false
+      - uses: actions/setup-node@v7
+        with:
+          node-version: '24'
+      - name: Notify linked bot users after verifying the live release
+        run: node scripts/announce-release.mjs
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+          TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
