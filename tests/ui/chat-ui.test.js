@@ -35,6 +35,29 @@ const reply = data => ({ ok: true, json: async () => data });
 const settle = async () => { for (let n = 0; n < 20; n++) await Promise.resolve(); };
 const profile = { id: 'me', name: 'Студент' };
 
+test('the header search opens for typing and closing discards late search results',async()=>{
+  let finish;
+  const ui=setup(async url=>{
+    if(url.includes('action=session'))return reply({profile,conversations:[]});
+    if(url.includes('action=users'))return new Promise(resolve=>{finish=resolve;});
+    return reply({conversations:[]});
+  });
+  ui.api.onSection('chat');await settle();
+  const toggle=ui.elements.get('chatSearchToggle'),input=ui.elements.get('chatSearch');
+  toggle.listeners.click();assert.equal(input.disabled,false);assert.equal(input.tabIndex,0);
+  input.value='Друг';input.listeners.input();
+  [...ui.timers.values()].find(timer=>timer.delay===300).fn();await settle();
+  assert.equal(ui.elements.get('chatResults').hidden,false);
+  toggle.listeners.click();
+  assert.equal(input.value,'');assert.equal(input.disabled,true);assert.equal(input.tabIndex,-1);
+  assert.equal(ui.elements.get('chatInbox').hidden,false);
+  finish(reply({users:[{id:'peer',name:'Друг'}]}));await settle();
+  assert.equal(ui.elements.get('chatResults').hidden,true);
+  assert.equal(ui.elements.get('chatResults').children.length,0);
+  toggle.listeners.click();input.listeners.keydown({key:'Escape',preventDefault(){}});
+  assert.equal(input.disabled,true);
+});
+
 test('a cold inbox shows phantom rows until the first response, including an empty inbox',async()=>{
   let finish;
   const ui=setup(()=>new Promise(resolve=>{finish=resolve;}));

@@ -182,15 +182,18 @@
     <section class="app-section" id="sectionTranscript" style="display:none;" aria-label="Транскрипт"><button type="button" class="profile-back navigation-back" data-action="switchSection('profile')"><svg aria-hidden="true" class="action-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m14 6-6 6 6 6"/></svg><span>Назад</span></button><div class="academic-container" id="transcriptContainer"></div></section>
     <section class="app-section chat-section" id="sectionChat" style="display:none;" aria-label="Личные сообщения">
       <header class="chat-page-header">
-        <span class="masthead-eyebrow">На связи</span>
         <h1 class="masthead-headline">Сообщения</h1>
-        <p class="chat-description">Личные переписки со студентами UniLink.</p>
+        <div id="chatHeaderSearch" class="chat-header-search">
+          <label class="chat-sr-only" for="chatSearch">Найти студента</label>
+          <input id="chatSearch" class="chat-search" type="search" maxlength="60" autocomplete="off" placeholder="Найти студента" disabled tabindex="-1">
+          <button id="chatSearchToggle" type="button" class="chat-search-toggle" aria-label="Найти студента" aria-expanded="false" aria-controls="chatSearch">
+            <svg class="chat-search-magnifier" aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><circle cx="10.5" cy="10.5" r="6.5"/><path d="m16 16 4 4"/></svg>
+            <svg class="chat-search-close" aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="m6 6 12 12M18 6 6 18"/></svg>
+          </button>
+        </div>
       </header>
       <div id="chatStatus" class="chat-status" role="status" aria-live="polite" hidden></div>
       <div id="chatInboxView">
-        <label class="chat-search-label" for="chatSearch">Найти студента</label>
-        <input id="chatSearch" class="chat-search" type="search" maxlength="60" autocomplete="off" placeholder="Имя или фамилия">
-        <p class="chat-search-hint">В поиске — пользователи, которые уже открыли чат.</p>
         <div id="chatResults" class="chat-list" hidden></div>
         <div id="chatInbox" class="chat-list"></div>
       </div>

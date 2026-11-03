@@ -14,6 +14,21 @@
   let replyTarget = null, actionsMessage = null, actionsVersion = 0, actionsBusy = false;
   let deletionRevision = '0', actionsAvailable = false, deleteScopes = false, selectedBubble = null;
   const deletedMessages = new Set();
+  let searchOpen = false;
+  function setSearchOpen(open, focus = true) {
+    searchOpen = open;
+    root.classList.toggle?.('chat-search-open',open);
+    const input=byID('chatSearch'), button=byID('chatSearchToggle');
+    button.setAttribute('aria-expanded',String(open));
+    button.setAttribute('aria-label',open ? 'Закрыть поиск' : 'Найти студента');
+    input.disabled = !open; input.tabIndex = open ? 0 : -1;
+    if (open) { if (focus) input.focus(); return; }
+    state.searchVersion++; clearTimeout(state.searchTimer);
+    input.value=''; input.blur?.();
+    byID('chatResults').replaceChildren(); byID('chatResults').hidden=true;
+    byID('chatInbox').hidden=false;
+    if (focus) button.focus();
+  }
   function setReply(message, focus = false) {
     replyTarget = message && !message.deleted ? message : null;
     byID('chatReply').hidden = !replyTarget;
@@ -801,6 +816,7 @@
     }
   }
   async function openConversation(conversation) {
+    byID('chatSearch').blur?.();
     closeActions(); deletionRevision = '0'; actionsAvailable = false; deletedMessages.clear();
     stopTyping(); showTyping(false);
     closePeerProfile();
@@ -975,6 +991,7 @@
     }
   }
   function reset() {
+    setSearchOpen(false,false);
     closeActions(); setReply(null); deletionRevision = '0'; actionsAvailable = false; deletedMessages.clear();
     clearTimeout(presenceTimer); peerStatus(null);
     stopTyping(); showTyping(false);
@@ -1054,6 +1071,7 @@
     onSection(section) {
       if (section !== 'chat') {
         closeActions();
+        byID('chatSearch').blur?.();
         if (document.activeElement === byID('chatText')) byID('chatText').blur();
         stopTyping(); showTyping(false);
       }
@@ -1070,6 +1088,10 @@
     },
     logout: logoutChat,
   };
+  byID('chatSearchToggle').addEventListener('click',() => setSearchOpen(!searchOpen));
+  byID('chatSearch').addEventListener('keydown',event => {
+    if (event.key==='Escape') { event.preventDefault(); setSearchOpen(false); }
+  });
   byID('chatSearch').addEventListener('input', () => {
     state.searchVersion++;
     clearTimeout(state.searchTimer);

@@ -993,9 +993,9 @@ if ('serviceWorker' in navigator) {
 
       <button type="button" class="wrapped-launch" data-action="openSemesterWrapped()"><span class="wrapped-launch-kicker">UNILINK · RECAP</span><span class="wrapped-launch-title">Твой семестр в историях <span aria-hidden="true">↗</span></span><span class="wrapped-launch-caption">Твой ритм. Твои предметы. Твои результаты.</span></button>
       <div id="appUpdateAvailable" class="profile-update-available" role="status" hidden><span class="profile-update-dot" aria-hidden="true"></span>Доступна новая версия</div>
-      <button type="button" class="profile-update-btn" data-study-history>Что изменилось · <span data-study-history-count>Оценки и расписание</span></button>
       <button type="button" id="appUpdateButton" class="profile-update-btn" data-action="updateApplication(this)">Обновить приложение</button>
       <p id="appUpdateStatus" class="profile-update-status" role="status"></p>
+      <button type="button" class="profile-update-btn" data-study-history>Что изменилось · <span data-study-history-count>Оценки и расписание</span></button>
       <button class="profile-logout-btn" data-action="confirmLogout()">Выйти из аккаунта</button>
     `;
 
