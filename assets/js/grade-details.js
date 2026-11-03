@@ -1,7 +1,6 @@
 (() => {
   'use strict';
   const cache = new Map(), opened = new Set();
-  const pageSize = 4;
   let epoch = 0;
   const escape = value => String(value).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
   const paint = (body, html) => { if (window.unilinkMotion) window.unilinkMotion.replace(body, html); else body.innerHTML = html; };
@@ -24,31 +23,25 @@
     });
     const selected = Number.isInteger(view.selected) && groups[view.selected] ? view.selected : Math.max(0,groups.findIndex(group=>group.marks.length));
     const group = groups[selected];
-    const pageCount = Math.max(1,Math.ceil(group.marks.length/pageSize));
-    const page = Math.max(0,Math.min(pageCount-1,view.pages?.[selected] || 0));
-    const points = group.marks.slice(page*pageSize,(page+1)*pageSize);
+    const points = group.marks;
     const tabs = groups.length>1 ? `<nav class="grade-point-tabs" aria-label="Вид занятия">${groups.map((item,index)=>`<button type="button" data-grade-group="${index}" aria-pressed="${index===selected}">${escape(groupLabel(item.name,index))}<span>${item.marks.length}</span></button>`).join('')}</nav>` : '';
     const dates = points.map(point=>{
       const [year,month,day]=point.date.split('-');
       return `<th scope="col"><time datetime="${point.date}" aria-label="${day}.${month}.${year}" title="${day}.${month}.${year}">${day}.${month}<small>${year}</small></time></th>`;
     }).join('');
     const marks = points.map(point=>`<td><span class="grade-point-mark">${escape(point.mark.toLocaleString('ru-RU',{maximumFractionDigits:2}))}</span></td>`).join('');
-    const table = points.length ? `<table class="grade-points-table" aria-label="Даты и оценки"><thead><tr><th scope="col">Дата</th>${dates}</tr></thead><tbody><tr><th scope="row">Оценка</th>${marks}</tr></tbody></table>` : '<p class="grade-points-empty">Оценок за контрольные точки пока нет</p>';
-    const pager = pageCount>1 ? `<div class="grade-points-pages"><button type="button" data-grade-page="${page-1}" aria-label="Предыдущие оценки" ${page===0?'disabled':''}>‹</button><span aria-live="polite">${page*pageSize+1}–${Math.min((page+1)*pageSize,group.marks.length)} из ${group.marks.length}</span><button type="button" data-grade-page="${page+1}" aria-label="Следующие оценки" ${page===pageCount-1?'disabled':''}>›</button></div>` : '';
-    return `${tabs}<section class="grade-points-group"><h3>${escape(group.name)}</h3>${group.tutor ? `<p class="grade-points-tutor" title="${escape(group.tutor)}">${escape(group.tutor)}</p>` : ''}${table}${pager}</section>`;
+    const table = points.length ? `<div class="grade-points-scroll" tabindex="0" role="region" aria-label="Все оценки раздела, прокрутка вбок"><table class="grade-points-table" style="--grade-column-count:${points.length}" aria-label="Даты и оценки"><thead><tr><th scope="col">Дата</th>${dates}</tr></thead><tbody><tr><th scope="row">Оценка</th>${marks}</tr></tbody></table></div>` : '<p class="grade-points-empty">Оценок за контрольные точки пока нет</p>';
+    return `${tabs}<section class="grade-points-group"><h3>${escape(group.name)}</h3>${group.tutor ? `<p class="grade-points-tutor" title="${escape(group.tutor)}">${escape(group.tutor)}</p>` : ''}${table}</section>`;
   }
   function paintGroups(body, entry, revision, details) {
-    const view=entry.view ||= {selected:Math.max(0,entry.groups.findIndex(group=>group.marks.length)),pages:{}};
+    const view=entry.view ||= {selected:Math.max(0,entry.groups.findIndex(group=>group.marks.length))};
     paint(body,groupsHtml(entry.groups,view));
     body.onclick=event=>{
-      const button=event.target.closest?.('button[data-grade-group],button[data-grade-page]');
+      const button=event.target.closest?.('button[data-grade-group]');
       if (!button || !body.contains(button) || button.disabled || revision!==epoch || !details.open) return;
-      const group=button.getAttribute('data-grade-group'), page=button.getAttribute('data-grade-page');
-      if (group!==null) view.selected=Number(group);
-      else view.pages[view.selected]=Number(page);
+      view.selected=Number(button.getAttribute('data-grade-group'));
       paintGroups(body,entry,revision,details);
-      const selector=group!==null ? `button[data-grade-group="${view.selected}"]` : `button[aria-label="${button.getAttribute('aria-label')}"]`;
-      body.querySelector(selector)?.focus?.({preventScroll:true});
+      body.querySelector(`button[data-grade-group="${view.selected}"]`)?.focus?.({preventScroll:true});
     };
   }
   async function load(details, context) {
