@@ -19,6 +19,7 @@
     "@electric-sql/pglite": "^0.5.8"
   },
   "dependencies": {
-    "@vercel/functions": "^3.9.11"
+    "@vercel/functions": "^3.9.11",
+    "web-push": "^3.6.7"
   }
 }

@@ -1,4 +1,5 @@
 // Public app shell only; student data and video ranges bypass this cache.
+if(typeof importScripts==='function') importScripts('/assets/js/push-storage.js');
 const CACHE_NAME = 'univer-shell-v121';
 const FONT_PATHS = new Set([
   '/assets/fonts/manrope/cyrillic-ext.woff2',
@@ -20,6 +21,8 @@ SHELL_PATHS.add('/assets/js/grade-details.js');
 SHELL_PATHS.add('/assets/js/schedule-share.js');
 SHELL_PATHS.add('/assets/css/schedule-share.css');
 SHELL_PATHS.add('/assets/js/study-history.js');
+SHELL_PATHS.add('/assets/js/push.js');
+SHELL_PATHS.add('/assets/js/push-storage.js');
 SHELL_PATHS.add('/assets/css/study-history.css');
 SHELL_PATHS.add('/assets/icons/unilink-dark-maskable-512.png');
 SHELL_PATHS.add('/assets/icons/unilink-dark-favicon-32.png');
@@ -66,6 +69,14 @@ async function networkResponse(request, work) {
 }
 
 self.addEventListener('message', event => {
+  if(event.data?.type==='UNILINK_PUSH_SUPPORT') {event.ports?.[0]?.postMessage({ready:true});return;}
+  if(['UNILINK_PUSH_READ','UNILINK_PUSH_LOGOUT'].includes(event.data?.type)) {
+    event.waitUntil((async()=>{
+      if(event.data.type==='UNILINK_PUSH_LOGOUT')await self.unilinkPushStorage?.set(null);
+      const notifications=await self.registration.getNotifications();
+      for(const notification of notifications) if(event.data.type==='UNILINK_PUSH_LOGOUT'||notification.data?.conversationID===event.data.conversationID)notification.close();
+    })().catch(()=>{}));return;
+  }
   if (event.data?.type !== 'REFRESH_SHELL' || !event.ports?.[0]) return;
   event.waitUntil((async () => {
     try {
@@ -81,6 +92,49 @@ self.addEventListener('message', event => {
       event.ports[0].postMessage({ ok: true });
     } catch { event.ports[0].postMessage({ ok: false }); }
   })());
+});
+
+self.addEventListener('push',event=>{
+  event.waitUntil((async()=>{
+    let payload;try{payload=event.data?.json();}catch{return;}
+    const uuid=/^[a-f0-9]{8}(?:-[a-f0-9]{4}){3}-[a-f0-9]{12}$/i;
+    if(!payload||!['chat','test'].includes(payload.kind)||!uuid.test(payload.owner)
+      ||(payload.kind==='chat'&&!uuid.test(payload.conversationID)))return;
+    const owner=await self.unilinkPushStorage?.get();
+    if(owner!==payload.owner)return; // Logout/account switches cannot reveal another student's message.
+    await self.registration.showNotification(String(payload.title||'UniLink').slice(0,160),{
+      body:String(payload.body||'Новое сообщение').slice(0,240),icon:'/assets/icons/unilink-dark-192.png',
+      tag:payload.kind==='chat'?`chat-${payload.conversationID}`:'unilink-push-test',
+      data:{owner,conversationID:payload.kind==='chat'?payload.conversationID:null},
+    });
+  })().catch(()=>{}));
+});
+self.addEventListener('notificationclick',event=>{
+  event.notification.close();
+  event.waitUntil((async()=>{
+    const data=event.notification.data;
+    if(!data?.owner||await self.unilinkPushStorage?.get()!==data.owner)return;
+    const uuid=/^[a-f0-9]{8}(?:-[a-f0-9]{4}){3}-[a-f0-9]{12}$/i;
+    const url=new URL(data.conversationID&&uuid.test(data.conversationID)?`/?chat=${data.conversationID}`:'/',self.location.origin).href;
+    const windows=await self.clients.matchAll({type:'window',includeUncontrolled:true});
+    const client=windows.find(window=>window.url.startsWith(self.location.origin+'/'));
+    if(client){
+      await client.focus();
+      if(!data.conversationID)return;
+      if(data.conversationID && typeof MessageChannel!=='undefined') {
+        const accepted=await new Promise(resolve=>{
+          const channel=new MessageChannel();let timer;
+          const finish=value=>{clearTimeout(timer);channel.port1.close();channel.port2.close();resolve(value);};
+          channel.port1.onmessage=event=>finish(event.data?.handled===true);
+          timer=setTimeout(()=>finish(false),1500);
+          try{client.postMessage({type:'UNILINK_OPEN_CHAT',owner:data.owner,conversationID:data.conversationID},[channel.port2]);}catch{finish(false);}
+        });
+        if(accepted)return; // Keep unsent drafts and the current app instance intact.
+      }
+      await client.navigate(url);
+    }
+    else await self.clients.openWindow(url);
+  })().catch(()=>{}));
 });
 
 self.addEventListener('install', event => {

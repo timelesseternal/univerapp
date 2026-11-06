@@ -17,7 +17,7 @@ export function configuration() {
   catch { throw new ChatError(503, 'chat_not_configured'); }
   return { url, key };
 }
-export async function database(path, { method = 'POST', body, timeoutMs = 10000 } = {}) {
+export async function database(path, { method = 'POST', body, timeoutMs = 10000, prefer = 'return=representation' } = {}) {
   const { url, key } = configuration();
   let response;
   try {
@@ -25,7 +25,7 @@ export async function database(path, { method = 'POST', body, timeoutMs = 10000 
       method,
       // Supports the legacy service_role JWT and the new sb_secret_ keys.
       headers: { apikey: key, ...(key.startsWith('sb_secret_') ? {} : { Authorization: `Bearer ${key}` }),
-        'Content-Type': 'application/json', Prefer: 'return=representation' },
+        'Content-Type': 'application/json', Prefer: prefer },
       body: body === undefined ? undefined : JSON.stringify(body),
       signal: AbortSignal.timeout(timeoutMs),
     });

@@ -525,6 +525,7 @@
       }
       if (stale(epoch) || generation !== authGeneration) throw new Error('session_changed');
       state.profile = data.profile;
+      window.unilinkPush?.onProfile(data.profile);
       if (state.monitoring) publishPresence();
       if (Array.isArray(data.conversations)) {
         drawInbox(data.conversations);
@@ -726,7 +727,7 @@
       if (through && state.readThrough.get(id)!==through) {
         // Acknowledge after visible rendering, without delaying the message refresh.
         request('read', { method:'POST',body:{conversationID:id,throughID:through} }).then(() => {
-          if (!stale(epoch)) { state.readThrough.set(id,through); refreshBadge(true); }
+          if (!stale(epoch)) { state.readThrough.set(id,through); window.unilinkPush?.read(id); refreshBadge(true); }
         }).catch(() => {});
       }
     }
@@ -1035,13 +1036,26 @@
   }
   async function logoutChat() {
     const pendingSession = state.sessionWork;
+    const pushLogout=window.unilinkPush?.logout();
     reset();
     // A late bootstrap response may set a cookie: revoke it after it settles.
     if (pendingSession) await pendingSession.catch(() => {});
+    if (pushLogout) await pushLogout.catch(()=>{});
     try { await request('session', { method: 'DELETE' }); }
     catch { /* The route clears the cookie even if its database is unavailable. */ }
   }
   window.univerChat = {
+    ensureSession,
+    renewSession() {state.profile=null;return ensureSession();},
+    async openFromPush(id) {
+      if(!/^[a-f0-9]{8}(?:-[a-f0-9]{4}){3}-[a-f0-9]{12}$/i.test(id))return;
+      const epoch=state.epoch;
+      try {
+        await ensureSession();if(stale(epoch))return;
+        const data=await request('conversation',{params:{conversationID:id}});if(stale(epoch))return;
+        switchSection('chat');await openConversation(data.conversation);
+      }catch(error){if(!stale(epoch))showError(error);}
+    },
     async refreshNow() {
       if (chatRefreshTask) await chatRefreshTask;
       state.inboxAt = 0;
@@ -1052,7 +1066,8 @@
       restorePreview();
       const epoch = state.epoch;
       const start = telegramApp?.initDataUnsafe?.start_param || new URLSearchParams(window.location?.search || '').get('tgWebAppStartParam');
-      const match = /^chat_([a-f0-9-]{36})$/i.exec(start || '');
+      const direct=new URLSearchParams(window.location?.search || '').get('chat');
+      const match = /^chat_([a-f0-9-]{36})$/i.exec(start || (direct ? `chat_${direct}` : ''));
       state.monitoring = true;
       ensureSession().then(async () => {
         if (stale(epoch)) return;

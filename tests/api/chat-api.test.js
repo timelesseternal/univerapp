@@ -30,6 +30,7 @@ test('message actions validate IDs and derive the actor from the session',async 
   const calls=[];
   setup(t,async(url,options)=>{
     if(url.includes('/chat_sessions?'))return reply([{user_id:user}]);
+    if(url.endsWith('/rpc/chat_claim_push'))return reply([]);
     calls.push({url,body:JSON.parse(options.body)});
     return reply(url.endsWith('/chat_delete_message')?true:{id:'9',text:'Ответ'});
   });
