@@ -49,6 +49,36 @@ test('an explicit successful empty week is confirmed without another request', a
   assert.deepEqual(res.body.timetable.days, {});
 });
 
+test('malformed schedule objects are rejected on both the initial request and retry', async t => {
+  const invalid = [{}, { error: 'upstream_failure' }, { timetable: {} },
+    { timetable: { days: [] } }, { timetable: { days: { 1: null } } },
+    { timetable: { days: { 1: { lessons: { 1: { lessons: {} } } } } } },
+    { ...emptyWeek(), lessonHours: {} },
+    { ...emptyWeek(), lessonHours: [{ number: 1, displayNumber: 1, start: null, finish: '09:50' }] },
+    { timetable: { days: { 1: { lessons: { 1: { lessons: [null] } } } } } }];
+  for (const payload of invalid) for (const retry of [false, true]) {
+    let calls = 0;
+    t.mock.method(globalThis, 'fetch', async () => ({ status: 200,
+      text: async () => JSON.stringify(++calls === 1 && retry ? emptyWeek() : payload) }));
+    const res = response();
+    await handler({ headers: sessionHeaders(session), query: { studentID: '7', ...(retry ? {} : { week: '7' }) } }, res);
+    assert.equal(res.code, 502, JSON.stringify({ payload, retry }));
+    assert.equal(res.body.error, 'platonus_bad_json');
+    assert.equal(calls, retry ? 2 : 1);
+  }
+});
+
+test('a populated schedule preserves lessons and hour metadata', async t => {
+  const data = { ...emptyWeek(), lessonHours: [{ number: 1, displayNumber: 1, start: '08:00:00', finish: '09:50:00' }],
+    timetable: { days: { 1: { lessons: { 1: { lessons: [{ number: 1, subjectName: 'Математика', tutorName: null }] } } } } } };
+  t.mock.method(globalThis, 'fetch', async () => ({ status: 200, text: async () => JSON.stringify(data) }));
+  const res = response();
+  await handler({ headers: sessionHeaders(session), query: { studentID: '7' } }, res);
+  assert.equal(res.code, 200);
+  assert.deepEqual(res.body.timetable, data.timetable);
+  assert.deepEqual(res.body.lessonHours, data.lessonHours);
+});
+
 test('a successful empty retry is confirmed and week zero requests week one', async t => {
   const calls = [];
   t.mock.method(globalThis, 'fetch', async (_, options) => {

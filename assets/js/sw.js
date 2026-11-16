@@ -1,6 +1,7 @@
 // Public app shell only; student data and video ranges bypass this cache.
 if(typeof importScripts==='function') importScripts('/assets/js/push-storage.js');
 const CACHE_NAME = 'univer-shell-v121';
+const SHELL_INTEGRITY = {};
 const FONT_PATHS = new Set([
   '/assets/fonts/manrope/cyrillic-ext.woff2',
   '/assets/fonts/manrope/cyrillic.woff2',
@@ -27,20 +28,17 @@ SHELL_PATHS.add('/assets/css/study-history.css');
 SHELL_PATHS.add('/assets/icons/unilink-dark-maskable-512.png');
 SHELL_PATHS.add('/assets/icons/unilink-dark-favicon-32.png');
 
-async function savedResponse(request, includePrevious = false) {
+function fetchShell(request, options) {
+  const path = typeof request === 'string' ? request : new URL(request.url).pathname;
+  return fetch(request, { ...options, ...(SHELL_INTEGRITY[path] ? { integrity: SHELL_INTEGRITY[path] } : {}) });
+}
+
+async function savedResponse(request) {
   try {
     const cache = await caches.open(CACHE_NAME);
     const response = await cache.match(request);
     if (response) return response;
   } catch { /* Restricted storage must not block a successful network load. */ }
-  if (!includePrevious) return;
-  try {
-    const names = (await caches.keys()).filter(name => name.startsWith('univer-shell-') && name !== CACHE_NAME).reverse();
-    for (const name of names) {
-      const response = await (await caches.open(name)).match(request);
-      if (response) return response;
-    }
-  } catch { /* Offline recovery is optional when CacheStorage is unavailable. */ }
 }
 
 async function rememberResponse(request, response) {
@@ -60,9 +58,9 @@ async function networkResponse(request, work) {
   try {
     const response = await work;
     if (response.ok) return response;
-    return await savedResponse(request, true) || response;
+    return await savedResponse(request) || response;
   } catch (error) {
-    const cached = await savedResponse(request, true);
+    const cached = await savedResponse(request);
     if (cached) return cached;
     throw error;
   }
@@ -82,7 +80,7 @@ self.addEventListener('message', event => {
     try {
       // Download first: an offline/failed update must preserve the existing shell.
       const files = await Promise.all([...SHELL_PATHS].map(async path => {
-        const response = await fetch(path, { cache: 'reload', signal: AbortSignal.timeout(12000) });
+        const response = await fetchShell(path, { cache: 'reload', signal: AbortSignal.timeout(12000) });
         if (!response.ok) throw new Error('shell_unavailable');
         return [path, response];
       }));
@@ -140,10 +138,13 @@ self.addEventListener('notificationclick',event=>{
 self.addEventListener('install', event => {
   event.waitUntil((async () => {
     // Prime the public shell on the first visit too, before this worker controls a page.
-    await Promise.allSettled([...SHELL_PATHS].map(async path => {
-      const response = await fetch(path, {cache:'reload',credentials:'omit',signal:AbortSignal.timeout(12000)});
-      if (response.ok) await rememberResponse(path, response);
+    // Keep the previous worker active if any file is missing or belongs to another release.
+    const files = await Promise.all([...SHELL_PATHS].map(async path => {
+      const response = await fetchShell(path, {cache:'reload',credentials:'omit',signal:AbortSignal.timeout(12000)});
+      if (!response.ok) throw new Error('shell_unavailable');
+      return [path, response];
     }));
+    await Promise.all(files.map(([path, response]) => rememberResponse(path, response)));
     await self.skipWaiting();
   })());
 });
@@ -158,30 +159,13 @@ self.addEventListener('fetch', event => {
   if (request.method !== 'GET' || url.origin !== self.location.origin
     || !SHELL_PATHS.has(url.pathname) || url.search || request.headers.has('range')) return;
 
-  // A navigation checks for new releases; warmed assets display immediately.
-  // Cache namespaces change with releases so an old release cannot fill this cache.
-  if (!FONT_PATHS.has(url.pathname) && url.pathname !== '/' && url.pathname !== '/index.html') {
-    const update = (async () => {
-      const response = await fetch(request, { signal: AbortSignal.timeout(10000) });
-      if (response.ok) await rememberResponse(request, response.clone());
-      return response;
-    })();
-    event.waitUntil(update.catch(() => {}));
-    event.respondWith((async () => {
-      const cached = await savedResponse(request);
-      return cached || await networkResponse(request, update);
-    })());
-    return;
-  }
-
-  // Prefer fresh HTML; keep the public shell available if the network is down.
+  // HTML and assets stay together until a complete new worker is installed.
+  // Build-generated integrity values reject files from a different deployment.
   event.respondWith((async () => {
-    if (FONT_PATHS.has(url.pathname)) {
-      const cachedFont = await savedResponse(request);
-      if (cachedFont) return cachedFont;
-    }
+    const cached = await savedResponse(request);
+    if (cached) return cached;
     return networkResponse(request, (async () => {
-      const response = await fetch(request, { signal: AbortSignal.timeout(10000) });
+      const response = await fetchShell(request, { signal: AbortSignal.timeout(10000) });
       if (response.ok) {
         const copy = response.clone();
         event.waitUntil(rememberResponse(request, copy));

@@ -27,15 +27,15 @@ test('first installation saves the public shell for offline reopening and never 
   assert.ok(writes.includes('/'));assert.ok(writes.includes('/assets/js/study-history.js'));
   assert.equal(downloads.some(path=>path.startsWith('/api/')),false);assert.equal(skipped,1);
 });
-test('warm code displays while the network is pending and updates its public cache afterwards', async () => {
-  let resolve;
+test('warm HTML and code stay in their release without background replacement', async () => {
+  let calls = 0;
   const cached = {};
-  const ui = worker(cached, () => new Promise(done => { resolve = done; }));
-  const event = ui.request('/assets/js/app.js');
-  assert.equal(await event.response, cached);
+  const ui = worker(cached, async () => { calls++; return response; });
+  for (const path of ['/', '/index.html', '/assets/js/app.js']) {
+    assert.equal(await ui.request(path).response, cached);
+  }
+  assert.equal(calls, 0);
   assert.equal(ui.writes.length, 0);
-  resolve(response); await event.work;
-  assert.equal(ui.writes.length, 1);
 });
 test('cold code waits for the network and private endpoints bypass the worker', async () => {
   let calls = 0;
@@ -77,19 +77,53 @@ test('activation retains recent public shells and never deletes unrelated caches
   blocked.handlers.activate({waitUntil(promise){work=promise;}});await work;assert.equal(blocked.claimed,1);
 });
 
-test('previous public shell serves as fallback when a new worker has no cached files and the network fails',async()=>{
+test('a cold worker never mixes in files from a previous release',async()=>{
   const previous={version:'previous'};
   for(const status of ['offline',503])for(const path of ['/','/assets/js/app.js','/assets/fonts/manrope/latin.woff2']){
     const ui=worker(null,async()=>{if(status==='offline')throw new Error('offline');return {ok:false,status};},{
       keys:async()=>['univer-shell-previous'],open:async name=>({match:async()=>name==='univer-shell-previous'?previous:null}),
     });
-    const event=ui.request(path);assert.equal(await event.response,previous);await event.work;
+    const event=ui.request(path);
+    if(status==='offline') await assert.rejects(event.response,/offline/);
+    else assert.equal((await event.response).status,503);
+    await event.work;
   }
 });
 
-test('a stalled navigation has a deadline and can restore saved HTML instead of hanging indefinitely',async()=>{
-  const cached={saved:true},expired=AbortSignal.abort(new Error('timeout'));
-  const ui=worker(cached,async(request,{signal})=>{assert.equal(signal,expired);throw signal.reason;},undefined,
+test('a cold navigation has a deadline instead of hanging indefinitely',async()=>{
+  const expired=AbortSignal.abort(new Error('timeout'));
+  const ui=worker(null,async(request,{signal})=>{assert.equal(signal,expired);throw signal.reason;},undefined,
     {timeout(ms){assert.equal(ms,10000);return expired;}});
-  const event=ui.request('/');assert.equal(await event.response,cached);
+  const event=ui.request('/');await assert.rejects(event.response,/timeout/);
+});
+
+test('an incomplete installation preserves the active worker without writing a partial shell', async () => {
+  const handlers = {}, writes = []; let skipped = false, work;
+  vm.runInNewContext(source, { AbortSignal,
+    caches: { open: async () => ({ put: async (...args) => writes.push(args) }) },
+    fetch: async path => ({ ok: path !== '/assets/js/app.js' }),
+    self: { addEventListener: (name, fn) => { handlers[name] = fn; }, skipWaiting: async () => { skipped = true; } } });
+  handlers.install({ waitUntil(promise) { work = promise; } });
+  await assert.rejects(work, /shell_unavailable/);
+  assert.equal(skipped, false); assert.equal(writes.length, 0);
+});
+
+test('integrity rejection never caches a file from another deployment', async () => {
+  const protectedSource = source.replace('const SHELL_INTEGRITY = {};',
+    'const SHELL_INTEGRITY = {"/assets/js/app.js":"sha256-releaseA"};');
+  const handlers = {}, writes = [], requests = [];
+  vm.runInNewContext(protectedSource, { URL, AbortSignal,
+    caches: { open: async () => ({ match: async () => null, put: async (...args) => writes.push(args) }) },
+    fetch: async (request, options) => {
+      requests.push(options);
+      // A browser rejects bytes that do not match fetch's integrity option.
+      if (options.integrity === 'sha256-releaseA') throw new TypeError('integrity mismatch');
+      return response;
+    }, self: { location: { origin: 'https://univer.test' }, addEventListener: (name, fn) => { handlers[name] = fn; } } });
+  const event = { request: { method: 'GET', url: 'https://univer.test/assets/js/app.js', headers: { has: () => false } },
+    respondWith(promise) { this.response = promise; }, waitUntil() {} };
+  handlers.fetch(event);
+  await assert.rejects(event.response, /integrity mismatch/);
+  assert.equal(requests[0].integrity, 'sha256-releaseA');
+  assert.equal(writes.length, 0);
 });
