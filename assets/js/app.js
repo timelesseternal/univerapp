@@ -668,6 +668,7 @@ if ('serviceWorker' in navigator) {
     platonusStudent = null;
     liveJournalData = null;
     window.unilinkGradeDetails?.reset();
+    window.unilinkScheduleDates?.reset();
     gradesLoadFailed = false;
     liveUmkdData = null;
     umkdLoadFailed = false;
@@ -1003,6 +1004,9 @@ if ('serviceWorker' in navigator) {
       <section class="profile-block" aria-labelledby="profileSettingsHeading">
       <h2 id="profileSettingsHeading">Настройки</h2>
       <div class="profile-settings">
+      <div id="appUpdateAvailable" class="profile-update-available" role="status" hidden><span class="profile-update-dot" aria-hidden="true"></span>Доступна новая версия</div>
+      <button type="button" id="appUpdateButton" class="profile-settings-update" data-action="updateApplication(this)"><svg aria-hidden="true" class="profile-row-icon" viewBox="0 0 24 24"><path d="M20 7a9 9 0 0 0-15-2L3 8m0-6v6h6m-5 9a9 9 0 0 0 15 2l2-3m0 6v-6h-6"/></svg><span id="appUpdateLabel">Обновление приложения</span><span id="appUpdateHint">Проверить</span></button>
+      <p id="appUpdateStatus" class="profile-update-status" role="status"></p>
       <details class="profile-notifications" id="profileNotifications" ${notificationsExpanded ? 'open' : ''}>
         <summary><svg aria-hidden="true" class="profile-row-icon" viewBox="0 0 24 24"><path d="M18 8a6 6 0 0 0-12 0c0 7-3 7-3 9h18c0-2-3-2-3-9M10 21h4"/></svg><span>Уведомления</span><svg aria-hidden="true" class="profile-chevron" viewBox="0 0 24 24"><path d="m6 9 6 6 6-6"/></svg></summary>
         <div class="profile-notifications-body">
@@ -1013,12 +1017,9 @@ if ('serviceWorker' in navigator) {
         <button type="button" id="pushTest" class="push-retry" hidden>Отправить тестовое уведомление</button>
         </div>
       </details>
-      <div id="appUpdateAvailable" class="profile-update-available" role="status" hidden><span class="profile-update-dot" aria-hidden="true"></span>Доступна новая версия</div>
-      <button type="button" id="appUpdateButton" class="profile-settings-update" data-action="updateApplication(this)"><svg aria-hidden="true" class="profile-row-icon" viewBox="0 0 24 24"><path d="M20 7a9 9 0 0 0-15-2L3 8m0-6v6h6m-5 9a9 9 0 0 0 15 2l2-3m0 6v-6h-6"/></svg><span id="appUpdateLabel">Обновление приложения</span><span id="appUpdateHint">Проверить</span></button>
-      <p id="appUpdateStatus" class="profile-update-status" role="status"></p>
       </div>
       </section>
-      <button type="button" class="profile-logout-btn" data-action="confirmLogout()"><svg aria-hidden="true" class="profile-row-icon" viewBox="0 0 24 24"><path d="M10 4H4v16h6m4-12 4 4-4 4m-6-4h14"/></svg>Выйти из аккаунта</button>
+      <button type="button" class="profile-logout-btn" data-action="confirmLogout()"><svg aria-hidden="true" class="profile-row-icon" viewBox="0 0 24 24"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4m7 14 5-5-5-5m5 5H9"/></svg>Выйти из аккаунта</button>
       </div>
     `;
 
@@ -1038,14 +1039,7 @@ if ('serviceWorker' in navigator) {
       return;
     }
 
-    const gradePeriod = journalSnapshot?.key?.startsWith(`${authGeneration}-${platonusStudent?.studentID}-`)
-      ? journalSnapshot.key.split('-').slice(-2).map(Number) : null;
-    const gradeCurrent = trueCurrentWeekInfo || liveScheduleWeekInfo;
-    const gradeYear = gradePeriod?.[0] ?? gradeCurrent?.studyYear ?? gradeCurrent?.selectedStudyYear;
-    const gradeTerm = gradePeriod?.[1] ?? gradeCurrent?.term ?? gradeCurrent?.selectedTerm;
-    const semesterTitle = Number(gradeTerm) === 1 ? 'Осенний семестр' : Number(gradeTerm) === 2 ? 'Весенний семестр' : 'Текущий семестр';
-    const semesterYear = Number.isInteger(Number(gradeYear)) && Number(gradeYear) >= 2000 && Number(gradeYear) < 2200 ? `${Number(gradeYear)}–${Number(gradeYear) + 1} учебный год` : 'Учебные результаты';
-    let html = `<div class="screen-brand"><span>uniq<span class="brand-dot">.</span></span><small>Оценки</small></div><header class="screen-heading"><p>Твои результаты</p><h1>Оценки</h1></header><div class="grades-semester"><svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"><rect x="4" y="5" width="16" height="16" rx="3"/><path d="M8 3v4m8-4v4M4 11h16"/></svg><span><strong>${semesterTitle}</strong><small>${semesterYear}</small></span></div>`;
+    let html = `<div class="screen-brand"><span>uniq<span class="brand-dot">.</span></span><small>Оценки</small></div><header class="screen-heading"><p>Твои результаты</p><h1>Оценки</h1></header>`;
 
     const subjects = Array.isArray(liveJournalData) ? liveJournalData.filter(subj => subj && typeof subj === 'object') : null;
     if (subjects?.length) {
@@ -1449,6 +1443,7 @@ if ('serviceWorker' in navigator) {
     let city = lsSafe(() => localStorage.getItem('user_city'), null);
     if (!city || !CITY_COORDS[city]) city = 'Караганда';
     target.innerHTML = smartWeatherHtml(city, data);
+    window.unilinkMotion?.cascade?.(target);
   }
 
   let dayWeatherRequest = 0;
@@ -2032,6 +2027,8 @@ if ('serviceWorker' in navigator) {
     const prevBtn = document.getElementById('weekPrevBtn');
     const nextBtn = document.getElementById('weekNextBtn');
     if (!label) return;
+    window.unilinkScheduleDates?.render({weekInfo:browsedWeekInfo,student:platonusStudent,
+      calendar:()=>window.univerAcademic.loadCalendar({student:platonusStudent,fetch:platonusFetch})});
 
     if (browsedWeekInfo && browsedWeekInfo.week !== undefined && browsedWeekInfo.week !== null) {
       const displayWeek = browsedWeekInfo.week;

@@ -22,7 +22,8 @@
       button.disabled = busy;
       if (busy) {
         button.setAttribute('aria-busy', 'true');
-        (label || button).innerHTML = window.unilinkLoading.html('Обновление приложения', true);
+        if (label) label.textContent = 'Обновление приложения';
+        else button.innerHTML = window.unilinkLoading.html('Обновление приложения', true);
       } else {
         button.removeAttribute('aria-busy');
         (label || button).textContent = label ? 'Обновление приложения' : available ? 'Обновить до новой версии' : 'Обновить приложение';

@@ -35,4 +35,5 @@ test('profile refresh preserves disclosure state and module controls with incomp
   assert.match(container.innerHTML,/id="profileNotifications" open/);
   for(const id of ['pushEnabled','pushTelegram','pushStatus','pushRetry','pushTest','appUpdateButton','appUpdateStatus'])assert.ok(container.innerHTML.includes(`id="${id}"`));
   assert.deepEqual(calls,['updates','study','push']);
+  assert.ok(container.innerHTML.indexOf('id="appUpdateButton"') < container.innerHTML.indexOf('id="profileNotifications"'));
 });

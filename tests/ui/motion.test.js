@@ -12,7 +12,7 @@ function setup(reduced=false) {
   const element=(section=false)=>({open:false,isConnected:true,style:{overflow:''},attrs:{},
     classList:{contains:name=>section && name==='app-section'},
     setAttribute(name,value){this.attrs[name]=value;},removeAttribute(name){delete this.attrs[name];},
-    matches:()=>true,querySelector:()=>({getBoundingClientRect:()=>({height:40})}),
+    matches:()=>true,querySelector:selector=>selector===':scope > summary'?({getBoundingClientRect:()=>({height:40})}):null,
     getBoundingClientRect(){return {height:this.open?240:62};},close(){this.open=false;},
     animate(frames,options){let finish,reject;const finished=new Promise((a,b)=>{finish=a;reject=b;});
       const animation={frames,options,finished,finish,cancel(){reject(new Error('cancelled'));this.cancelled=true;}};
@@ -33,6 +33,20 @@ test('day navigation follows weekday direction without animating the dock',()=>{
   const s=setup(),content=s.element();
   s.api.day(content,'Среда','Вторник');assert.match(s.animations[0].frames[0].transform,/-14px/);
   s.api.day(content,'Вторник','Четверг');assert.match(s.animations[1].frames[0].transform,/\(14px/);
+});
+
+test('weather day-off panels enter vertically instead of sliding in from the right',()=>{
+  const s=setup(),content=s.element();content.querySelector=()=>({});
+  s.api.day(content,'Понедельник','Вторник');
+  assert.equal(s.animations[0].frames[0].transform,'translate(0px,10px)');
+});
+
+test('a weather card shared by nested cascade roots never gets simultaneous entrance animations',async()=>{
+  const s=setup(),outer=s.element(),inner=s.element(),card=s.element();
+  card.getBoundingClientRect=()=>({top:0,height:60});outer.querySelectorAll=inner.querySelectorAll=()=>[card];
+  s.api.cascade(inner);s.api.cascade(outer);
+  assert.equal(s.animations[0].cancelled,true);assert.notEqual(s.animations[1].cancelled,true);
+  s.animations[1].finish();await tick();
 });
 
 test('cascade animates only visible cards, caps delay and cancels the previous group',async()=>{

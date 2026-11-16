@@ -52,6 +52,15 @@ test('compact profile update keeps button contents intact and exposes release st
   assert.equal(ui.button.innerHTML,undefined);
 });
 
+test('compact update keeps its title while the existing left icon is marked busy',async()=>{
+  let finish;
+  const ui=setup({compact:true,update:()=>new Promise(resolve=>{finish=resolve;})});
+  const work=ui.window.updateApplication(ui.button);await new Promise(setImmediate);
+  assert.equal(ui.attributes.get('aria-busy'),'true');
+  assert.equal(ui.label.textContent,'Обновление приложения');assert.equal(ui.label.innerHTML,'');
+  finish();await work;assert.equal(ui.attributes.has('aria-busy'),false);
+});
+
 test('a changed release shows the profile notice without reloading or downloading the shell', async () => {
   const ui=setup({version:'release-2'});await ui.window.unilinkUpdates.check();
   assert.equal(ui.notice.hidden,false);assert.equal(ui.button.textContent,'Обновить до новой версии');

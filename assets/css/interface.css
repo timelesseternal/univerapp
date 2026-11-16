@@ -1,4 +1,6 @@
 /* The profile's card rhythm across schedule, grades and conversations. */
+:root { --interface-surface:#ffffff; }
+[data-theme="dark"] { --interface-surface:#191b20; }
 .screen-brand { display:flex; align-items:center; justify-content:space-between; gap:16px; min-width:0; margin:0 0 24px; }
 .screen-brand > span { font-size:24px; line-height:1.2; font-weight:800; letter-spacing:-.045em; }
 .screen-brand > small { color:var(--text-secondary); font-size:12px; font-weight:500; }
@@ -21,35 +23,16 @@
 #sectionSchedule .days-grid { border:1px solid var(--glass-border); border-radius:18px; padding:5px; margin-bottom:22px; background:var(--surface-bg); box-shadow:none; }
 #sectionSchedule .day-btn { font-size:12px; font-weight:650; border-radius:12px; }
 #sectionSchedule .day-indicator { border-radius:12px; background:var(--accent-tint-strong); box-shadow:none; }
-#scheduleContainer .list-card { gap:var(--card-gap); margin:0; }
-#scheduleContainer .lesson-event { grid-template-columns:56px minmax(0,1fr); gap:14px; align-items:stretch; padding:17px 15px; border:1px solid var(--glass-border); border-radius:var(--card-radius); background:var(--surface-bg); box-shadow:var(--surface-shadow); }
-#scheduleContainer .lesson-event::before, #scheduleContainer .lesson-event::after { display:none; }
-#scheduleContainer .lesson-event.is-current { background:linear-gradient(120deg,var(--accent-tint-strong),var(--accent-tint-soft)),var(--surface-bg); }
-#scheduleContainer .row-index { padding:0 12px 0 0; border-right:1px solid var(--glass-border); gap:6px; }
-#scheduleContainer .row-index-main { font-size:14px; line-height:1.5; }
-#scheduleContainer .row-index-sub { font-size:11px; line-height:1.5; color:var(--text-secondary); }
-#scheduleContainer .lesson-event .list-row { padding:0; margin:0; border:0; border-radius:0; background:none; box-shadow:none; overflow:visible; }
-#scheduleContainer .lesson-live-aura, #scheduleContainer .lesson-live-orbit { display:none; }
-#scheduleContainer .row-body { gap:5px; }
-#scheduleContainer .row-top { order:1; }
-#scheduleContainer .lesson-kind-row { order:0; margin:0 0 1px; min-height:0; flex-wrap:wrap; }
-#scheduleContainer .lesson-type-name { background:none; padding:0; border-radius:0; font-size:10px; line-height:1.5; color:var(--accent); }
-#scheduleContainer .row-title, #scheduleContainer .lesson-subject-wrap { font-size:14px; line-height:1.5; font-weight:700; letter-spacing:-.015em; }
-#scheduleContainer .row-meta { order:3; font-size:11px; line-height:1.5; white-space:normal; overflow-wrap:anywhere; color:var(--text-secondary); }
-#scheduleContainer .row-meta-room { order:2; }
-#scheduleContainer .row-meta + .row-meta { margin:0; }
-#scheduleContainer .lesson-progress-container { order:4; margin:6px 0 0; }
 #gradesContainer > .screen-brand { margin-bottom:24px; }
 #gradesContainer .grades-semester { display:flex; align-items:center; gap:12px; padding:17px 16px; margin-bottom:20px; border:1px solid var(--glass-border); border-radius:var(--card-radius); background:linear-gradient(120deg,var(--accent-tint-strong),var(--accent-tint-soft)),var(--surface-bg); }
 .grades-semester > svg { width:22px; height:22px; flex-shrink:0; color:var(--accent); }
 .grades-semester > span { display:grid; gap:4px; min-width:0; }
 .grades-semester strong { font-size:14px; font-weight:650; }
 .grades-semester small { font-size:12px; color:var(--text-secondary); }
-#gradesContainer .grade-card { padding:18px 16px; margin:0 0 var(--card-gap); border:1px solid var(--glass-border); border-radius:var(--card-radius); background:var(--surface-bg); box-shadow:var(--surface-shadow); }
+#gradesContainer .grade-card { padding:18px 16px; margin:0 0 var(--card-gap); border:1px solid var(--line); border-radius:var(--card-radius); background:var(--interface-surface); box-shadow:none; }
 #gradesContainer .grade-title { margin:0 0 5px; font-size:16px; line-height:1.4; font-weight:700; letter-spacing:-.02em; }
 #gradesContainer .grade-tutor { margin-bottom:16px; font-size:12px; color:var(--text-secondary); }
 #gradesContainer .grade-body { gap:14px; }
-#gradesContainer .grade-metric:not(:empty) { border-radius:12px; background:var(--glass-active); }
 #gradesContainer .grade-metric-label { color:var(--text-secondary); }
 #gradesContainer .grade-details-link { margin-top:16px; padding-top:12px; border-top:1px solid var(--glass-border); font-size:12px; color:var(--accent); }
 #gradesContainer .grade-details-body { padding-top:16px; }
@@ -58,9 +41,12 @@
 #sectionChat.chat-in-thread > .screen-brand { display:none; }
 #sectionChat .chat-page-header { margin-bottom:20px; }
 #sectionChat .chat-page-header h1 { font-size:24px; font-weight:750; line-height:1.3; letter-spacing:-.035em; }
-#sectionChat .chat-search-toggle { border:1px solid var(--glass-border); background:var(--surface-bg); border-radius:14px; }
+#sectionChat .chat-header-search { width:46px; height:46px; padding:0; border:1px solid var(--line); border-radius:15px; background:var(--interface-surface); overflow:hidden; }
+#sectionChat .chat-search-toggle { box-sizing:border-box; flex:0 0 44px; width:44px; height:44px; padding:10px; border:0; background:transparent; border-radius:14px; }
+#sectionChat.chat-search-open .chat-header-search { width:100%; }
+#sectionChat .chat-header-search .chat-search { border:0; background:transparent; border-radius:0; }
 #sectionChat .chat-list { gap:var(--card-gap); }
-#sectionChat .chat-person { padding:16px 14px; gap:12px; border:1px solid var(--glass-border); border-radius:var(--card-radius); background:var(--surface-bg); box-shadow:var(--surface-shadow); }
+#sectionChat .chat-person { padding:16px 14px; gap:12px; border:1px solid var(--line); border-radius:var(--card-radius); background:var(--interface-surface); box-shadow:none; }
 #sectionChat .chat-avatar { width:44px; height:44px; border:0; border-radius:16px; background:var(--accent-tint-strong); color:var(--accent); font-size:15px; }
 #sectionChat .chat-person-name { font-size:14px; font-weight:700; }
 #sectionChat .chat-person-preview { margin-top:4px; font-size:12px; color:var(--text-secondary); }
@@ -72,12 +58,24 @@
 #sectionChat .chat-message-own { border-radius:18px 18px 5px 18px; }
 #sectionChat .chat-composer textarea { border-radius:17px; border:1px solid var(--glass-border); background:var(--surface-bg); }
 #sectionChat .chat-send { border-radius:15px; }
+#sectionSchedule .days-grid, #sectionSchedule .week-stepper { background:var(--interface-surface); border-color:var(--line); }
+#sectionSchedule .day-btn { display:flex; flex-direction:column; gap:3px; height:56px; min-height:56px; max-height:56px; padding:6px 0; }
+#sectionSchedule .day-name { font-size:10px; line-height:14px; font-weight:600; }
+#sectionSchedule .day-date { display:block; font-size:15px; line-height:19px; font-weight:700; color:var(--ink); }
+#sectionSchedule .day-btn.active, #sectionSchedule .day-btn.active .day-date { color:var(--accent); }
+#sectionSchedule .day-btn.active { color:var(--accent)!important; }
+#sectionSchedule .day-btn.is-today::after { bottom:3px; }
+#sectionSchedule .day-indicator { background:var(--accent-tint-strong); }
+#sectionSchedule .week-step-label { display:flex; flex-wrap:wrap; justify-content:center; align-items:center; gap:2px 8px; line-height:1.4; }
+#sectionSchedule .week-date-range { font-size:11px; font-weight:500; color:var(--text-secondary); white-space:nowrap; }
+#scheduleContainer .list-row { background:var(--interface-surface); border:1px solid var(--line); box-shadow:none; }
+#gradesContainer .grade-metric { background:none; box-shadow:none; border:0; border-radius:0; }
+#profileContainer .profile-study-tile, #profileContainer .profile-settings { background:var(--interface-surface); border-color:var(--line); box-shadow:none; }
+#profileContainer .profile-gpa, #profileContainer .profile-recap { background:linear-gradient(120deg,var(--accent-tint-strong),var(--accent-tint-soft)),var(--interface-surface); }
 @media(max-width:360px) {
   .screen-brand { margin-bottom:20px; }
   #sectionSchedule .header-right-top > :is(.today-btn,.appearance-toggle,.theme-btn) { min-height:32px; height:32px; max-height:32px; }
   #sectionSchedule .header-right-top > :is(.appearance-toggle,.theme-btn) { width:32px; min-width:32px; padding:6px; }
-  #scheduleContainer .lesson-event { grid-template-columns:50px minmax(0,1fr); gap:10px; padding:15px 12px; }
-  #scheduleContainer .row-index { padding-right:9px; }
   #gradesContainer .grade-card { padding:16px 13px; }
   #sectionChat .chat-person { padding:14px 12px; gap:9px; }
 }

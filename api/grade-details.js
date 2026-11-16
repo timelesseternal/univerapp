@@ -56,8 +56,8 @@ export function normalizeGradeDetails(data) {
         for (const point of day) {
           if (!point || point.Mark == null || typeof point.Mark === 'string' && point.Mark.trim() === '') continue;
           const date = dateValue(point.MarkDate);
-          // Cyrillic «н» is an attendance entry, not a numeric grade or zero.
-          marks.push(typeof point.Mark === 'string' && /^н$/i.test(point.Mark.trim())
+          // Cyrillic «н» and Platonus' -1 sentinel are attendance, never numeric grades.
+          marks.push(point.Mark === -1 || typeof point.Mark === 'string' && /^(?:н|-1)$/i.test(point.Mark.trim())
             ? { mark: null, status: 'absent', date }
             : { mark: markValue(point.Mark), date });
           if (marks.length > 2000) throw formatError('too_many_marks', 'LIMIT', undefined);

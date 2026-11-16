@@ -30,13 +30,13 @@ test('an empty journal displays automatic loading without a Platonus warning or 
   assert.match(ui.element.innerHTML,/content-loading/);assert.doesNotMatch(ui.element.innerHTML,/notice-panel|Platonus|пустой|Оценок пока нет|retryGrades|<button/);
 });
 
-test('semester header follows the displayed journal and ignores another students snapshot',()=>{
+test('grade overview does not add a semester banner',()=>{
   const ui=setup([{}]);
   ui.ctx.trueCurrentWeekInfo={studyYear:2026,term:1};
   ui.ctx.journalSnapshot={key:'1-7-2025-2'};ui.ctx.renderGrades(false);
-  assert.match(ui.element.innerHTML,/Весенний семестр/);assert.match(ui.element.innerHTML,/2025–2026/);
+  assert.doesNotMatch(ui.element.innerHTML,/grades-semester|Весенний семестр|2025–2026/);
   ui.ctx.journalSnapshot={key:'1-8-2025-2'};ui.ctx.renderGrades(false);
-  assert.match(ui.element.innerHTML,/Осенний семестр/);assert.match(ui.element.innerHTML,/2026–2027/);
+  assert.doesNotMatch(ui.element.innerHTML,/grades-semester|Осенний семестр|2026–2027/);
 });
 
 test('empty journals retry promptly and never overwrite cached grades or recap with emptiness',async()=>{

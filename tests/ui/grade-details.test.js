@@ -6,7 +6,8 @@ import {installLoading} from '../helpers/loading.js';
 const source=readFileSync(new URL('../../assets/js/grade-details.js',import.meta.url),'utf8');
 const flush=()=>new Promise(resolve=>setImmediate(resolve));
 function setup(fetch, {calendar, now = '2026-11-16T12:00:00Z'} = {}) {
-  class Clock extends Date { constructor(...args) { super(...(args.length ? args : [now])); } }
+  let clockNow=Date.parse(now);
+  class Clock extends Date { constructor(...args) { super(...(args.length ? args : [now])); } static now(){return clockNow;} }
   const ctx=vm.createContext({window:{},Date:Clock});installLoading(ctx);vm.runInContext(source,ctx);
   const api=ctx.window.unilinkGradeDetails;
   const buttons = new Map();
@@ -25,7 +26,7 @@ function setup(fetch, {calendar, now = '2026-11-16T12:00:00Z'} = {}) {
   const root={addEventListener(){},removeEventListener(){},querySelectorAll:()=>[details]};
   const context={studentID:7,generation:1,year:2026,term:1,subjects:[{subjectID:9048,queryID:253432,studyGroupId:45903}],fetch,calendar};
   api.attach(root,context);
-  return {api,body,details,root,context,open(){root.gradeDetailsToggle({target:details});},choose(id){buttons.get(id).click();}};
+  return {api,body,details,root,context,advance(ms){clockNow+=ms;},open(){root.gradeDetailsToggle({target:details});},choose(id){buttons.get(id).click();}};
 }
 const groups=[{name:'Лекция',tutor:'Преподаватель',marks:[{date:'2026-10-02',mark:85}]}];
 test('real journal subjectID and queryID select each subject rather than its studyGroupId',async()=>{
@@ -134,12 +135,24 @@ test('current RK defaults from calendar dates; switching periods preserves bound
   assert.equal(calls,1);assert.equal(calendarCalls,1);
 });
 
-test('RK1 is selected through its last day and an empty RK2 keeps all lesson groups visible', async () => {
+test('RK1 is selected through its last day and an empty RK2 explicitly shows no grades', async () => {
   const ui=setup(async()=>({groups:[{name:'WT-L',marks:[{date:'2026-09-10',mark:90}]},{name:'WT-Lab',marks:[]}]}),
     {calendar:async()=>calendar(),now:'2026-10-25T12:00:00Z'});
   ui.open();await flush();assert.match(ui.body.innerHTML,/data-grade-period="rk1" aria-pressed="true"/);
-  ui.choose('rk2');assert.match(ui.body.innerHTML,/Лекции/);assert.match(ui.body.innerHTML,/Лабораторные/);
+  ui.choose('rk2');
   assert.match(ui.body.innerHTML,/Оценок за контрольные точки пока нет/);assert.doesNotMatch(ui.body.innerHTML,/>90</);
+});
+
+test('failed refresh of empty RK2 never leaks cached RK1 grades or a computed mean',async()=>{
+  let calls=0;
+  const ui=setup(async()=>{if(++calls>1)throw new Error('offline');return {groups:[{name:'WT-L',marks:[{date:'2026-09-10',mark:90}]}]};},{calendar:async()=>calendar()});
+  ui.open();await flush();ui.choose('rk2');
+  assert.match(ui.body.innerHTML,/Оценок за контрольные точки пока нет/);assert.doesNotMatch(ui.body.innerHTML,/>90</);
+  ui.advance(61000);ui.open();await flush();
+  assert.match(ui.body.innerHTML,/data-grade-period="rk2" aria-pressed="true"/);
+  assert.match(ui.body.innerHTML,/Оценок за контрольные точки пока нет/);
+  assert.doesNotMatch(ui.body.innerHTML,/>90</);assert.match(ui.body.innerHTML,/Не удалось загрузить/);
+  ui.choose('rk1');assert.match(ui.body.innerHTML,/>90</);
 });
 
 test('October 24 and 25 grades stay in RK1 while Monday October 26 starts RK2',async()=>{

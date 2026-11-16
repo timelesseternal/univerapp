@@ -20,15 +20,16 @@ test('the solar marker is a separate square sun, never a circle stretched with t
 
 test('blocked local storage does not break the weather card',()=>{
   const element={innerHTML:''};
-  const ctx=vm.createContext({document:{getElementById:()=>element},
+  let cascades=0;
+  const ctx=vm.createContext({window:{unilinkMotion:{cascade:()=>cascades++}},document:{getElementById:()=>element},
     localStorage:{getItem(){throw new Error('storage blocked');}},smartWeatherHtml:city=>city});
   vm.runInContext(source.slice(source.indexOf('  function lsSafe('),source.indexOf('  // Mirror display data')),ctx);
   vm.runInContext(source.slice(source.indexOf('  let dayOffWeatherCache'),source.indexOf('  let weatherRequest')),ctx);
-  ctx.renderDayOffWeatherHtml({});assert.equal(element.innerHTML,'Караганда');
+  ctx.renderDayOffWeatherHtml({});assert.equal(element.innerHTML,'Караганда');assert.equal(cascades,1);
 });
 test('changing the city refreshes the card and discards an older response', async () => {
   let city = 'A'; const element = { innerHTML: '' }; const pending = [];
-  const context = vm.createContext({ document: { getElementById: () => element }, localStorage: { getItem: () => city }, CITY_COORDS: { A: {}, B: {} }, Date, Promise,
+  const context = vm.createContext({window:{}, document: { getElementById: () => element }, localStorage: { getItem: () => city }, CITY_COORDS: { A: {}, B: {} }, Date, Promise,
     weatherSkeletonHtml: () => 'Loading', smartWeatherHtml: (name) => name,
     fetchDayWeatherDetails: () => new Promise(resolve => pending.push(resolve)), fetchAirQuality: async () => ({ current: { us_aqi: 20 } }) });
   vm.runInContext(source.slice(source.indexOf('  function lsSafe('), source.indexOf('  // Mirror display data')), context);

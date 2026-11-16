@@ -1,6 +1,15 @@
 /* Export locally: no student data or images are uploaded to a sharing service. */
 (() => {
   'use strict';
+  function normalizeAccent(value) {
+    const text=String(value||'').trim();
+    if (/^#[\da-f]{6}$/i.test(text)) return text;
+    if (/^#[\da-f]{3}$/i.test(text)) return '#'+[...text.slice(1)].map(char=>char+char).join('');
+    const rgb=text.match(/^rgba?\(\s*([\d.]+)(%?)[,\s]+([\d.]+)(%?)[,\s]+([\d.]+)(%?)(?:\s*[,/]\s*[\d.]+%?)?\s*\)$/i);
+    if(!rgb)return null;
+    const channels=[1,3,5].map(index=>Math.max(0,Math.min(255,Math.round(Number(rgb[index])*(rgb[index+1]?2.55:1)))));
+    return '#'+channels.map(channel=>channel.toString(16).padStart(2,'0')).join('');
+  }
   function wrap(ctx, value, width) {
     const lines = [];
     let line = '';
@@ -39,7 +48,8 @@
     // Pastel tint keeps dark text readable even with a dark/red custom accent.
     const pastel = '#' + accent.slice(1).match(/../g).map(hex =>
       Math.round(parseInt(hex, 16) * .45 + 255 * .55).toString(16).padStart(2, '0')).join('');
-    gradient.addColorStop(0, pastel); gradient.addColorStop(1, '#e3d9fa');
+    const light = '#' + accent.slice(1).match(/../g).map(hex => Math.round(parseInt(hex,16)*.18+255*.82).toString(16).padStart(2,'0')).join('');
+    gradient.addColorStop(0, pastel); gradient.addColorStop(1, light);
     ctx.fillStyle = gradient; ctx.fillRect(0, 0, 900, height);
     ctx.fillStyle = '#241b38';
     const text = (value, x, y, size, weight = 500) => {
@@ -102,8 +112,9 @@
           new Promise(resolve => setTimeout(resolve, 2500))]);
       }
       if (run !== generation || !dialog.open) return;
-      const accent = getComputedStyle(document.documentElement).getPropertyValue('--accent').trim();
-      const canvas = card(snapshot, byId('scheduleShareTeachers').checked, /^#[\da-f]{6}$/i.test(accent) ? accent : undefined);
+      const style=getComputedStyle(document.documentElement);
+      const accent = normalizeAccent(style.getPropertyValue('--accent')) || normalizeAccent('rgb('+style.getPropertyValue('--accent-rgb')+')');
+      const canvas = card(snapshot, byId('scheduleShareTeachers').checked, accent || undefined);
       const blob = await new Promise(resolve => canvas.toBlob(resolve, 'image/png'));
       if (run !== generation || !dialog.open) return;
       if (!blob) throw new Error('empty_image');
@@ -170,5 +181,5 @@
   }
   byId('scheduleShareLaunch')?.addEventListener('click', open);
   // Pure layout helpers also used by regression tests for long subjects.
-  window.unilinkScheduleShare = {wrap, card};
+  window.unilinkScheduleShare = {wrap, card, normalizeAccent};
 })();

@@ -1,7 +1,7 @@
 /* Short, interruptible transitions. Never transform the viewport or navigation dock. */
 (() => {
   'use strict';
-  const running = new WeakMap(), disclosures = new WeakMap(), closing = new WeakMap(), cascades = new WeakMap();
+  const running = new WeakMap(), disclosures = new WeakMap(), closing = new WeakMap(), cascades = new WeakMap(), cardAnimations = new WeakMap();
   const ease = 'cubic-bezier(.16,1,.3,1)';
   const reduced = () => document.hidden || window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
   function cascade(element) {
@@ -9,15 +9,21 @@
     (cascades.get(element) || []).forEach(animation => animation.cancel());
     cascades.delete(element);
     if (reduced()) return false;
-    const targets = [...(element.querySelectorAll?.('.lesson-event, .grade-card, .profile-layout > *, #chatInbox > .chat-person, #chatResults > .chat-person, .exam-card, .umkd-subject-row, .transcript-period') || [])]
+    const targets = [...(element.querySelectorAll?.('.lesson-event, .grade-card, .profile-layout > *, #chatInbox > .chat-person, #chatResults > .chat-person, .exam-card, .umkd-subject-row, .transcript-period, .weather-location, .weather-scene, .weather-data-panel') || [])]
       .filter(target => target.animate && (!target.getClientRects || target.getClientRects().length))
       .filter(target => !target.getBoundingClientRect || target.getBoundingClientRect().top < (window.innerHeight || Infinity))
       .slice(0, 8);
     if (!targets.length) return false;
     running.get(element)?.cancel(); running.delete(element);
-    const animations = targets.map((target, index) => target.animate([
-      {opacity:0, transform:'translateY(10px)'}, {opacity:1, transform:'translateY(0)'},
-    ], {duration:300, delay:Math.min(index, 4) * 70, easing:ease, fill:'backwards'}));
+    const animations = targets.map((target, index) => {
+      cardAnimations.get(target)?.cancel();
+      const animation=target.animate([
+        {opacity:0, transform:'translateY(10px)'}, {opacity:1, transform:'translateY(0)'},
+      ], {duration:300, delay:Math.min(index, 4) * 70, easing:ease, fill:'backwards'});
+      cardAnimations.set(target,animation);
+      animation.finished.catch(()=>{}).then(()=>{if(cardAnimations.get(target)===animation)cardAnimations.delete(target);});
+      return animation;
+    });
     cascades.set(element, animations);
     Promise.all(animations.map(animation => animation.finished.catch(() => {}))).then(() => {
       if (cascades.get(element) === animations) cascades.delete(element);
@@ -42,6 +48,7 @@
     }, () => {});
   }
   function day(element, before, after) {
+    if (element?.querySelector?.('.day-off-weather')) {enter(element, {y:10});return;}
     const order = ['Понедельник','Вторник','Среда','Четверг','Пятница','Суббота','Воскресенье'];
     enter(element, {x: order.indexOf(after) >= order.indexOf(before) ? 14 : -14});
   }

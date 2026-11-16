@@ -23,6 +23,7 @@
           || !Number.isFinite(point.mark) || point.mark < 0 || point.mark > 100)) throw new Error('invalid_point');
       });
     });
+    if (groups.every(group => group.marks.length === 0)) return '<p class="grade-points-empty">Оценок за контрольные точки пока нет</p>';
     return groups.map((group,index) => {
     const points = group.marks;
     const dates = points.map(point=>{
@@ -100,8 +101,8 @@
       : section(entry.periods.find(period => period.id === selected)) + (extra ? `<p class="grade-period-note">Ещё ${extra} записей вне границ периодов — в разделе «Все».</p>` : '');
     return tabs + absenceNote + '<p class="grade-period-note">Разделено по датам академического календаря.</p>' + content;
   }
-  function paintGroups(body, entry) {
-    paint(body, periodsHtml(entry));
+  function paintGroups(body, entry, feedback = '') {
+    paint(body, periodsHtml(entry) + feedback);
     body.querySelectorAll?.('[data-grade-period]').forEach(button => button.addEventListener('click', () => {
       entry.selected = button.dataset.gradePeriod;
       entry.userSelected = true;
@@ -183,7 +184,8 @@
       if (visible()) paintGroups(body,entry);
     } catch (error) {
       if (!visible()) return;
-      paint(body, (entry.groups ? groupsHtml(entry.groups) : '') + `<div class="grade-points-error" role="status"><p>Не удалось загрузить контрольные точки. ${failureHint(error)}</p><button type="button" class="grade-points-retry">Попробовать снова</button></div>`);
+      const feedback = `<div class="grade-points-error" role="status"><p>Не удалось загрузить контрольные точки. ${failureHint(error)}</p><button type="button" class="grade-points-retry">Попробовать снова</button></div>`;
+      if(entry.groups)paintGroups(body,entry,feedback);else paint(body,feedback);
       body.querySelector('.grade-points-retry').addEventListener('click', () => load(details, context));
     }
   }

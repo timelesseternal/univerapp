@@ -42,7 +42,8 @@
 #profileContainer .profile-history > .profile-row-icon { color:var(--text-secondary); }
 #profileContainer .profile-history small { font-size:11px; }
 #profileContainer .profile-settings { padding:0 16px; border:1px solid var(--glass-border); border-radius:var(--card-radius); background:var(--surface-bg); box-shadow:var(--surface-shadow); min-width:0; }
-#profileContainer .profile-notifications { border-bottom:1px solid var(--glass-border); }
+#profileContainer .profile-notifications { border-top:1px solid var(--glass-border); overflow-anchor:none; }
+#profileContainer .profile-settings { overflow-anchor:none; }
 #profileContainer .profile-notifications > summary { display:flex; align-items:center; gap:12px; min-height:62px; padding:14px 0; list-style:none; cursor:pointer; font-size:13px; font-weight:600; }
 #profileContainer .profile-notifications > summary::-webkit-details-marker { display:none; }
 #profileContainer .profile-notifications > summary > .profile-row-icon { color:var(--text-secondary); }
@@ -54,6 +55,8 @@
 #profileContainer .push-status { color:var(--text-secondary); font-size:12px; }
 #profileContainer .profile-settings-update { display:flex; align-items:center; gap:12px; width:100%; min-width:0; min-height:62px; padding:14px 0; background:none; border:0; color:var(--ink); font:inherit; font-size:13px; font-weight:600; text-align:left; cursor:pointer; }
 #profileContainer .profile-settings-update > .profile-row-icon { color:var(--text-secondary); }
+#profileContainer .profile-settings-update[aria-busy="true"] > .profile-row-icon { animation:profileUpdateSpin .9s linear infinite; }
+@keyframes profileUpdateSpin { to { transform:rotate(360deg); } }
 #profileContainer #appUpdateLabel { min-width:0; flex:1; overflow-wrap:anywhere; }
 #profileContainer #appUpdateHint { margin-left:auto; max-width:90px; text-align:right; font-size:11px; font-weight:500; line-height:1.4; color:var(--text-secondary); }
 #profileContainer .profile-settings-update:disabled { opacity:.65; cursor:wait; }

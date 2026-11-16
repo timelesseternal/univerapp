@@ -44,7 +44,7 @@ test('Cyrillic attendance marks preserve their dates without turning into a zero
 });
 
 test('a subject response containing attendance and numeric marks loads successfully through the API',async t=>{
-  let calls=0;const data=sample();data[0].Marks[9].Marks[15]=[point(15,'н'),point(15,85)];
+  let calls=0;const data=sample();data[0].Marks[9].Marks[15]=[point(15,-1),point(15,85)];
   t.mock.method(globalThis,'fetch',async()=>({ok:true,status:200,json:async()=>++calls===1?{studentID:7}:data}));
   const res=response();await handler({method:'GET',headers:sessionHeaders(session),query},res);
   assert.equal(res.code,200);assert.equal(res.body.groups[0].marks.length,3);
@@ -52,7 +52,7 @@ test('a subject response containing attendance and numeric marks loads successfu
 });
 
 test('unsupported marks and populated malformed containers remain errors rather than disappearing',()=>{
-  for(const mark of ['не явился','Infinity','100.1','-1','85 баллов',true,{},[]]) {
+  for(const mark of ['не явился','Infinity','100.1','-2','85 баллов',true,{},[]]) {
     const data=sample();data[0].Marks[9].Marks[15]=[point(15,mark)];
     assert.throws(()=>normalizeGradeDetails(data),/invalid_mark/);
   }
@@ -105,7 +105,7 @@ test('safe diagnostics distinguish malformed data, deadlines and profile failure
 });
 
 test('format diagnostics pinpoint the failing field and distinguish short attendance tokens without exposing arbitrary text',()=>{
-  for(const [value,code] of [[-1,'GD_FORMAT_MARK_NUMBER_NEG1'],['НБ','GD_FORMAT_MARK_STRING_U041D_U0411'],
+  for(const [value,code] of [[-2,'GD_FORMAT_MARK_NUMBER_NEG2'],['НБ','GD_FORMAT_MARK_STRING_U041D_U0411'],
     ['H','GD_FORMAT_MARK_STRING_U0048'],['private student comment','GD_FORMAT_MARK_STRING']]) {
     const data=sample();data[0].Marks[9].Marks[15]=[point(15,value)];
     assert.throws(()=>normalizeGradeDetails(data),error=>error.diagnostic===code);
@@ -115,6 +115,12 @@ test('format diagnostics pinpoint the failing field and distinguish short attend
   data[0].Marks[9].Marks[15][0].MarkDate=null;
   assert.throws(()=>normalizeGradeDetails(data),error=>error.diagnostic==='GD_FORMAT_DATE_NULL');
   assert.throws(()=>normalizeGradeDetails({private:'secret'}),error=>error.diagnostic==='GD_FORMAT_ROOT_OBJECT');
+});
+
+test('Platonus negative-one attendance is an absence, not an error or a numeric grade',()=>{
+  const data=sample();data[0].Marks[9].Marks[15]=[point(15,-1),point(15,'-1'),point(15,'н'),point(15,0),point(15,85)];
+  const marks=normalizeGradeDetails(data)[0].marks.filter(mark=>mark.date==='2026-09-15');
+  assert.deepEqual(marks.map(mark=>[mark.mark,mark.status]),[[null,'absent'],[null,'absent'],[null,'absent'],[0,undefined],[85,undefined]]);
 });
 
 test('malformed upstream JSON has a separate diagnostic code',async t=>{

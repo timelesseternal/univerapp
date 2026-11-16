@@ -43,6 +43,15 @@ test('PNG layout wraps long subjects, preserves times and only includes teachers
   const lines=s.api.wrap({measureText:s=>({width:s.length})},'ABCDEFGHIJKLMNOPQRSTUVWXYZ',6);
   assert.equal(lines.join(''),'ABCDEFGHIJKLMNOPQRSTUVWXYZ'); assert.ok(lines.every(line=>line.length<=6));
 });
+
+test('schedule export accepts computed RGB accents instead of reverting to purple',()=>{
+  const s=setup();
+  assert.equal(s.api.normalizeAccent('rgb(191, 148, 54)'),'#bf9436');
+  assert.equal(s.api.normalizeAccent('rgba(12, 130, 40, 1)'),'#0c8228');
+  assert.equal(s.api.normalizeAccent('rgb(100% 0% 0%)'),'#ff0000');
+  assert.equal(s.api.normalizeAccent('#abc'),'#aabbcc');
+  assert.equal(s.api.normalizeAccent('var(--unknown)'),null);
+});
 test('share receives the prebuilt PNG synchronously in the click handler; cancellation is quiet', async () => {
   let received;
   const s=setup({share:data=>{received=data;return Promise.reject(Object.assign(new Error(),{name:'AbortError'}));}});
