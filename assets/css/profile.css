@@ -1,0 +1,75 @@
+/* Profile composition follows the app's shared surfaces, accent and type. */
+#profileContainer .profile-layout { display:grid; gap:24px; min-width:0; }
+#profileContainer .profile-layout > * { margin:0; min-width:0; }
+#profileContainer .profile-toolbar { display:flex; justify-content:space-between; align-items:center; gap:16px; }
+#profileContainer .profile-brand { font-size:24px; font-weight:800; letter-spacing:-.045em; line-height:1.2; }
+#profileContainer .profile-toolbar .masthead-eyebrow { text-transform:none; letter-spacing:0; font-weight:500; color:var(--text-secondary); }
+#profileContainer .profile-hero { flex-direction:row; align-items:center; text-align:left; padding:0; gap:16px; border:0; border-radius:0; background:none; box-shadow:none; }
+#profileContainer .profile-avatar { width:64px; height:64px; flex:0 0 64px; border:1px solid var(--glass-border); border-radius:22px; background:var(--accent-tint-strong); color:var(--accent); box-shadow:none; font-size:24px; font-weight:700; }
+#profileContainer .profile-header-info { width:auto; flex:1; min-width:0; }
+#profileContainer .profile-name { font-size:18px; font-weight:750; line-height:1.4; letter-spacing:-.025em; }
+#profileContainer .profile-study-info { justify-content:flex-start; gap:5px 9px; margin-top:6px; font-size:12px; color:var(--text-secondary); }
+#profileContainer .profile-study-info span { padding:0; border-radius:0; background:none; }
+#profileContainer .profile-study-info span + span::before { content:'·'; margin-right:9px; }
+#profileContainer .profile-id { margin-top:4px; font-size:11px; color:var(--text-secondary); }
+#profileContainer .profile-gpa { padding:20px; border:1px solid var(--glass-border); border-radius:var(--card-radius); background:linear-gradient(120deg,var(--accent-tint-strong),var(--accent-tint-soft)),var(--surface-bg); box-shadow:var(--surface-shadow); }
+#profileContainer .profile-gpa-summary { display:flex; align-items:center; justify-content:space-between; gap:12px; padding:0; }
+#profileContainer .profile-gpa-copy { display:grid; gap:6px; min-width:0; }
+#profileContainer .profile-gpa-copy > .gpa-label { font-size:12px; font-weight:500; color:var(--text-secondary); }
+#profileContainer .profile-gpa-score { display:flex; align-items:baseline; gap:10px; font-size:38px; line-height:1.2; font-weight:800; letter-spacing:-.05em; font-variant-numeric:tabular-nums; }
+#profileContainer .profile-gpa-score > span { font-size:13px; font-weight:500; color:var(--text-secondary); letter-spacing:0; }
+#profileContainer .profile-gpa-unavailable { font-size:12px; color:var(--text-secondary); }
+#profileContainer .profile-gpa-toggle { display:flex; align-items:center; gap:8px; color:var(--accent); font-size:12px; flex-shrink:0; }
+#profileContainer .profile-gpa[open] .profile-gpa-toggle .profile-chevron { transform:rotate(180deg); }
+#profileContainer .profile-gpa-extra { margin-top:16px; padding-top:5px; border-top:1px solid var(--glass-border); }
+#profileContainer .profile-block { display:grid; gap:12px; min-width:0; }
+#profileContainer .profile-block > h2 { margin:0; font-size:14px; line-height:1.5; font-weight:700; letter-spacing:0; }
+#profileContainer .profile-study-tiles { margin:0; gap:var(--card-gap); }
+#profileContainer .profile-study-tile { padding:16px 14px; gap:6px; border-radius:var(--card-radius); min-height:130px; }
+#profileContainer .profile-tile-icon { width:24px; height:24px; border-radius:0; background:none; margin-bottom:5px; }
+#profileContainer .profile-study-tile svg { width:22px; height:22px; stroke-width:1.7; }
+#profileContainer .profile-tile-title { font-size:14px; line-height:1.45; font-weight:700; overflow-wrap:anywhere; }
+#profileContainer .profile-tile-caption { font-size:11px; color:var(--text-secondary); line-height:1.5; margin-top:0; }
+#profileContainer .profile-tile-arrow { display:none; }
+#profileContainer .profile-row-icon, #profileContainer .profile-chevron { width:20px; height:20px; fill:none; stroke:currentColor; stroke-width:1.7; stroke-linecap:round; stroke-linejoin:round; flex:0 0 20px; }
+#profileContainer .profile-chevron { width:16px; height:16px; flex-basis:16px; margin-left:auto; color:var(--text-secondary); }
+#profileContainer .profile-row-copy { display:grid; gap:4px; min-width:0; }
+#profileContainer .profile-row-copy strong { font-size:14px; font-weight:700; }
+#profileContainer .profile-row-copy small { font-size:12px; line-height:1.45; color:var(--text-secondary); }
+#profileContainer .profile-recap, #profileContainer .profile-history { display:flex; align-items:center; gap:12px; width:100%; min-width:0; padding:18px 16px; border:1px solid var(--glass-border); border-radius:var(--card-radius); background:linear-gradient(120deg,var(--accent-tint-strong),var(--accent-tint-soft)),var(--surface-bg); color:var(--ink); box-shadow:var(--surface-shadow); font:inherit; text-align:left; cursor:pointer; }
+#profileContainer .profile-recap > .profile-row-icon { color:var(--accent); }
+#profileContainer .profile-history { min-height:48px; padding:4px; background:none; box-shadow:none; border:0; border-radius:12px; font-size:13px; }
+#profileContainer .profile-history > .profile-row-icon { color:var(--text-secondary); }
+#profileContainer .profile-history small { font-size:11px; }
+#profileContainer .profile-settings { padding:0 16px; border:1px solid var(--glass-border); border-radius:var(--card-radius); background:var(--surface-bg); box-shadow:var(--surface-shadow); min-width:0; }
+#profileContainer .profile-notifications { border-bottom:1px solid var(--glass-border); }
+#profileContainer .profile-notifications > summary { display:flex; align-items:center; gap:12px; min-height:62px; padding:14px 0; list-style:none; cursor:pointer; font-size:13px; font-weight:600; }
+#profileContainer .profile-notifications > summary::-webkit-details-marker { display:none; }
+#profileContainer .profile-notifications > summary > .profile-row-icon { color:var(--text-secondary); }
+#profileContainer .profile-notifications[open] > summary .profile-chevron { transform:rotate(180deg); }
+#profileContainer .profile-notifications-body { padding:0 0 14px; }
+#profileContainer .push-setting { gap:12px; font-size:13px; }
+#profileContainer .push-setting:first-child { padding-top:2px; }
+#profileContainer .push-setting small { font-size:11px; color:var(--text-secondary); }
+#profileContainer .push-status { color:var(--text-secondary); font-size:12px; }
+#profileContainer .profile-settings-update { display:flex; align-items:center; gap:12px; width:100%; min-width:0; min-height:62px; padding:14px 0; background:none; border:0; color:var(--ink); font:inherit; font-size:13px; font-weight:600; text-align:left; cursor:pointer; }
+#profileContainer .profile-settings-update > .profile-row-icon { color:var(--text-secondary); }
+#profileContainer #appUpdateLabel { min-width:0; flex:1; overflow-wrap:anywhere; }
+#profileContainer #appUpdateHint { margin-left:auto; max-width:90px; text-align:right; font-size:11px; font-weight:500; line-height:1.4; color:var(--text-secondary); }
+#profileContainer .profile-settings-update:disabled { opacity:.65; cursor:wait; }
+#profileContainer .profile-update-available { margin:12px 0 0; font-size:12px; }
+#profileContainer .profile-update-status { margin:0 0 14px; font-size:12px; }
+#profileContainer .profile-logout-btn { display:flex; align-items:center; justify-content:center; gap:10px; min-height:48px; padding:10px; border:0; border-radius:12px; background:none; color:var(--text-secondary); box-shadow:none; font-size:13px; font-weight:500; }
+#profileContainer .profile-recap:focus-visible, #profileContainer .profile-history:focus-visible, #profileContainer .profile-settings-update:focus-visible, #profileContainer .profile-notifications > summary:focus-visible, #profileContainer .profile-logout-btn:focus-visible { outline:2px solid var(--accent); outline-offset:4px; }
+@media(max-width:360px) {
+  #profileContainer .profile-layout { gap:20px; }
+  #profileContainer .profile-hero { gap:12px; }
+  #profileContainer .profile-avatar { width:56px; height:56px; flex-basis:56px; font-size:21px; border-radius:18px; }
+  #profileContainer .profile-name { font-size:16px; }
+  #profileContainer .profile-gpa { padding:18px 16px; }
+  #profileContainer .profile-study-tile { padding:14px 12px; }
+  #profileContainer .profile-tile-title { font-size:13px; }
+  #profileContainer .profile-settings { padding-inline:12px; }
+  #profileContainer .profile-settings-update { gap:8px; }
+  #profileContainer #appUpdateHint { max-width:62px; }
+}

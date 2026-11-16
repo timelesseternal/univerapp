@@ -20,3 +20,19 @@ test('an incomplete refresh preserves this students group but never reuses anoth
   assert.equal(context.mergeStudentProfile({studentID:24}).studentGroupName,undefined);
   assert.equal(context.mergeStudentProfile({studentID:23,groupName:'DS-24-2к'}).studentGroupName,'DS-24-2к');
 });
+
+test('profile refresh preserves disclosure state and module controls with incomplete student data',()=>{
+  const container={innerHTML:''},calls=[];
+  const env=vm.createContext({platonusStudent:{studentID:23,studentName:'<Студент>',academicGpa:null},
+    document:{getElementById:id=>id==='profileContainer'?container:{open:true}},
+    window:{unilinkUpdates:{render:()=>calls.push('updates')},unilinkPush:{render:()=>calls.push('push')},unilinkStudy:{render:()=>calls.push('study')}},
+    swapContent:(target,html,animate,callback)=>{target.innerHTML=html;callback();}});
+  vm.runInContext(source.slice(source.indexOf('  function escapeHtml('),source.indexOf('  function renderGrades(')),env);
+  env.renderProfile(false);
+  assert.match(container.innerHTML,/&lt;Студент&gt;/);
+  assert.doesNotMatch(container.innerHTML,/NaN|undefined/);
+  assert.match(container.innerHTML,/id="profileGpaDetails" open/);
+  assert.match(container.innerHTML,/id="profileNotifications" open/);
+  for(const id of ['pushEnabled','pushTelegram','pushStatus','pushRetry','pushTest','appUpdateButton','appUpdateStatus'])assert.ok(container.innerHTML.includes(`id="${id}"`));
+  assert.deepEqual(calls,['updates','study','push']);
+});

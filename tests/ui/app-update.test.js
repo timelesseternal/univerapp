@@ -6,12 +6,13 @@ import { installLoading } from '../helpers/loading.js';
 const source = readFileSync(new URL('../../assets/js/updates.js', import.meta.url), 'utf8');
 const workerSource = readFileSync(new URL('../../assets/js/sw.js', import.meta.url), 'utf8');
 
-function setup({ update = async () => {}, ok = true, online = true, version = 'development', versionFetch, hidden = false, htmlVersion = 'development' } = {}) {
+function setup({ update = async () => {}, ok = true, online = true, version = 'development', versionFetch, hidden = false, htmlVersion = 'development', compact = false } = {}) {
   let reloads = 0, refreshes = 0;
   let now = 100000;
   const versionCalls = [], documentEvents = {}, windowEvents = {}, intervals = [];
   const status = { textContent: '' }, attributes = new Map();
   const notice = { hidden: true };
+  const label = compact ? {textContent:'',innerHTML:''} : null, hint = compact ? {textContent:''} : null;
   const badge = { hidden: true }, profileAttributes = new Map();
   const profileTab = { setAttribute: (key, value) => profileAttributes.set(key, value) };
   const button = { disabled: false, textContent: 'Обновить приложение',
@@ -24,7 +25,7 @@ function setup({ update = async () => {}, ok = true, online = true, version = 'd
   const privateData = new Map([['platonus_session', 'session'], ['univer-chat-preview-23', 'messages']]);
   const document = { hidden, querySelector: () => ({ content: htmlVersion }),
     getElementById: id => ({ appUpdateStatus: status, appUpdateAvailable: notice, appUpdateButton: button,
-      profileUpdateBadge: badge, 'section-profile': profileTab })[id],
+      profileUpdateBadge: badge, 'section-profile': profileTab, appUpdateLabel: label, appUpdateHint: hint })[id],
     addEventListener(name, handler) { documentEvents[name] = handler; } };
   const navigator = { onLine: online, serviceWorker: { getRegistration: async () => registration } };
   vm.runInNewContext(source, { window, navigator, document, setTimeout, clearTimeout, AbortSignal, AbortController, Date: { now: () => now },
@@ -32,9 +33,24 @@ function setup({ update = async () => {}, ok = true, online = true, version = 'd
     fetch: async (url, options) => { versionCalls.push({url,options}); return versionFetch ? versionFetch() : {ok:true,json:async()=>({version})}; },
     localStorage: { clear() { throw new Error('must_preserve_account'); }, getItem: key => privateData.get(key) },
     MessageChannel: class { constructor() { this.port1 = { close() {} }; this.port2 = { receive: event => this.port1.onmessage(event) }; } } });
-  return { window, button, status, notice, badge, profileAttributes, document, navigator, versionCalls, documentEvents, windowEvents, intervals, attributes, privateData,
+  return { window, button, label, hint, status, notice, badge, profileAttributes, document, navigator, versionCalls, documentEvents, windowEvents, intervals, attributes, privateData,
     advance(ms) { now += ms; }, get reloads() { return reloads; }, get refreshes() { return refreshes; } };
 }
+
+test('compact profile update keeps button contents intact and exposes release state separately', async () => {
+  let version='development';
+  const ui=setup({compact:true,versionFetch:async()=>({ok:true,json:async()=>({version})})});
+  await ui.window.unilinkUpdates.check();
+  assert.equal(ui.hint.textContent,'Актуально');
+  assert.equal(ui.label.textContent,'Обновление приложения');
+  assert.equal(ui.button.textContent,'Обновить приложение');
+  version='release-2';await ui.window.unilinkUpdates.check(true);
+  assert.equal(ui.hint.textContent,'Новая версия');
+  assert.equal(ui.notice.hidden,false);
+  await ui.window.updateApplication(ui.button);
+  assert.equal(ui.reloads,1);assert.equal(ui.refreshes,1);
+  assert.equal(ui.button.innerHTML,undefined);
+});
 
 test('a changed release shows the profile notice without reloading or downloading the shell', async () => {
   const ui=setup({version:'release-2'});await ui.window.unilinkUpdates.check();

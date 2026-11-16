@@ -6,12 +6,15 @@
   const htmlVersion = document.querySelector('meta[name="unilink-version"]')?.content;
   let available = Boolean(htmlVersion && htmlVersion !== currentVersion);
   let checkWork = null, lastCheck = -Infinity, errorMessage = '';
+  let versionChecked = false;
   function render() {
     const notice = document.getElementById('appUpdateAvailable');
     const badge = document.getElementById('profileUpdateBadge');
     const profileTab = document.getElementById('section-profile');
     const button = document.getElementById('appUpdateButton');
     const status = document.getElementById('appUpdateStatus');
+    const label = document.getElementById('appUpdateLabel');
+    const hint = document.getElementById('appUpdateHint');
     if (notice) notice.hidden = !available;
     if (badge) badge.hidden = !available;
     if (profileTab) profileTab.setAttribute('aria-label', available ? 'Профиль — доступна новая версия' : 'Профиль');
@@ -19,12 +22,13 @@
       button.disabled = busy;
       if (busy) {
         button.setAttribute('aria-busy', 'true');
-        button.innerHTML = window.unilinkLoading.html('Обновление приложения', true);
+        (label || button).innerHTML = window.unilinkLoading.html('Обновление приложения', true);
       } else {
         button.removeAttribute('aria-busy');
-        button.textContent = available ? 'Обновить до новой версии' : 'Обновить приложение';
+        (label || button).textContent = label ? 'Обновление приложения' : available ? 'Обновить до новой версии' : 'Обновить приложение';
       }
     }
+    if (hint) hint.textContent = busy ? 'Обновляем…' : available ? 'Новая версия' : versionChecked ? 'Актуально' : 'Проверить';
     if (status) status.textContent = errorMessage;
   }
   function check(force = false) {
@@ -47,6 +51,7 @@
         } finally { clearTimeout(timer); }
         if (typeof data?.version !== 'string' || !/^[a-zA-Z0-9._-]{1,128}$/.test(data.version)) return;
         available = data.version !== currentVersion || Boolean(htmlVersion && htmlVersion !== currentVersion);
+        versionChecked = true;
         render();
       } catch { /* Background checks must never interrupt the current screen. */ }
     })().finally(() => { checkWork = null; });
@@ -89,7 +94,6 @@
     errorMessage = '';
     button.disabled = true;
     button.setAttribute('aria-busy', 'true');
-    button.innerHTML = window.unilinkLoading.html('Проверка обновления', true);
     render();
     try {
       if (navigator.onLine === false) throw new Error('offline');
@@ -118,7 +122,6 @@
       busy = false;
       button.disabled = false;
       button.removeAttribute('aria-busy');
-      button.textContent = 'Обновить приложение';
       render();
     }
   };

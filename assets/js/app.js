@@ -938,28 +938,30 @@ if ('serviceWorker' in navigator) {
     const academicGpa = s.academicGpa == null || String(s.academicGpa).trim() === ''
       ? NaN : Number(String(s.academicGpa).trim().replace(',', '.'));
     const hasAcademicGpa = Number.isFinite(academicGpa) && academicGpa >= 0;
-    const gpaProgress = hasAcademicGpa ? Math.min(academicGpa / 4, 1) * 100 : 0;
     const gpaText = hasAcademicGpa ? academicGpa.toFixed(2).replace('.', ',') : '—';
     const gpaExpanded = document.getElementById('profileGpaDetails')?.open || false;
+    const notificationsExpanded = document.getElementById('profileNotifications')?.open || false;
     const initials = String(s.studentName || '').split(' ').filter(Boolean).slice(0, 2).map(w => w[0]).join('').toUpperCase();
 
     const html = `
+      <div class="profile-layout">
       <div class="profile-toolbar">
+        <span class="profile-brand">uniq<span class="brand-dot">.</span></span>
         <span class="masthead-eyebrow">Профиль</span>
       </div>
       <div class="profile-header profile-hero">
         <div class="profile-avatar">${escapeHtml(initials || '?')}</div>
         <div class="profile-header-info">
           <div class="profile-name">${escapeHtml(s.studentName || 'Студент')}</div>
+          <div class="profile-study-info"><span>${escapeHtml(studentGroup(s) || 'Группа не указана')}</span><span>${studentCourse(s) ? `${studentCourse(s)} курс` : 'Курс не указан'}</span></div>
           <div class="profile-id">ID: ${escapeHtml(s.studentID ?? '—')}</div>
-          <div class="profile-study-info"><span>Группа: ${escapeHtml(studentGroup(s) || '—')}</span><span>Курс: ${studentCourse(s) || '—'}</span></div>
         </div>
       </div>
 
 <details class="gpa-card profile-gpa" id="profileGpaDetails" ${gpaExpanded ? 'open' : ''}>
-        <summary class="gpa-ring-summary" aria-label="Академический GPA ${gpaText} из 4: раскрыть остальные показатели">
-          <span class="gpa-ring-copy"><span class="gpa-label">Академический GPA</span><span class="gpa-ring-hint">${hasAcademicGpa ? 'Шкала от 0 до 4,0' : 'Показатель пока недоступен'}</span><span class="gpa-ring-more">Все показатели <svg aria-hidden="true" class="action-icon profile-gpa-arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m9 6 6 6-6 6"/></svg></span></span>
-          <span class="gpa-ring" aria-hidden="true"><svg viewBox="0 0 120 120"><defs><linearGradient id="gpaRingGradient" x1="0" y1="0" x2="1" y2="1"><stop offset="0%" stop-color="var(--accent)"/><stop offset="100%" stop-color="var(--ink-soft)"/></linearGradient></defs><circle class="gpa-ring-track" cx="60" cy="60" r="51"/><circle class="gpa-ring-progress" cx="60" cy="60" r="51" pathLength="100" stroke-dasharray="${gpaProgress} 100"/></svg><span class="gpa-ring-number">${gpaText}</span></span>
+        <summary class="profile-gpa-summary" aria-label="Академический GPA ${gpaText} из 4: раскрыть остальные показатели">
+          <span class="profile-gpa-copy"><span class="gpa-label">Средний балл</span><span class="profile-gpa-score">${gpaText}<span>/ 4,00</span></span>${!hasAcademicGpa ? '<span class="profile-gpa-unavailable">Показатель пока недоступен</span>' : ''}</span>
+          <span class="profile-gpa-toggle">GPA <svg aria-hidden="true" class="profile-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"/></svg></span>
         </summary>
         <div class="profile-gpa-extra">
         <div class="gpa-row"><span class="gpa-label">Научный GPA</span><span class="gpa-value">${escapeHtml(s.scientificGpa ?? '—')}</span></div>
@@ -968,6 +970,8 @@ if ('serviceWorker' in navigator) {
         </div>
       </details>
 
+      <section class="profile-block" aria-labelledby="profileStudyHeading">
+      <h2 id="profileStudyHeading">Учёба</h2>
       <nav class="profile-study-tiles" aria-label="Учебные разделы">
         <button type="button" class="profile-study-tile" data-action="switchSection('umkd')">
           <span class="profile-tile-icon"><svg aria-hidden="true" viewBox="0 0 24 24"><path d="M12 6v15M12 6C9 4 6 3 3 4v15c3-1 6 0 9 2 3-2 6-3 9-2V4c-3-1-6 0-9 2Z"/></svg></span>
@@ -981,7 +985,7 @@ if ('serviceWorker' in navigator) {
         </button>
         <button type="button" class="profile-study-tile" data-action="switchSection('calendar')" aria-label="Академический календарь">
           <span class="profile-tile-icon"><svg aria-hidden="true" viewBox="0 0 24 24"><rect x="4" y="5" width="16" height="16" rx="3"/><path d="M8 3v4m8-4v4M4 11h16m-11 4h2m3 0h2m-7 3h2"/></svg></span>
-          <span class="profile-tile-title">Академический календарь</span><span class="profile-tile-caption">Семестр, РК и сессия</span>
+          <span class="profile-tile-title">Академкалендарь</span><span class="profile-tile-caption">Семестр, РК и сессия</span>
           <svg aria-hidden="true" class="profile-tile-arrow" viewBox="0 0 24 24"><path d="m9 6 6 6-6 6"/></svg>
         </button>
         <button type="button" class="profile-study-tile" data-action="switchSection('transcript')">
@@ -990,21 +994,32 @@ if ('serviceWorker' in navigator) {
           <svg aria-hidden="true" class="profile-tile-arrow" viewBox="0 0 24 24"><path d="m9 6 6 6-6 6"/></svg>
         </button>
       </nav>
-
-      <button type="button" class="wrapped-launch" data-action="openSemesterWrapped()"><span class="wrapped-launch-kicker">UNILINK · RECAP</span><span class="wrapped-launch-title">Твой семестр в историях <span aria-hidden="true">↗</span></span><span class="wrapped-launch-caption">Твой ритм. Твои предметы. Твои результаты.</span></button>
-      <section class="push-preferences" aria-label="Уведомления о сообщениях">
-        <h2>Уведомления</h2>
+      </section>
+      <section class="profile-block" aria-labelledby="profileSemesterHeading">
+        <h2 id="profileSemesterHeading">Мой семестр</h2>
+        <button type="button" class="profile-recap" data-action="openSemesterWrapped()"><svg aria-hidden="true" class="profile-row-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round"><path d="m12 3 2.3 6.7L21 12l-6.7 2.3L12 21l-2.3-6.7L3 12l6.7-2.3Z"/><path d="m20 2 .5 1.5L22 4l-1.5.5L20 6l-.5-1.5L18 4l1.5-.5Z"/></svg><span class="profile-row-copy"><strong>Итоги семестра</strong><small>Твой семестр в цифрах</small></span><svg aria-hidden="true" class="profile-chevron" viewBox="0 0 24 24"><path d="m9 6 6 6-6 6"/></svg></button>
+        <button type="button" class="profile-history" data-study-history><svg aria-hidden="true" class="profile-row-icon" viewBox="0 0 24 24"><path d="M3 11a9 9 0 1 1 2 7M3 4v7h7m2-4v5l3 2"/></svg><span class="profile-row-copy"><span>История обучения</span><small data-study-history-count>Оценки и расписание</small></span><svg aria-hidden="true" class="profile-chevron" viewBox="0 0 24 24"><path d="m9 6 6 6-6 6"/></svg></button>
+      </section>
+      <section class="profile-block" aria-labelledby="profileSettingsHeading">
+      <h2 id="profileSettingsHeading">Настройки</h2>
+      <div class="profile-settings">
+      <details class="profile-notifications" id="profileNotifications" ${notificationsExpanded ? 'open' : ''}>
+        <summary><svg aria-hidden="true" class="profile-row-icon" viewBox="0 0 24 24"><path d="M18 8a6 6 0 0 0-12 0c0 7-3 7-3 9h18c0-2-3-2-3-9M10 21h4"/></svg><span>Уведомления</span><svg aria-hidden="true" class="profile-chevron" viewBox="0 0 24 24"><path d="m6 9 6 6 6-6"/></svg></summary>
+        <div class="profile-notifications-body">
         <label class="push-setting"><span>Push на этом устройстве<small>Сообщения на экране телефона, даже когда uniq. закрыт</small></span><input id="pushEnabled" type="checkbox" role="switch" disabled></label>
         <label class="push-setting"><span><span id="pushTelegramTitle">Сообщения в Telegram</span><small>Для подключённого бота. Новости версий не затрагивает</small></span><input id="pushTelegram" type="checkbox" role="switch" disabled></label>
         <p id="pushStatus" class="push-status" role="status">Подключаем настройки уведомлений…</p>
         <button type="button" id="pushRetry" class="push-retry" hidden>Повторить</button>
         <button type="button" id="pushTest" class="push-retry" hidden>Отправить тестовое уведомление</button>
-      </section>
+        </div>
+      </details>
       <div id="appUpdateAvailable" class="profile-update-available" role="status" hidden><span class="profile-update-dot" aria-hidden="true"></span>Доступна новая версия</div>
-      <button type="button" id="appUpdateButton" class="profile-update-btn" data-action="updateApplication(this)">Обновить приложение</button>
+      <button type="button" id="appUpdateButton" class="profile-settings-update" data-action="updateApplication(this)"><svg aria-hidden="true" class="profile-row-icon" viewBox="0 0 24 24"><path d="M20 7a9 9 0 0 0-15-2L3 8m0-6v6h6m-5 9a9 9 0 0 0 15 2l2-3m0 6v-6h-6"/></svg><span id="appUpdateLabel">Обновление приложения</span><span id="appUpdateHint">Проверить</span></button>
       <p id="appUpdateStatus" class="profile-update-status" role="status"></p>
-      <button type="button" class="profile-update-btn" data-study-history>Что изменилось · <span data-study-history-count>Оценки и расписание</span></button>
-      <button class="profile-logout-btn" data-action="confirmLogout()">Выйти из аккаунта</button>
+      </div>
+      </section>
+      <button type="button" class="profile-logout-btn" data-action="confirmLogout()"><svg aria-hidden="true" class="profile-row-icon" viewBox="0 0 24 24"><path d="M10 4H4v16h6m4-12 4 4-4 4m-6-4h14"/></svg>Выйти из аккаунта</button>
+      </div>
     `;
 
     swapContent(container, html, animate, () => { window.unilinkUpdates?.render(); window.unilinkStudy?.render(); window.unilinkPush?.render(); });
