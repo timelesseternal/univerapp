@@ -538,6 +538,7 @@
     finally { if (state.sessionWork === work) state.sessionWork = null; }
   }
   function drawInbox(conversations, ownID = state.profile?.id) {
+    const firstRender = state.inboxRenderKey === null;
     state.inbox = conversations;
     updateBadge(conversations.reduce((total, conversation) => total + Math.max(0, Number(conversation.unread) || 0), 0));
     const renderKey = JSON.stringify([ownID, new Date().toDateString(), conversations]);
@@ -574,6 +575,7 @@
       list.append(button);
     }
     persistPreview();
+    if (firstRender && state.visible && !state.conversation) window.unilinkMotion?.cascade?.(list);
     warmConversations(conversations);
   }
   function updateBadge(count) {

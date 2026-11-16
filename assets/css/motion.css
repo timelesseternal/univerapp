@@ -15,7 +15,7 @@
 }
 .chat-thread:not([hidden]) { animation: interfaceEnter var(--motion-normal) var(--motion-ease); }
 .profile-menu[open] .profile-menu-items, .profile-gpa[open] .profile-gpa-extra { animation:none; }
-/* Content owns the transition: refreshed rows must never replay staggered fades. */
+/* JavaScript owns the cascade on navigation; background refreshes stay still. */
 .row-enter, .bottom-tab-icon.icon-filled.pop { animation: none !important; }
 #scheduleContainer, .section-inner { transition: none; }
 button, .day-btn, .theme-btn, .profile-menu summary, .profile-gpa summary,

@@ -1038,7 +1038,14 @@ if ('serviceWorker' in navigator) {
       return;
     }
 
-    let html = `<span class="masthead-eyebrow" style="margin-bottom:10px; display:block;">Оценки</span>`;
+    const gradePeriod = journalSnapshot?.key?.startsWith(`${authGeneration}-${platonusStudent?.studentID}-`)
+      ? journalSnapshot.key.split('-').slice(-2).map(Number) : null;
+    const gradeCurrent = trueCurrentWeekInfo || liveScheduleWeekInfo;
+    const gradeYear = gradePeriod?.[0] ?? gradeCurrent?.studyYear ?? gradeCurrent?.selectedStudyYear;
+    const gradeTerm = gradePeriod?.[1] ?? gradeCurrent?.term ?? gradeCurrent?.selectedTerm;
+    const semesterTitle = Number(gradeTerm) === 1 ? 'Осенний семестр' : Number(gradeTerm) === 2 ? 'Весенний семестр' : 'Текущий семестр';
+    const semesterYear = Number.isInteger(Number(gradeYear)) && Number(gradeYear) >= 2000 && Number(gradeYear) < 2200 ? `${Number(gradeYear)}–${Number(gradeYear) + 1} учебный год` : 'Учебные результаты';
+    let html = `<div class="screen-brand"><span>uniq<span class="brand-dot">.</span></span><small>Оценки</small></div><header class="screen-heading"><p>Твои результаты</p><h1>Оценки</h1></header><div class="grades-semester"><svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"><rect x="4" y="5" width="16" height="16" rx="3"/><path d="M8 3v4m8-4v4M4 11h16"/></svg><span><strong>${semesterTitle}</strong><small>${semesterYear}</small></span></div>`;
 
     const subjects = Array.isArray(liveJournalData) ? liveJournalData.filter(subj => subj && typeof subj === 'object') : null;
     if (subjects?.length) {
@@ -1067,7 +1074,7 @@ if ('serviceWorker' in navigator) {
     const period = trueCurrentWeekInfo || liveScheduleWeekInfo;
     if (!platonusStudent || !window.UniverWrapped) return;
     if (!period) {
-      const caption = document.querySelector('.wrapped-launch-caption');
+      const caption = document.querySelector('.profile-recap small, .wrapped-launch-caption');
       if (caption) caption.textContent = 'Расписание ещё загружается. Попробуй открыть итоги чуть позже.';
       return;
     }
@@ -1752,10 +1759,12 @@ if ('serviceWorker' in navigator) {
     contentAnimations.get(container)?.cancel();
     contentAnimations.delete(container);
     container.classList.remove('content-hidden');
+    const firstResults = !!container.querySelector?.('.content-loading') && !html.includes('content-loading');
     container.innerHTML = html;
     if (onInserted) onInserted();
     const reduced = window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
-    if (animate && !document.hidden && !reduced && container.animate) {
+    if ((animate || firstResults) && !document.hidden && !reduced && container.animate) {
+      if (window.unilinkMotion?.cascade?.(container)) return;
       const transition = container.animate([
         { opacity: 0, transform: 'translateY(6px)' },
         { opacity: 1, transform: 'translateY(0)' },

@@ -538,6 +538,15 @@ test('bootstrap supplies the inbox in one browser request', async () => {
   assert.equal(ui.elements.get('chatInbox').children.length, 1);
 });
 
+test('only the first visible inbox render cascades, polling replacements stay still',async()=>{
+  let cascades=0,unread=1;
+  const ui=setup(async()=>reply({profile,conversations:[{...conversation,unread}]}),
+    {window:{unilinkMotion:{cascade:()=>{cascades++;}}}});
+  ui.api.onSection('chat');await settle();assert.equal(cascades,1);
+  unread=2;await ui.api.refreshNow();await settle();
+  assert.equal(cascades,1);
+});
+
 test('returning to a recently loaded inbox displays it without another network request', async () => {
   let calls = 0;
   const ui = setup(async url => { if(!url.includes('action=presence')) calls++; return reply({ profile, conversations: [conversation] }); });

@@ -27,3 +27,14 @@ test('reduced motion and hidden documents commit without starting animation',()=
   const hidden=setup();hidden.context.document.hidden=true;hidden.context.swapContent(hidden.element,'ready');
   assert.equal(hidden.transitions.length,0);
 });
+
+test('first results cascade after loading while subsequent silent refreshes remain still',()=>{
+  const s=setup();let cascades=0;
+  s.context.window.unilinkMotion={cascade:()=>{cascades++;return true;}};
+  s.element.innerHTML='content-loading';
+  s.element.querySelector=()=>s.element.innerHTML.includes('content-loading')?{}:null;
+  s.context.swapContent(s.element,'cards',false);
+  assert.equal(cascades,1);assert.equal(s.transitions.length,0);
+  s.context.swapContent(s.element,'updated cards',false);
+  assert.equal(cascades,1);assert.equal(s.element.innerHTML,'updated cards');
+});

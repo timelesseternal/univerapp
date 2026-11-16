@@ -19,7 +19,8 @@ test('grade fields remain text and an upstream color cannot inject SVG attribute
 function setup(journal,failed=false){
   const element={innerHTML:''};
   const ctx=vm.createContext({navigator:{onLine:true},offlineStudyMode:false,document:{getElementById:()=>element},platonusStudent:{studentID:7},liveJournalData:journal,
-    gradesLoadFailed:failed,swapContent:(target,html)=>{target.innerHTML=html;},buildGradeCardHtml:()=>'<article>Предмет</article>'});
+    gradesLoadFailed:failed,journalSnapshot:null,authGeneration:1,trueCurrentWeekInfo:null,liveScheduleWeekInfo:null,
+    swapContent:(target,html)=>{target.innerHTML=html;},buildGradeCardHtml:()=>'<article>Предмет</article>'});
   installLoading(ctx);
   vm.runInContext(source.slice(source.indexOf('  function renderGrades('),source.indexOf('  function renderCurrentSection(')),ctx);
   return {ctx,element};
@@ -27,6 +28,15 @@ function setup(journal,failed=false){
 test('an empty journal displays automatic loading without a Platonus warning or refresh button',()=>{
   const ui=setup([]);ui.ctx.renderGrades(false);
   assert.match(ui.element.innerHTML,/content-loading/);assert.doesNotMatch(ui.element.innerHTML,/notice-panel|Platonus|пустой|Оценок пока нет|retryGrades|<button/);
+});
+
+test('semester header follows the displayed journal and ignores another students snapshot',()=>{
+  const ui=setup([{}]);
+  ui.ctx.trueCurrentWeekInfo={studyYear:2026,term:1};
+  ui.ctx.journalSnapshot={key:'1-7-2025-2'};ui.ctx.renderGrades(false);
+  assert.match(ui.element.innerHTML,/Весенний семестр/);assert.match(ui.element.innerHTML,/2025–2026/);
+  ui.ctx.journalSnapshot={key:'1-8-2025-2'};ui.ctx.renderGrades(false);
+  assert.match(ui.element.innerHTML,/Осенний семестр/);assert.match(ui.element.innerHTML,/2026–2027/);
 });
 
 test('empty journals retry promptly and never overwrite cached grades or recap with emptiness',async()=>{

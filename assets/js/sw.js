@@ -28,6 +28,7 @@ SHELL_PATHS.add('/assets/css/study-history.css');
 SHELL_PATHS.add('/assets/icons/uniq-maskable-512.png');
 SHELL_PATHS.add('/assets/icons/uniq-favicon-32.png');
 SHELL_PATHS.add('/assets/css/profile.css');
+SHELL_PATHS.add('/assets/css/interface.css');
 
 function fetchShell(request, options) {
   const path = typeof request === 'string' ? request : new URL(request.url).pathname;

@@ -34,6 +34,30 @@ test('day navigation follows weekday direction without animating the dock',()=>{
   s.api.day(content,'Среда','Вторник');assert.match(s.animations[0].frames[0].transform,/-14px/);
   s.api.day(content,'Вторник','Четверг');assert.match(s.animations[1].frames[0].transform,/\(14px/);
 });
+
+test('cascade animates only visible cards, caps delay and cancels the previous group',async()=>{
+  const s=setup(),section=s.element(true);
+  const cards=Array.from({length:12},()=>s.element());
+  cards.forEach(card=>{card.getBoundingClientRect=()=>({top:0,height:70});card.getClientRects=()=>[{}];});
+  cards[0].getClientRects=()=>[];
+  section.querySelectorAll=()=>cards;
+  s.api.enter(section);
+  assert.equal(s.animations.length,8);
+  assert.deepEqual(s.animations.map(a=>a.options.delay),[0,70,140,210,280,280,280,280]);
+  assert.equal(s.animations[0].options.fill,'backwards');
+  const previous=[...s.animations];s.api.enter(section);
+  assert.ok(previous.every(a=>a.cancelled));
+  s.animations.slice(8).forEach(a=>a.finish());await tick();
+});
+
+test('reduced motion and hidden documents skip the card cascade entirely',()=>{
+  for(const reduced of [true,false]){
+    const s=setup(reduced),section=s.element(true),card=s.element();
+    section.querySelectorAll=()=>[card];if(!reduced)s.document.hidden=true;
+    assert.equal(s.api.cascade(section),false);s.api.enter(section);
+    assert.equal(s.animations.length,0);
+  }
+});
 test('rapid disclosure taps reverse the target and release clipping after completion',async()=>{
   const s=setup(),details=s.element();
   s.click(details);assert.equal(details.open,true);
