@@ -3,7 +3,7 @@
   "version": "1.0.0",
   "private": true,
   "type": "module",
-  "description": "unLink. — расписание, учебные данные Platonus и личные сообщения",
+  "description": "uniq. — расписание, учебные данные Platonus и личные сообщения",
   "engines": {
     "node": ">=22"
   },

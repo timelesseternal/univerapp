@@ -51,5 +51,5 @@ export function buildRelease(root) {
 }
 
 if (process.argv[1] && resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {
-  console.log(`unLink. release: ${buildRelease(resolve(fileURLToPath(new URL('../', import.meta.url))))}`);
+  console.log(`uniq. release: ${buildRelease(resolve(fileURLToPath(new URL('../', import.meta.url))))}`);
 }

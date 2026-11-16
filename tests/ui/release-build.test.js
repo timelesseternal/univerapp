@@ -44,7 +44,7 @@ test('public or server changes create new release IDs, while unserved local file
   assert.equal(buildRelease(root),server);
 });
 test('a missing version marker fails the build instead of publishing an untracked release',t=>{
-  const root=fixture(t);writeFileSync(join(root,'index.html'),'<title>unLink.</title>');
+  const root=fixture(t);writeFileSync(join(root,'index.html'),'<title>uniq.</title>');
   assert.throws(()=>buildRelease(root),/markers/);
 });
 

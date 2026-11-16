@@ -21,7 +21,7 @@ test('release broadcasts verify production, deduplicate recipients and retry onl
   };
   const first=await announceRelease({env,version,notes,fetchImpl,sleep:async ms=>delays.push(ms)});
   assert.equal(first.sent,2);assert.equal(sent.length,3);assert.equal(delays[0],2000);
-  assert.deepEqual(states,['sent','sent']);assert.match(sent[1].text,/Что нового в unLink\./);
+  assert.deepEqual(states,['sent','sent']);assert.match(sent[1].text,/Что нового в uniq\./);
   assert.equal(sent[1].reply_markup.inline_keyboard[0][0].url,'https://univerapp.vercel.app');
   const again=await announceRelease({env,version,notes,fetchImpl,sleep:async()=>{}});
   assert.equal(again.skipped,2);assert.equal(sent.length,3);

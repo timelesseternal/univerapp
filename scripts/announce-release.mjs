@@ -7,7 +7,7 @@ const appURL='https://univerapp.vercel.app';
 export function announcementText(version,notes) {
   if (!/^[a-f0-9]{64}$/.test(version) || !Array.isArray(notes?.changes) || !notes.changes.length
     || notes.changes.length>10 || notes.changes.some(line=>typeof line!=='string' || !line.trim() || line.length>300)) throw new Error('invalid_release_notes');
-  return `🚀 Что нового в unLink.\n\n${notes.changes.map(line=>`• ${line.trim()}`).join('\n')}\n\nВерсия ${version.slice(0,8)}`;
+  return `🚀 Что нового в uniq.\n\n${notes.changes.map(line=>`• ${line.trim()}`).join('\n')}\n\nВерсия ${version.slice(0,8)}`;
 }
 export async function announceRelease({env=process.env,version,notes,fetchImpl=fetch,sleep=ms=>new Promise(resolve=>setTimeout(resolve,ms))}) {
   const {SUPABASE_URL:url,SUPABASE_SERVICE_ROLE_KEY:key,TELEGRAM_BOT_TOKEN:token}=env;
@@ -46,7 +46,7 @@ export async function announceRelease({env=process.env,version,notes,fetchImpl=f
         for(let attempt=0;attempt<5;attempt++) {
           const sent=await json(`https://api.telegram.org/bot${token}/sendMessage`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({
             chat_id:id,text,link_preview_options:{is_disabled:true},
-            reply_markup:{inline_keyboard:[[{text:'Открыть unLink.',url:appURL}]]},
+            reply_markup:{inline_keyboard:[[{text:'Открыть uniq.',url:appURL}]]},
           })});
           if (sent.ok && sent.data?.ok) { outcome='sent'; break; }
           if (sent.status===429 || sent.data?.error_code===429) {
