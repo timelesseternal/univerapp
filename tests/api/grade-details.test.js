@@ -100,6 +100,27 @@ test('safe diagnostics distinguish malformed data, deadlines and profile failure
       return {ok:true,status:200,json:async()=>data};
     });
     const res=response();await handler({method:'GET',headers:sessionHeaders(session),query},res);
-    assert.equal(res.code,502);assert.deepEqual(res.body,{error:'grade_details_unavailable',detail:reason});
+    assert.equal(res.code,502);assert.deepEqual(res.body,{error:'grade_details_unavailable',detail:reason==='GD_FORMAT'?'GD_FORMAT_MARK_STRING':reason});
   });
+});
+
+test('format diagnostics pinpoint the failing field and distinguish short attendance tokens without exposing arbitrary text',()=>{
+  for(const [value,code] of [[-1,'GD_FORMAT_MARK_NUMBER_NEG1'],['НБ','GD_FORMAT_MARK_STRING_U041D_U0411'],
+    ['H','GD_FORMAT_MARK_STRING_U0048'],['private student comment','GD_FORMAT_MARK_STRING']]) {
+    const data=sample();data[0].Marks[9].Marks[15]=[point(15,value)];
+    assert.throws(()=>normalizeGradeDetails(data),error=>error.diagnostic===code);
+  }
+  const data=sample();data[0].Marks[9].Marks[15][0].MarkDate.Year=0;
+  assert.throws(()=>normalizeGradeDetails(data),error=>error.diagnostic==='GD_FORMAT_YEAR_NUMBER_0');
+  data[0].Marks[9].Marks[15][0].MarkDate=null;
+  assert.throws(()=>normalizeGradeDetails(data),error=>error.diagnostic==='GD_FORMAT_DATE_NULL');
+  assert.throws(()=>normalizeGradeDetails({private:'secret'}),error=>error.diagnostic==='GD_FORMAT_ROOT_OBJECT');
+});
+
+test('malformed upstream JSON has a separate diagnostic code',async t=>{
+  let calls=0;t.mock.method(globalThis,'fetch',async()=>({ok:true,status:200,json:async()=>{
+    if(++calls===1)return {studentID:7};throw new SyntaxError('private upstream data');
+  }}));
+  const res=response();await handler({method:'GET',headers:sessionHeaders(session),query},res);
+  assert.deepEqual(res.body,{error:'grade_details_unavailable',detail:'GD_FORMAT_JSON'});
 });

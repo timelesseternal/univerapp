@@ -114,7 +114,9 @@
     const message = String(error?.message || '');
     if (message === 'offline') return 'Нет подключения к интернету.';
     if (/GD_TIMEOUT|TimeoutError|AbortError/.test(message) || ['TimeoutError','AbortError'].includes(error?.name)) return 'Platonus отвечает слишком долго (GD_TIMEOUT).';
-    if (/GD_FORMAT/.test(message) || ['invalid_details','invalid_group','invalid_point'].includes(message)) return 'Platonus вернул неподдерживаемый формат оценок (GD_FORMAT).';
+    const diagnostic = message.match(/\bGD_FORMAT(?:_[A-Z0-9]+)*\b/)?.[0];
+    if (diagnostic) return `Platonus вернул неподдерживаемый формат оценок (${diagnostic}). Передай этот код для проверки.`;
+    if (['invalid_details','invalid_group','invalid_point'].includes(message)) return 'Приложение не смогло прочитать данные (GD_FORMAT_UI). Обнови приложение через профиль.';
     if (/GD_PROFILE/.test(message)) return 'Не удалось проверить учебный профиль (GD_PROFILE).';
     if (/GD_UPSTREAM/.test(message)) return 'Platonus временно не отдаёт данные предмета (GD_UPSTREAM).';
     if (/platonus_auth_unavailable/.test(message)) return 'Platonus не подтвердил доступ к предмету. Попробуй обновить список оценок.';

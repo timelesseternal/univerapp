@@ -68,6 +68,14 @@ test('grade detail errors explain format, timeout, profile and offline failures 
     assert.doesNotMatch(ui.body.innerHTML,/<img|onerror|Оценок за контрольные точки пока нет/);
   }
 });
+
+test('the exact server format code remains visible while client parsing failures request an app update',async()=>{
+  const server=setup(async()=>{throw new Error('request_failed: grade_details_unavailable | GD_FORMAT_MARK_NUMBER_NEG1');});
+  server.open();await flush();assert.match(server.body.innerHTML,/\(GD_FORMAT_MARK_NUMBER_NEG1\)/);
+  const client=setup(async()=>({groups:[{name:'Lectures',marks:[{date:'2026-11-01',mark:{private:'secret'}}]}]}));
+  client.open();await flush();assert.match(client.body.innerHTML,/GD_FORMAT_UI/);assert.match(client.body.innerHTML,/Обнови приложение через профиль/);
+  assert.doesNotMatch(client.body.innerHTML,/secret/);
+});
 test('reset discards late results from an old account and forces a fresh request',async()=>{
   let resolve,calls=0;const ui=setup(()=>{calls++;return new Promise(done=>{resolve=done;});});ui.open();
   ui.api.reset();resolve({groups});await flush();assert.doesNotMatch(ui.body.innerHTML,/02\.10\.2026/);
