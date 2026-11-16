@@ -82,8 +82,12 @@ export function calendarGradingPeriods(calendar) {
     if (!start || !first || !second || start.start > first.start || first.end >= second.start
       || (end && second.end > end.end)) continue;
     const next = new Date(first.end + 'T00:00:00Z'); next.setUTCDate(next.getUTCDate() + 1);
+    // Weekend entries still belong to RK1; RK2 starts when the next teaching week opens.
+    while ([0, 6].includes(next.getUTCDay())) next.setUTCDate(next.getUTCDate() + 1);
+    if (next.toISOString().slice(0, 10) > second.start) continue;
+    const firstEnd = new Date(next); firstEnd.setUTCDate(firstEnd.getUTCDate() - 1);
     periods.push({ studyYear, term, periods: [
-      { id: 'rk1', start: start.start, end: first.end },
+      { id: 'rk1', start: start.start, end: firstEnd.toISOString().slice(0, 10) },
       { id: 'rk2', start: next.toISOString().slice(0, 10), end: second.end },
     ] });
   }

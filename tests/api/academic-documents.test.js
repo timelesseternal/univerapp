@@ -50,14 +50,14 @@ const semester = (name, start, rk1, rk2, end) => ({ name, groups: [{ name: 'Уч
   { label: 'Начало семестра', value: start }, { label: 'Конец семестра', value: end },
   { label: 'Рубежный контроль 1', value: rk1 }, { label: 'РК 2', value: rk2 },
 ] }] });
-test('calendar grading periods include the entire first control week and use the next day for RK2', () => {
+test('calendar grading periods retain the weekend in RK1 and start RK2 on the next weekday', () => {
   const periods = calendarGradingPeriods({ year: '2026–2027', semesters: [
     semester('Осенний семестр','1 сентября','19-24 октября','7–12 декабря','12 декабря'),
     semester('Весенний семестр','25 января','15–20 марта','3-8 мая','8 мая'),
   ] });
   assert.deepEqual(periods, [
-    { studyYear: 2026, term: 1, periods: [{ id:'rk1',start:'2026-09-01',end:'2026-10-24' }, { id:'rk2',start:'2026-10-25',end:'2026-12-12' }] },
-    { studyYear: 2026, term: 2, periods: [{ id:'rk1',start:'2027-01-25',end:'2027-03-20' }, { id:'rk2',start:'2027-03-21',end:'2027-05-08' }] },
+    { studyYear: 2026, term: 1, periods: [{ id:'rk1',start:'2026-09-01',end:'2026-10-25' }, { id:'rk2',start:'2026-10-26',end:'2026-12-12' }] },
+    { studyYear: 2026, term: 2, periods: [{ id:'rk1',start:'2027-01-25',end:'2027-03-21' }, { id:'rk2',start:'2027-03-22',end:'2027-05-08' }] },
   ]);
 });
 
@@ -69,6 +69,15 @@ test('calendar dates handle numeric ranges, explicit years, month boundaries and
   assert.equal(periods[0].periods[1].start, '2026-11-03');
   assert.equal(periods[0].periods[1].end, '2027-01-02');
   assert.equal(calendarGradingPeriods({ year:'2023–2024',semesters:[semester('Весенний семестр','1 января','29 февраля 2024 г.','01.05 - 08.05','8 мая')] })[0].periods[1].start,'2024-03-01');
+});
+
+test('Friday, Saturday and Sunday control deadlines keep the full weekend in RK1', () => {
+  for(const finish of ['23 октября','24 октября','25 октября']) {
+    const periods=calendarGradingPeriods({year:'2026–2027',semesters:[
+      semester('Осенний семестр','1 сентября',finish,'7-12 декабря','12 декабря'),
+    ]})[0].periods;
+    assert.equal(periods[0].end,'2026-10-25');assert.equal(periods[1].start,'2026-10-26');
+  }
 });
 
 test('missing, invalid, overlapping and ambiguous calendar boundaries never guess a period', () => {

@@ -110,18 +110,18 @@ test('every lesson group is visible immediately with all its marks on one row',a
 });
 
 const calendar = () => ({ studentID:7, gradingPeriods:[{studyYear:2026,term:1,periods:[
-  {id:'rk1',start:'2026-09-01',end:'2026-10-24'}, {id:'rk2',start:'2026-10-25',end:'2026-12-12'},
+  {id:'rk1',start:'2026-09-01',end:'2026-10-25'}, {id:'rk2',start:'2026-10-26',end:'2026-12-12'},
 ]}] });
 const periodGroups = [{name:'WT-Lab', marks:[
   {date:'2026-08-31',mark:11}, {date:'2026-09-01',mark:85}, {date:'2026-10-24',mark:0},
-  {date:'2026-10-25',mark:95}, {date:'2026-12-12',mark:77}, {date:'2026-12-13',mark:33},
+  {date:'2026-10-26',mark:95}, {date:'2026-12-12',mark:77}, {date:'2026-12-13',mark:33},
 ]}];
 test('current RK defaults from calendar dates; switching periods preserves boundary marks and needs no fetch', async () => {
   let calls=0, calendarCalls=0;
   const ui=setup(async()=>{calls++;return {groups:periodGroups};},{calendar:async()=>{calendarCalls++;return calendar();}});
   ui.open(); await flush();
   assert.match(ui.body.innerHTML,/data-grade-period="rk2" aria-pressed="true"/);
-  assert.match(ui.body.innerHTML,/25\.10\.2026 — 12\.12\.2026/);
+  assert.match(ui.body.innerHTML,/26\.10\.2026 — 12\.12\.2026/);
   assert.match(ui.body.innerHTML,/>95</);assert.match(ui.body.innerHTML,/>77</);
   assert.doesNotMatch(ui.body.innerHTML,/>85</);
   ui.choose('rk1');
@@ -136,10 +136,21 @@ test('current RK defaults from calendar dates; switching periods preserves bound
 
 test('RK1 is selected through its last day and an empty RK2 keeps all lesson groups visible', async () => {
   const ui=setup(async()=>({groups:[{name:'WT-L',marks:[{date:'2026-09-10',mark:90}]},{name:'WT-Lab',marks:[]}]}),
-    {calendar:async()=>calendar(),now:'2026-10-24T12:00:00Z'});
+    {calendar:async()=>calendar(),now:'2026-10-25T12:00:00Z'});
   ui.open();await flush();assert.match(ui.body.innerHTML,/data-grade-period="rk1" aria-pressed="true"/);
   ui.choose('rk2');assert.match(ui.body.innerHTML,/Лекции/);assert.match(ui.body.innerHTML,/Лабораторные/);
   assert.match(ui.body.innerHTML,/Оценок за контрольные точки пока нет/);assert.doesNotMatch(ui.body.innerHTML,/>90</);
+});
+
+test('October 24 and 25 grades stay in RK1 while Monday October 26 starts RK2',async()=>{
+  const groups=[{name:'WT-Lab',marks:[{date:'2026-10-24',mark:71},{date:'2026-10-25',mark:72},{date:'2026-10-26',mark:73}]}];
+  for(const day of ['25','26']) {
+    const ui=setup(async()=>({groups}),{calendar:async()=>calendar(),now:`2026-10-${day}T12:00:00Z`});
+    ui.open();await flush();assert.match(ui.body.innerHTML,new RegExp(`data-grade-period="rk${day==='25'?1:2}" aria-pressed="true"`));
+    ui.choose('rk1');assert.match(ui.body.innerHTML,/>71</);assert.match(ui.body.innerHTML,/>72</);assert.doesNotMatch(ui.body.innerHTML,/>73</);
+    ui.choose('rk2');assert.match(ui.body.innerHTML,/>73</);assert.doesNotMatch(ui.body.innerHTML,/>71<|>72</);
+    ui.choose('all');assert.equal((ui.body.innerHTML.match(/<time /g)||[]).length,3);
+  }
 });
 
 test('missing calendar, wrong account or semester, and invalid dates show every mark without guessing', async () => {
