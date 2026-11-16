@@ -585,6 +585,19 @@ test('presence heartbeats pause while hidden, resume on return and stop at logou
   await ui.api.logout();assert.equal(ui.timers.size,0);
 });
 
+test('returning from pagehide publishes active presence again without relying on visibilitychange',async()=>{
+  const events={},activity=[];
+  const ui=setup(async(url,options)=>{
+    if(url.includes('action=presence'))activity.push(JSON.parse(options.body));
+    return reply(url.includes('action=session')?{profile,conversations:[]}:{ok:true,conversations:[]});
+  },{window:{addEventListener:(name,handler)=>{events[name]=handler;}}});
+  ui.api.onLogin();await settle();assert.equal(activity.at(-1).active,true);
+  events.pagehide();await settle();assert.equal(activity.at(-1).active,false);
+  events.pageshow();await settle();assert.equal(activity.at(-1).active,true);
+  ui.context.document.hidden=true;const count=activity.length;events.pageshow();await settle();assert.equal(activity.length,count);
+  await ui.api.logout();events.pageshow();await settle();assert.equal(activity.length,count);
+});
+
 test('reopening a thread displays memory history before a slow response, logout discards it', async () => {
   let finishRead;
   let reads = 0;

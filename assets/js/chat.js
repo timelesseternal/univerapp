@@ -1162,4 +1162,7 @@
     else if (!document.hidden) refreshBadge();
   });
   window.addEventListener?.('pagehide', () => publishPresence(false));
+  window.addEventListener?.('pageshow', () => {
+    if (state.profile && state.monitoring && !document.hidden) publishPresence();
+  });
 })();

@@ -50,14 +50,40 @@ export function pushSubscription(value) {
   catch {throw new ChatError(400,'invalid_push_subscription');}
   return {endpoint,keys:{auth,p256dh}};
 }
+
+async function activePushSubscriptions(jobs) {
+  try {
+    const ids=[...new Set(jobs.map(job=>job.subscriptionID))];
+    if(!ids.every(id=>typeof id==='string' && /^[a-f0-9]{8}(?:-[a-f0-9]{4}){3}-[a-f0-9]{12}$/i.test(id)))return new Set();
+    const subscriptions=await database(`chat_push_subscriptions?select=id,user_id,session_hash&id=in.(${ids.join(',')})`,{method:'GET',timeoutMs:2000});
+    if(!Array.isArray(subscriptions))return new Set();
+    const owned=subscriptions.filter(row=>/^[a-f0-9]{64}$/.test(row.session_hash||'')
+      && jobs.some(job=>job.subscriptionID===row.id && job.owner===row.user_id));
+    const hashes=[...new Set(owned.map(row=>row.session_hash))];
+    if(!hashes.length)return new Set();
+    const presence=await database(`chat_presence?select=token_hash&token_hash=in.(${hashes.join(',')})&online_until=gt.${encodeURIComponent(new Date().toISOString())}`,{method:'GET',timeoutMs:2000});
+    if(!Array.isArray(presence))return new Set();
+    const active=new Set(presence.map(row=>row.token_hash));
+    return new Set(owned.filter(row=>active.has(row.session_hash)).map(row=>row.id));
+  } catch { return new Set(); } // A missing presence migration or network failure must not lose a background notification.
+}
+
 export async function processPushNotifications(senderID,{send=webpush.sendNotification.bind(webpush),sleep=ms=>new Promise(resolve=>setTimeout(resolve,ms))}={}) {
   try {
     let keys;
     for(let batch=0;batch<2;batch++) {
       const jobs=await rpc('chat_claim_push',{p_sender_id:senderID});
       if(!Array.isArray(jobs) || !jobs.length) return;
-      keys ||= await pushKeys();
+      const active=await activePushSubscriptions(jobs);
+      if(jobs.some(job=>!active.has(job.subscriptionID)))keys ||= await pushKeys();
       await Promise.allSettled(jobs.map(async job=>{
+        if(active.has(job.subscriptionID)) {
+          // Suppress before contacting the provider. Silently dropping a received push
+          // in the service worker can revoke Safari's userVisibleOnly subscription.
+          await database(`chat_push_jobs?message_id=eq.${job.messageID}&subscription_id=eq.${job.subscriptionID}&lease=eq.${job.lease}&state=eq.sending`,
+            {method:'PATCH',body:{state:'suppressed',leased_until:null}});
+          return;
+        }
         let state='queued';
         for(let attempt=0;attempt<2;attempt++) {
           try {

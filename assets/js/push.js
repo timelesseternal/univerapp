@@ -125,7 +125,9 @@
   window.unilinkPush={
     render,
     onProfile(profile) {
-      if(state.profile?.id===profile.id)return;
+      // A renewed chat session has a new cookie even for the same account.
+      // Touch the subscription again so foreground checks follow this device's current session.
+      if(state.profile?.id===profile.id){load();return;}
       state.generation++;state.profile=profile;state.loaded=false;state.active=false;state.subscription=null;state.registration=null;state.busy=false;
       const generation=state.generation;
       ownerWork=ownerWork.catch(()=>{}).then(()=>window.unilinkPushStorage.set(profile.id));

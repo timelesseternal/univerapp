@@ -1,17 +1,17 @@
 import test from 'node:test';import assert from 'node:assert/strict';import vm from 'node:vm';import {readFileSync} from 'node:fs';
 const source=readFileSync(new URL('../../assets/js/push.js',import.meta.url),'utf8');
 const settle=async()=>{for(let i=0;i<50;i++)await Promise.resolve();};
-function setup({permission='granted',saveFails=false}={}) {
+function setup({permission='granted',saveFails=false,existingSubscription=false}={}) {
   const elements=new Map(),events={},calls=[];let owner=null,unsubscribed=0,subscribed=0;
   const element=id=>{if(!elements.has(id))elements.set(id,{id,hidden:false,checked:false,disabled:false,textContent:''});return elements.get(id);};
   const subscription={endpoint:'https://web.push.apple.com/device',toJSON(){return {endpoint:this.endpoint,keys:{}};},async unsubscribe(){unsubscribed++;return true;}};
-  const registration={pushManager:{async getSubscription(){return null;},async subscribe(){subscribed++;calls.push('subscribe');return subscription;}}};
+  const registration={pushManager:{async getSubscription(){return existingSubscription?subscription:null;},async subscribe(){subscribed++;calls.push('subscribe');return subscription;}}};
   const window={Notification:{},PushManager:{},matchMedia:()=>({matches:true}),unilinkPushStorage:{async set(value){owner=value;}},univerChat:{async ensureSession(){}}};
   const context={window,navigator:{userAgent:'iPhone',standalone:true,serviceWorker:{ready:Promise.resolve(registration),controller:{postMessage(){}}}},
-    document:{getElementById:element,addEventListener:(name,handler)=>events[name]=handler},Notification:{async requestPermission(){calls.push('permission');return permission;},permission:'default'},
+    document:{getElementById:element,addEventListener:(name,handler)=>events[name]=handler},Notification:{async requestPermission(){calls.push('permission');return permission;},permission:existingSubscription?'granted':'default'},
     AbortSignal,atob,Uint8Array,setTimeout:()=>1,clearTimeout(){},fetch:async(url,options)=>{
       calls.push({url,body:options.body?JSON.parse(options.body):null});
-      const data=url.includes('push-config')?{publicKey:'aGVsbG8',telegramEnabled:true}:{ok:true};
+      const data=url.includes('push-config')?{publicKey:'aGVsbG8',telegramEnabled:true}:url.includes('push-status')?{active:true}:{ok:true};
       return {ok:!(saveFails&&url.includes('push-subscription')&&options.method==='POST'),json:async()=>data};
     }};
   vm.runInNewContext(source,context);
@@ -44,4 +44,14 @@ test('an iPhone browser tab explains installation instead of requesting permissi
   const elements=new Map(),context={window:{matchMedia:()=>({matches:false})},navigator:{userAgent:'iPhone'},document:{getElementById:id=>{if(!elements.has(id))elements.set(id,{});return elements.get(id);},addEventListener(){}}};
   vm.runInNewContext(source,context);context.window.unilinkPush.render();
   assert.match(elements.get('pushStatus').textContent,/экран «Домой»/);assert.equal(elements.get('pushEnabled').disabled,true);
+});
+
+test('renewing the same account touches its push subscription with the current chat session',async()=>{
+  const ui=setup({existingSubscription:true});
+  ui.api.onProfile({id:'me'});await settle();
+  assert.equal(ui.calls.filter(call=>call.url?.includes('push-status')).length,1);
+  ui.api.onProfile({id:'me'});await settle();
+  const touches=ui.calls.filter(call=>call.url?.includes('push-status'));
+  assert.equal(touches.length,2);assert.equal(touches[1].body.endpoint,'https://web.push.apple.com/device');
+  assert.equal(ui.elements.get('pushEnabled').checked,true);assert.equal(ui.calls.includes('permission'),false);
 });

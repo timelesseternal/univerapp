@@ -57,3 +57,59 @@ test('configuration exposes the public VAPID key but never its encrypted or priv
   assert.equal(result.code,200);assert.deepEqual(Object.keys(result.body).sort(),['publicKey','telegramEnabled']);
   assert.equal(result.body.telegramEnabled,false);assert.doesNotMatch(JSON.stringify(result.body),/private-key|private_encrypted/);
 });
+
+test('foreground suppression applies only to the active device and finishes its leased job without sending a push',async t=>{
+  const sub=subscription(),activeID='22222222-2222-4222-8222-222222222222',backgroundID='44444444-4444-4444-8444-444444444444';
+  const hash='a'.repeat(64),otherHash='b'.repeat(64),finished=[],suppressed=[],sent=[];
+  const base={messageID:'1',lease:'33333333-3333-4333-8333-333333333333',owner:user,conversationID:user,name:'Друг',text:'Привет',subscription:sub};
+  const jobs=[{...base,subscriptionID:activeID},{...base,subscriptionID:backgroundID}];
+  setup(t,async(url,options)=>{
+    if(url.endsWith('/chat_claim_push'))return reply(jobs);
+    if(url.includes('chat_push_subscriptions?')) {
+      assert.equal(options.method,'GET');assert.match(url,/select=id,user_id,session_hash/);
+      return reply([{id:activeID,user_id:user,session_hash:hash},{id:backgroundID,user_id:user,session_hash:otherHash}]);
+    }
+    if(url.includes('chat_presence?')) {
+      assert.match(url,/online_until=gt\./);assert.ok(url.includes(hash)&&url.includes(otherHash));
+      return reply([{token_hash:hash}]);
+    }
+    if(url.includes('chat_push_keyring?'))return reply([{public_key:sub.keys.p256dh,private_encrypted:encryptPushKey('private-key')}]);
+    if(url.includes('chat_push_jobs?')){suppressed.push({url,body:JSON.parse(options.body)});return reply([]);}
+    if(url.endsWith('/chat_finish_push')){finished.push(JSON.parse(options.body));return reply(true);}
+    throw new Error('Unexpected request');
+  });
+  await processPushNotifications(user,{send:async(...args)=>sent.push(args)});
+  assert.equal(sent.length,1);assert.equal(finished[0].p_subscription_id,backgroundID);
+  assert.equal(suppressed.length,1);assert.deepEqual(suppressed[0].body,{state:'suppressed',leased_until:null});
+  assert.ok(suppressed[0].url.includes(`subscription_id=eq.${activeID}`));
+  assert.ok(suppressed[0].url.includes(`lease=eq.${base.lease}&state=eq.sending`));
+});
+
+test('an active device does not contact the push provider or create VAPID keys',async t=>{
+  const id='22222222-2222-4222-8222-222222222222',hash='a'.repeat(64);let suppressed=0;
+  setup(t,async(url,options)=>{
+    if(url.endsWith('/chat_claim_push'))return reply([{subscriptionID:id,owner:user,messageID:'1',lease:user}]);
+    if(url.includes('chat_push_subscriptions?'))return reply([{id,user_id:user,session_hash:hash}]);
+    if(url.includes('chat_presence?'))return reply([{token_hash:hash}]);
+    if(url.includes('chat_push_jobs?')){suppressed++;assert.equal(JSON.parse(options.body).state,'suppressed');return reply([]);}
+    throw new Error('Unexpected VAPID/provider request');
+  });
+  let sends=0;await processPushNotifications(user,{send:async()=>{sends++;}});
+  assert.equal(suppressed,1);assert.equal(sends,0);
+});
+
+test('hidden or expired activity, a different account, and unavailable presence never suppress background delivery',async t=>{
+  for(const mode of ['inactive','other-account','unavailable'])await t.test(mode,async t=>{
+    const sub=subscription(),id='22222222-2222-4222-8222-222222222222',hash='a'.repeat(64);let sent=0,finished;
+    setup(t,async(url,options)=>{
+      if(url.endsWith('/chat_claim_push'))return reply([{messageID:'1',subscriptionID:id,lease:user,owner:user,conversationID:user,subscription:sub}]);
+      if(url.includes('chat_push_subscriptions?'))return reply([{id,user_id:mode==='other-account'?id:user,session_hash:hash}]);
+      if(url.includes('chat_presence?')){if(mode==='unavailable')throw new Error('offline');return reply([]);}
+      if(url.includes('chat_push_keyring?'))return reply([{public_key:sub.keys.p256dh,private_encrypted:encryptPushKey('private-key')}]);
+      if(url.endsWith('/chat_finish_push')){finished=JSON.parse(options.body);return reply(true);}
+      throw new Error('Unexpected suppression');
+    });
+    await processPushNotifications(user,{send:async()=>{sent++;}});
+    assert.equal(sent,1);assert.equal(finished.p_state,'sent');
+  });
+});
