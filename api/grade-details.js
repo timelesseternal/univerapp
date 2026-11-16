@@ -14,21 +14,32 @@ function dateValue(value) {
   if (date.getUTCMonth() !== month - 1 || date.getUTCDate() !== day) throw new Error('invalid_date');
   return `${year}-${String(month).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
 }
+function markMap(value, error) {
+  // Empty collections can be serialized as null, {} or [] by different journal views.
+  if (value == null || Array.isArray(value) && value.length === 0) return {};
+  if (typeof value !== 'object' || Array.isArray(value)) throw new Error(error);
+  return value;
+}
+function markValue(value) {
+  if (typeof value === 'string' && /^\d{1,3}(?:[.,]\d+)?$/.test(value.trim())) value = Number(value.trim().replace(',', '.'));
+  if (typeof value !== 'number' || !Number.isFinite(value) || value < 0 || value > 100) throw new Error('invalid_mark');
+  return value;
+}
 export function normalizeGradeDetails(data) {
   if (!Array.isArray(data) || data.length > 100) throw new Error('invalid_details');
   return data.map(group => {
     if (!group || !queryInteger(group.Id, 1) || !text(group.Name)) throw new Error('invalid_group');
-    if (!Object.hasOwn(group, 'Marks') || (group.Marks !== null
-      && (typeof group.Marks !== 'object' || Array.isArray(group.Marks)))) throw new Error('invalid_marks');
+    if (!Object.hasOwn(group, 'Marks')) throw new Error('invalid_marks');
     const marks = [];
-    for (const month of Object.values(group.Marks || {})) {
-      if (!month?.Marks || typeof month.Marks !== 'object' || Array.isArray(month.Marks)) throw new Error('invalid_month');
-      for (const day of Object.values(month.Marks)) {
+    for (const month of Object.values(markMap(group.Marks, 'invalid_marks'))) {
+      if (month == null) continue;
+      if (typeof month !== 'object' || Array.isArray(month) || !Object.hasOwn(month, 'Marks')) throw new Error('invalid_month');
+      for (const day of Object.values(markMap(month.Marks, 'invalid_month'))) {
+        if (day == null) continue;
         if (!Array.isArray(day)) throw new Error('invalid_day');
         for (const point of day) {
-          if (!point || point.Mark == null || point.Mark === '') continue;
-          if (typeof point.Mark !== 'number' || !Number.isFinite(point.Mark) || point.Mark < 0 || point.Mark > 100) throw new Error('invalid_mark');
-          marks.push({ mark: point.Mark, date: dateValue(point.MarkDate) });
+          if (!point || point.Mark == null || typeof point.Mark === 'string' && point.Mark.trim() === '') continue;
+          marks.push({ mark: markValue(point.Mark), date: dateValue(point.MarkDate) });
           if (marks.length > 2000) throw new Error('too_many_marks');
         }
       }
@@ -60,5 +71,11 @@ export default async function handler(req, res) {
     if ([401, 403].includes(reply.status)) { res.status(401).json({ error: 'session_expired' }); return; }
     if (!reply.ok) throw new Error('details_unavailable');
     res.status(200).json({ groups: normalizeGradeDetails(await reply.json()) });
-  } catch { res.status(502).json({ error: 'grade_details_unavailable' }); }
+  } catch (error) {
+    const formatErrors = ['invalid_details','invalid_group','invalid_marks','invalid_month','invalid_day','invalid_mark','invalid_date','too_many_marks'];
+    const detail = ['TimeoutError','AbortError'].includes(error?.name) ? 'GD_TIMEOUT'
+      : ['identity_unavailable','invalid_identity'].includes(error?.message) ? 'GD_PROFILE'
+      : error instanceof SyntaxError || formatErrors.includes(error?.message) ? 'GD_FORMAT' : 'GD_UPSTREAM';
+    res.status(502).json({ error: 'grade_details_unavailable', detail });
+  }
 }

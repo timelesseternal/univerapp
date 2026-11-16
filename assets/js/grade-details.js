@@ -104,6 +104,16 @@
     }));
     body.querySelector('.grade-calendar-retry')?.addEventListener('click', entry.retryCalendar);
   }
+  function failureHint(error) {
+    const message = String(error?.message || '');
+    if (message === 'offline') return 'Нет подключения к интернету.';
+    if (/GD_TIMEOUT|TimeoutError|AbortError/.test(message) || ['TimeoutError','AbortError'].includes(error?.name)) return 'Platonus отвечает слишком долго (GD_TIMEOUT).';
+    if (/GD_FORMAT/.test(message) || ['invalid_details','invalid_group','invalid_point'].includes(message)) return 'Platonus вернул неподдерживаемый формат оценок (GD_FORMAT).';
+    if (/GD_PROFILE/.test(message)) return 'Не удалось проверить учебный профиль (GD_PROFILE).';
+    if (/GD_UPSTREAM/.test(message)) return 'Platonus временно не отдаёт данные предмета (GD_UPSTREAM).';
+    if (/platonus_auth_unavailable/.test(message)) return 'Platonus не подтвердил доступ к предмету. Попробуй обновить список оценок.';
+    return '';
+  }
   async function load(details, context) {
     const body = details.querySelector('.grade-details-body');
     const subject = context.subjects[Number(details.dataset.gradeIndex)];
@@ -163,9 +173,9 @@
     try {
       if (entry.work) await entry.work;
       if (visible()) paintGroups(body,entry);
-    } catch {
+    } catch (error) {
       if (!visible()) return;
-      paint(body, (entry.groups ? groupsHtml(entry.groups) : '') + '<div class="grade-points-error" role="status"><p>Не удалось загрузить контрольные точки.</p><button type="button" class="grade-points-retry">Попробовать снова</button></div>');
+      paint(body, (entry.groups ? groupsHtml(entry.groups) : '') + `<div class="grade-points-error" role="status"><p>Не удалось загрузить контрольные точки. ${failureHint(error)}</p><button type="button" class="grade-points-retry">Попробовать снова</button></div>`);
       body.querySelector('.grade-points-retry').addEventListener('click', () => load(details, context));
     }
   }

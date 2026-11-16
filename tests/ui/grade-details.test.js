@@ -53,6 +53,21 @@ test('confirmed emptiness and fetch failures have distinct messages',async()=>{
   const failed=setup(async()=>{throw new Error('offline');});failed.open();await flush();
   assert.match(failed.body.innerHTML,/Попробовать снова/);assert.doesNotMatch(failed.body.innerHTML,/Оценок за контрольные точки пока нет/);
 });
+
+test('grade detail errors explain format, timeout, profile and offline failures without rendering raw upstream data',async()=>{
+  for(const [message,expected] of [
+    ['request_failed: grade_details_unavailable | GD_FORMAT',/неподдерживаемый формат оценок \(GD_FORMAT\)/],
+    ['request_failed: grade_details_unavailable | GD_TIMEOUT',/отвечает слишком долго \(GD_TIMEOUT\)/],
+    ['request_failed: grade_details_unavailable | GD_PROFILE',/проверить учебный профиль \(GD_PROFILE\)/],
+    ['request_failed: grade_details_unavailable | GD_UPSTREAM',/не отдаёт данные предмета \(GD_UPSTREAM\)/],
+    ['offline',/Нет подключения к интернету/],
+    ['<img src=x onerror=alert(1)>',/Не удалось загрузить контрольные точки/],
+  ]) {
+    const ui=setup(async()=>{throw new Error(message);});ui.open();await flush();
+    assert.match(ui.body.innerHTML,expected);assert.match(ui.body.innerHTML,/Попробовать снова/);
+    assert.doesNotMatch(ui.body.innerHTML,/<img|onerror|Оценок за контрольные точки пока нет/);
+  }
+});
 test('reset discards late results from an old account and forces a fresh request',async()=>{
   let resolve,calls=0;const ui=setup(()=>{calls++;return new Promise(done=>{resolve=done;});});ui.open();
   ui.api.reset();resolve({groups});await flush();assert.doesNotMatch(ui.body.innerHTML,/02\.10\.2026/);

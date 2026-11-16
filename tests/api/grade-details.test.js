@@ -22,6 +22,29 @@ test('malformed replies and invalid dates do not masquerade as no grades',()=>{
   for(const data of [null,{},[null],[{Id:1,Name:'Subject'}]])assert.throws(()=>normalizeGradeDetails(data));
   const bad=sample();bad[0].Marks[9].Marks[15][0].MarkDate={Year:2026,Month:2,Day:30};assert.throws(()=>normalizeGradeDetails(bad));
 });
+
+test('numeric strings, decimal commas and explicit empty calendar containers preserve populated lesson groups',()=>{
+  const data=sample();
+  data[0].Marks[9].Marks[15]=[point(15,' 85 '),point(15,'82,5'),point(15,'0')];
+  data[0].Marks[9].Marks[16]=null;
+  data[0].Marks[10]={Marks:null};data[0].Marks[11]={Marks:[]};data[0].Marks[12]=null;
+  data.push({Id:2,Name:'WT-SRSP',Marks:[]});
+  const groups=normalizeGradeDetails(data);
+  assert.deepEqual(groups[0].marks.map(value=>value.mark),[85,82.5,0,80]);
+  assert.equal(groups[1].marks.length,0);
+  assert.equal(JSON.stringify(groups).includes('private'),false);
+});
+
+test('unsupported marks and populated malformed containers remain errors rather than disappearing',()=>{
+  for(const mark of ['не явился','Infinity','100.1','-1','85 баллов',true,{},[]]) {
+    const data=sample();data[0].Marks[9].Marks[15]=[point(15,mark)];
+    assert.throws(()=>normalizeGradeDetails(data),/invalid_mark/);
+  }
+  for(const value of [[point(15)],'empty',true]) {
+    const data=sample();data[0].Marks[10]={Marks:value};
+    assert.throws(()=>normalizeGradeDetails(data),/invalid_month/);
+  }
+});
 test('details derive the student identity on the server and request the real subject endpoint',async t=>{
   const calls=[];t.mock.method(globalThis,'fetch',async(url,options)=>{
     calls.push({url,options});return {ok:true,status:200,json:async()=>calls.length===1?{studentID:185082}:sample()};
@@ -46,4 +69,21 @@ test('identity and details failures never produce a successful empty list',async
     });
     const res=response();await handler({headers:sessionHeaders(session),query},res);assert.equal(res.code,status===503?502:401);
   }
+});
+
+test('safe diagnostics distinguish malformed data, deadlines and profile failures without exposing upstream content',async t=>{
+  for(const reason of ['GD_FORMAT','GD_TIMEOUT','GD_PROFILE','GD_UPSTREAM'])await t.test(reason,async t=>{
+    let calls=0;
+    t.mock.method(globalThis,'fetch',async()=>{
+      calls++;
+      if(reason==='GD_TIMEOUT')throw new DOMException('private upstream details','TimeoutError');
+      if(reason==='GD_PROFILE')return {ok:false,status:503};
+      if(calls===1)return {ok:true,status:200,json:async()=>({studentID:7})};
+      if(reason==='GD_UPSTREAM')return {ok:false,status:503};
+      const data=sample();data[0].Marks[9].Marks[15]=[point(15,'private unsupported value')];
+      return {ok:true,status:200,json:async()=>data};
+    });
+    const res=response();await handler({method:'GET',headers:sessionHeaders(session),query},res);
+    assert.equal(res.code,502);assert.deepEqual(res.body,{error:'grade_details_unavailable',detail:reason});
+  });
 });
