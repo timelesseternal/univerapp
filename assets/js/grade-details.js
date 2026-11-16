@@ -53,12 +53,11 @@
     return { points, count, mean: count ? total/count : null,
       change: points.length > 1 ? points.at(-1).mean-points[0].mean : null };
   }
-  function trendHtml(groups, selectedDate) {
+  function trendHtml(groups) {
     const data = trendData(groups);
     const heading = '<h3 class="grade-trend-title">Динамика оценок</h3>';
-    if (!data.count) return `<section class="grade-trend">${heading}<p class="grade-period-note">В выбранном периоде пока нет оценок для графика.</p></section>`;
+    if (!data.count) return `<section class="grade-trend">${heading}<p class="grade-period-note">За семестр пока нет оценок для графика.</p></section>`;
     const points = data.points, first = points[0], last = points.at(-1);
-    const selected = points.find(point => point.date === selectedDate) || last;
     const x = point => points.length === 1 ? 168 : 32 + (point.stamp-first.stamp)/(last.stamp-first.stamp)*272;
     const y = point => 112-point.mean*.92;
     const xy = point => `${x(point).toFixed(2)},${y(point).toFixed(2)}`;
@@ -69,32 +68,31 @@
     const grid = [0,50,100].map(mark => `<line x1="32" x2="304" y1="${112-mark*.92}" y2="${112-mark*.92}"/><text x="24" y="${116-mark*.92}" text-anchor="end">${mark}</text>`).join('');
     const line = points.length > 1 ? `<polyline class="grade-trend-line" points="${points.map(xy).join(' ')}"/>` : '';
     const dots = points.map(point => {
-      const active = point.date === selected.date;
       const label = `${dateLabel(point.date)}: среднее ${formatMark(point.mean)}, оценок ${point.count}`;
-      return `<g role="button" tabindex="0" data-grade-trend-point="${point.date}" aria-label="${escape(label)}" aria-pressed="${active}"><title>${escape(label)}</title><circle class="grade-trend-hit" cx="${x(point).toFixed(2)}" cy="${y(point).toFixed(2)}" r="12"/><circle class="grade-trend-dot" cx="${x(point).toFixed(2)}" cy="${y(point).toFixed(2)}" r="${active ? 5 : 3}"/></g>`;
+      return `<circle class="grade-trend-dot" cx="${x(point).toFixed(2)}" cy="${y(point).toFixed(2)}" r="3"><title>${escape(label)}</title></circle>`;
     }).join('');
     const labels = points.length === 1 ? `<text x="168" y="140" text-anchor="middle">${dateLabel(first.date)}</text>`
       : `<text x="32" y="140">${dateLabel(first.date)}</text><text x="304" y="140" text-anchor="end">${dateLabel(last.date)}</text>`;
-    return `<section class="grade-trend">${heading}<p class="grade-period-note">Среднее за день по всем видам занятий · шкала 0–100</p><div class="grade-trend-stats"><div><span>Средняя оценка</span><strong>${formatMark(data.mean)}</strong></div><div><span>Всего оценок</span><strong>${data.count}</strong></div></div><svg class="grade-trend-chart" viewBox="0 0 320 150" role="group" aria-label="${escape(chartLabel)}"><g class="grade-trend-grid" aria-hidden="true">${grid}${labels}</g>${line}${dots}</svg><p class="grade-trend-selection" role="status">${dateLabel(selected.date)} · среднее <strong>${formatMark(selected.mean)}</strong> · оценок ${selected.count}</p><p class="grade-period-note">${change} Простое среднее без весов; итог РК смотри в карточке предмета.</p></section>`;
+    return `<section class="grade-trend">${heading}<p class="grade-period-note">За весь семестр · среднее за день · шкала 0–100</p><div class="grade-trend-stats"><div><span>Средняя оценка</span><strong>${formatMark(data.mean)}</strong></div><div><span>Всего оценок</span><strong>${data.count}</strong></div></div><svg class="grade-trend-chart" viewBox="0 0 320 150" role="img" aria-label="${escape(chartLabel)}"><g class="grade-trend-grid" aria-hidden="true">${grid}${labels}</g>${line}${dots}</svg><p class="grade-period-note">${change} Простое среднее без весов; итог РК смотри в карточке предмета.</p></section>`;
   }
   function periodsHtml(entry) {
-    const ready = !!entry.periods, selected = ready ? entry.selected : 'all';
+    const ready = !!entry.periods, selected = ready || entry.selected === 'trend' ? entry.selected : 'all';
     const count = predicate => entry.groups.reduce((total, group) => total + group.marks.filter(predicate).length, 0);
-    const tabs = `<div class="grade-period-tabs" role="group" aria-label="Период контрольных точек">${[['rk1','РК 1'],['rk2','РК 2'],['all','Все']].map(([id,label]) => {
+    const tabs = `<div class="grade-period-tabs" role="group" aria-label="Контрольные точки и динамика">${[['rk1','РК 1'],['rk2','РК 2'],['all','Все'],['trend','Динамика']].map(([id,label]) => {
       const period = entry.periods?.find(item => item.id === id);
-      const amount = ready ? count(point => id === 'all' || inside(point, period)) : null;
-      return `<button type="button" data-grade-period="${id}" aria-pressed="${selected === id}" ${id !== 'all' && !ready ? 'disabled' : ''}>${label}${amount == null ? '' : `<span>${amount}</span>`}</button>`;
+      const amount = ready && id !== 'trend' ? count(point => id === 'all' || inside(point, period)) : null;
+      return `<button type="button" data-grade-period="${id}" aria-pressed="${selected === id}" ${['rk1','rk2'].includes(id) && !ready ? 'disabled' : ''}>${label}${amount == null ? '' : `<span>${amount}</span>`}</button>`;
     }).join('')}</div>`;
+    if (selected === 'trend') return tabs + trendHtml(entry.groups);
     if (!ready) return tabs + `<p class="grade-period-note" role="status">${entry.calendarPending ? 'Определяем периоды по академическому календарю. Пока показаны все оценки.' : 'Не удалось определить границы РК для этого семестра. Показаны все оценки.'}</p>`
-      + (!entry.calendarPending && entry.retryCalendar ? '<button type="button" class="grade-calendar-retry">Повторить загрузку календаря</button>' : '') + trendHtml(entry.groups, entry.trendDate) + groupsHtml(entry.groups);
+      + (!entry.calendarPending && entry.retryCalendar ? '<button type="button" class="grade-calendar-retry">Повторить загрузку календаря</button>' : '') + groupsHtml(entry.groups);
     const outside = point => !entry.periods.some(period => inside(point, period));
     const extra = count(outside);
     const section = period => `<section class="grade-period-section"><h3 class="grade-period-title">Оценки за период ${period.id === 'rk1' ? 'РК 1' : 'РК 2'}</h3><p class="grade-period-note">${rangeLabel(period)}</p>${groupsHtml(filterGroups(entry.groups, point => inside(point, period)))}</section>`;
     const content = selected === 'all'
       ? entry.periods.map(section).join('') + (extra ? `<section class="grade-period-section"><h3 class="grade-period-title">Вне периодов РК</h3><p class="grade-period-note">Даты этих оценок не входят в периоды календаря.</p>${groupsHtml(filterGroups(entry.groups, outside))}</section>` : '')
       : section(entry.periods.find(period => period.id === selected)) + (extra ? `<p class="grade-period-note">Ещё ${extra} оценок вне границ периодов — в разделе «Все».</p>` : '');
-    const visibleGroups = selected === 'all' ? entry.groups : filterGroups(entry.groups, point => inside(point, entry.periods.find(period => period.id === selected)));
-    return tabs + '<p class="grade-period-note">Разделено по датам академического календаря.</p>' + trendHtml(visibleGroups, entry.trendDate) + content;
+    return tabs + '<p class="grade-period-note">Разделено по датам академического календаря.</p>' + content;
   }
   function paintGroups(body, entry) {
     paint(body, periodsHtml(entry));
@@ -105,17 +103,6 @@
       body.querySelector(`[data-grade-period="${entry.selected}"]`)?.focus();
     }));
     body.querySelector('.grade-calendar-retry')?.addEventListener('click', entry.retryCalendar);
-    body.querySelectorAll?.('[data-grade-trend-point]').forEach(point => {
-      const select = () => {
-        entry.trendDate = point.dataset.gradeTrendPoint;
-        paintGroups(body, entry);
-        body.querySelector(`[data-grade-trend-point="${entry.trendDate}"]`)?.focus();
-      };
-      point.addEventListener('click', select);
-      point.addEventListener('keydown', event => {
-        if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); select(); }
-      });
-    });
   }
   async function load(details, context) {
     const body = details.querySelector('.grade-details-body');

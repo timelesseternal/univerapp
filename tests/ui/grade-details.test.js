@@ -9,28 +9,23 @@ function setup(fetch, {calendar, now = '2026-11-16T12:00:00Z'} = {}) {
   class Clock extends Date { constructor(...args) { super(...(args.length ? args : [now])); } }
   const ctx=vm.createContext({window:{},Date:Clock});installLoading(ctx);vm.runInContext(source,ctx);
   const api=ctx.window.unilinkGradeDetails;
-  const buttons = new Map(), trendButtons = new Map();
+  const buttons = new Map();
   const body={isConnected:true,contains:()=>true,html:'',
     set innerHTML(value) {
-      this.html=value; buttons.clear(); trendButtons.clear();
+      this.html=value; buttons.clear();
       for(const match of value.matchAll(/data-grade-period="([^"]+)"/g)) buttons.set(match[1],{
         dataset:{gradePeriod:match[1]}, addEventListener(name,fn){this[name]=fn;}, focus(){},
       });
-      for(const match of value.matchAll(/data-grade-trend-point="([^"]+)"/g)) trendButtons.set(match[1],{
-        dataset:{gradeTrendPoint:match[1]},addEventListener(name,fn){this[name]=fn;},focus(){},
-      });
     },
     get innerHTML(){return this.html;},
-    querySelectorAll:selector=>[...(selector==='[data-grade-trend-point]'?trendButtons:buttons).values()],
-    querySelector:selector=>selector.startsWith('[data-grade-trend-point=')?trendButtons.get(selector.match(/"([^"]+)"/)[1])
-      :selector.startsWith('[data-grade-period=')?buttons.get(selector.match(/"([^"]+)"/)[1]):({addEventListener(){}}),
+    querySelectorAll:()=>[...buttons.values()],
+    querySelector:selector=>selector.startsWith('[data-grade-period=')?buttons.get(selector.match(/"([^"]+)"/)[1]):({addEventListener(){}}),
   };
   const details={open:true,dataset:{gradeIndex:'0'},querySelector:()=>body,matches:()=>true};
   const root={addEventListener(){},removeEventListener(){},querySelectorAll:()=>[details]};
   const context={studentID:7,generation:1,year:2026,term:1,subjects:[{subjectID:9048,queryID:253432,studyGroupId:45903}],fetch,calendar};
   api.attach(root,context);
-  return {api,body,details,root,context,open(){root.gradeDetailsToggle({target:details});},choose(id){buttons.get(id).click();},
-    selectDay(date,key){const point=trendButtons.get(date);if(key)point.keydown({key,preventDefault(){}});else point.click();}};
+  return {api,body,details,root,context,open(){root.gradeDetailsToggle({target:details});},choose(id){buttons.get(id).click();}};
 }
 const groups=[{name:'Лекция',tutor:'Преподаватель',marks:[{date:'2026-10-02',mark:85}]}];
 test('real journal subjectID and queryID select each subject rather than its studyGroupId',async()=>{
@@ -172,28 +167,41 @@ test('empty and single-date trends have no invented change; invalid dates and ma
   }
 });
 
-test('trend follows the RK filter and points can be selected by touch or keyboard without fetching', async () => {
+test('static semester trend is the fourth view and the other views contain only mark tables', async () => {
   let calls=0;
   const ui=setup(async()=>{calls++;return {groups:periodGroups};},{calendar:async()=>calendar()});
   ui.open();await flush();
-  assert.match(ui.body.innerHTML,/Динамика оценок/);
-  assert.equal((ui.body.innerHTML.match(/data-grade-trend-point=/g)||[]).length,2);
-  assert.match(ui.body.innerHTML,/Последняя дата к первой: −18 б\./);
-  ui.selectDay('2026-10-25');
-  assert.match(ui.body.innerHTML,/<p class="grade-trend-selection"[^>]*>25\.10\.2026 · среднее <strong>95<\/strong>/);
-  ui.selectDay('2026-12-12','Enter');
-  assert.match(ui.body.innerHTML,/<p class="grade-trend-selection"[^>]*>12\.12\.2026 · среднее <strong>77<\/strong>/);
-  ui.choose('rk1');assert.equal((ui.body.innerHTML.match(/data-grade-trend-point=/g)||[]).length,2);
-  assert.match(ui.body.innerHTML,/Последняя дата к первой: −85 б\./);
-  ui.choose('all');assert.equal((ui.body.innerHTML.match(/data-grade-trend-point=/g)||[]).length,6);
+  assert.deepEqual([...ui.body.innerHTML.matchAll(/data-grade-period="([^"]+)"/g)].map(match=>match[1]),['rk1','rk2','all','trend']);
+  for(const id of ['rk1','rk2','all']) {
+    ui.choose(id);assert.doesNotMatch(ui.body.innerHTML,/grade-trend-chart/);assert.match(ui.body.innerHTML,/<table/);
+  }
+  ui.choose('trend');
+  assert.match(ui.body.innerHTML,/Динамика оценок/);assert.match(ui.body.innerHTML,/За весь семестр/);
+  assert.equal((ui.body.innerHTML.match(/class="grade-trend-dot"/g)||[]).length,6);
+  assert.match(ui.body.innerHTML,/Последняя дата к первой: \+22 б\./);
+  assert.match(ui.body.innerHTML,/role="img"/);
+  assert.doesNotMatch(ui.body.innerHTML,/role="button"|data-grade-trend-point|grade-trend-selection|<table/);
+  assert.equal((ui.body.innerHTML.match(/<button /g)||[]).length,4);
+  ui.open();await flush();assert.match(ui.body.innerHTML,/data-grade-period="trend" aria-pressed="true"/);
   assert.equal(calls,1);
 });
 
-test('single-day trend shows a point on a fixed 0–100 scale while an empty period has no chart', async () => {
+test('single-day trend has no change and an empty semester has no chart', async () => {
   const ui=setup(async()=>({groups}),{calendar:async()=>calendar(),now:'2026-10-10T12:00:00Z'});
-  ui.open();await flush();
+  ui.open();await flush();ui.choose('trend');
   assert.match(ui.body.innerHTML,/Для сравнения нужна ещё одна дата/);
   assert.match(ui.body.innerHTML,/cx="168\.00"/);assert.doesNotMatch(ui.body.innerHTML,/<polyline/);
   assert.match(ui.body.innerHTML,/шкала 0–100/);
-  ui.choose('rk2');assert.match(ui.body.innerHTML,/пока нет оценок для графика/);assert.doesNotMatch(ui.body.innerHTML,/<svg/);
+  const empty=setup(async()=>({groups:[]}));empty.open();await flush();empty.choose('trend');
+  assert.match(empty.body.innerHTML,/пока нет оценок для графика/);assert.doesNotMatch(empty.body.innerHTML,/<svg/);
+});
+
+test('trend is available without a calendar and stays selected when a pending calendar resolves', async () => {
+  let finish;
+  const ui=setup(async()=>({groups:periodGroups}),{calendar:()=>new Promise(resolve=>{finish=resolve;})});
+  ui.open();await flush();ui.choose('trend');
+  assert.match(ui.body.innerHTML,/grade-trend-chart/);assert.doesNotMatch(ui.body.innerHTML,/Не удалось определить|Определяем периоды/);
+  finish(calendar());await flush();assert.match(ui.body.innerHTML,/data-grade-period="trend" aria-pressed="true"/);
+  const missing=setup(async()=>({groups:periodGroups}),{calendar:async()=>{throw new Error('offline');}});
+  missing.open();await flush();missing.choose('trend');assert.match(missing.body.innerHTML,/grade-trend-chart/);
 });
