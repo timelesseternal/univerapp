@@ -18,8 +18,9 @@
     groups.forEach(group => {
       if (!group || !Array.isArray(group.marks)) throw new Error('invalid_group');
       group.marks.forEach(point => {
-        if (!/^\d{4}-\d{2}-\d{2}$/.test(point.date) || typeof point.mark !== 'number'
-          || !Number.isFinite(point.mark) || point.mark < 0 || point.mark > 100) throw new Error('invalid_point');
+        const absent = point.mark === null && point.status === 'absent';
+        if (!/^\d{4}-\d{2}-\d{2}$/.test(point.date) || !absent && (typeof point.mark !== 'number'
+          || !Number.isFinite(point.mark) || point.mark < 0 || point.mark > 100)) throw new Error('invalid_point');
       });
     });
     return groups.map((group,index) => {
@@ -28,7 +29,9 @@
       const [year,month,day]=point.date.split('-');
       return `<th scope="col"><time datetime="${point.date}" aria-label="${day}.${month}.${year}" title="${day}.${month}.${year}">${day}.${month}<small>${year}</small></time></th>`;
     }).join('');
-    const marks = points.map(point=>`<td><span class="grade-point-mark">${escape(point.mark.toLocaleString('ru-RU',{maximumFractionDigits:2}))}</span></td>`).join('');
+    const marks = points.map(point => point.status === 'absent' && point.mark === null
+      ? '<td><span class="grade-point-mark grade-point-absence" aria-label="Отсутствие на занятии">н</span></td>'
+      : `<td><span class="grade-point-mark">${escape(point.mark.toLocaleString('ru-RU',{maximumFractionDigits:2}))}</span></td>`).join('');
     const table = points.length ? `<div class="grade-points-scroll" tabindex="0" role="region" aria-label="Все оценки раздела, прокрутка вбок"><table class="grade-points-table" style="--grade-column-count:${points.length}" aria-label="Даты и оценки"><thead><tr><th scope="col">Дата</th>${dates}</tr></thead><tbody><tr><th scope="row">Оценка</th>${marks}</tr></tbody></table></div>` : '<p class="grade-points-empty">Оценок за контрольные точки пока нет</p>';
     return `<section class="grade-points-group"><h3 title="${escape(group.name)}">${escape(groupLabel(group.name,index))}</h3>${group.tutor ? `<p class="grade-points-tutor" title="${escape(group.tutor)}">${escape(group.tutor)}</p>` : ''}${table}</section>`;
     }).join('');
@@ -43,8 +46,9 @@
     for (const group of groups) for (const point of group.marks) {
       const stamp = Date.parse(point.date + 'T00:00:00Z');
       if (!/^\d{4}-\d{2}-\d{2}$/.test(point.date) || !Number.isFinite(stamp)
-        || new Date(stamp).toISOString().slice(0,10) !== point.date || typeof point.mark !== 'number'
-        || !Number.isFinite(point.mark) || point.mark < 0 || point.mark > 100) throw new Error('invalid_point');
+        || new Date(stamp).toISOString().slice(0,10) !== point.date) throw new Error('invalid_point');
+      if (point.mark === null && point.status === 'absent') continue;
+      if (typeof point.mark !== 'number' || !Number.isFinite(point.mark) || point.mark < 0 || point.mark > 100) throw new Error('invalid_point');
       const day = days.get(point.date) || { date: point.date, stamp, sum: 0, count: 0 };
       day.sum += point.mark; day.count++; days.set(point.date, day);
       total += point.mark; count++;
@@ -77,22 +81,24 @@
   }
   function periodsHtml(entry) {
     const ready = !!entry.periods, selected = ready || entry.selected === 'trend' ? entry.selected : 'all';
-    const count = predicate => entry.groups.reduce((total, group) => total + group.marks.filter(predicate).length, 0);
+    const absenceNote = entry.groups.some(group => group.marks.some(point => point.mark === null && point.status === 'absent'))
+      ? '<p class="grade-period-note">«н» — отсутствие на занятии. В количество оценок, среднее и график эта отметка не входит.</p>' : '';
+    const count = predicate => entry.groups.reduce((total, group) => total + group.marks.filter(point => typeof point.mark === 'number' && predicate(point)).length, 0);
     const tabs = `<div class="grade-period-tabs" role="group" aria-label="Контрольные точки и динамика">${[['rk1','РК 1'],['rk2','РК 2'],['all','Все'],['trend','Динамика']].map(([id,label]) => {
       const period = entry.periods?.find(item => item.id === id);
       const amount = ready && id !== 'trend' ? count(point => id === 'all' || inside(point, period)) : null;
       return `<button type="button" data-grade-period="${id}" aria-pressed="${selected === id}" ${['rk1','rk2'].includes(id) && !ready ? 'disabled' : ''}>${label}${amount == null ? '' : `<span>${amount}</span>`}</button>`;
     }).join('')}</div>`;
-    if (selected === 'trend') return tabs + trendHtml(entry.groups);
-    if (!ready) return tabs + `<p class="grade-period-note" role="status">${entry.calendarPending ? 'Определяем периоды по академическому календарю. Пока показаны все оценки.' : 'Не удалось определить границы РК для этого семестра. Показаны все оценки.'}</p>`
+    if (selected === 'trend') return tabs + absenceNote + trendHtml(entry.groups);
+    if (!ready) return tabs + absenceNote + `<p class="grade-period-note" role="status">${entry.calendarPending ? 'Определяем периоды по академическому календарю. Пока показаны все оценки.' : 'Не удалось определить границы РК для этого семестра. Показаны все оценки.'}</p>`
       + (!entry.calendarPending && entry.retryCalendar ? '<button type="button" class="grade-calendar-retry">Повторить загрузку календаря</button>' : '') + groupsHtml(entry.groups);
     const outside = point => !entry.periods.some(period => inside(point, period));
-    const extra = count(outside);
+    const extra = entry.groups.reduce((total,group) => total + group.marks.filter(outside).length, 0);
     const section = period => `<section class="grade-period-section"><h3 class="grade-period-title">Оценки за период ${period.id === 'rk1' ? 'РК 1' : 'РК 2'}</h3><p class="grade-period-note">${rangeLabel(period)}</p>${groupsHtml(filterGroups(entry.groups, point => inside(point, period)))}</section>`;
     const content = selected === 'all'
       ? entry.periods.map(section).join('') + (extra ? `<section class="grade-period-section"><h3 class="grade-period-title">Вне периодов РК</h3><p class="grade-period-note">Даты этих оценок не входят в периоды календаря.</p>${groupsHtml(filterGroups(entry.groups, outside))}</section>` : '')
-      : section(entry.periods.find(period => period.id === selected)) + (extra ? `<p class="grade-period-note">Ещё ${extra} оценок вне границ периодов — в разделе «Все».</p>` : '');
-    return tabs + '<p class="grade-period-note">Разделено по датам академического календаря.</p>' + content;
+      : section(entry.periods.find(period => period.id === selected)) + (extra ? `<p class="grade-period-note">Ещё ${extra} записей вне границ периодов — в разделе «Все».</p>` : '');
+    return tabs + absenceNote + '<p class="grade-period-note">Разделено по датам академического календаря.</p>' + content;
   }
   function paintGroups(body, entry) {
     paint(body, periodsHtml(entry));

@@ -220,3 +220,24 @@ test('trend is available without a calendar and stays selected when a pending ca
   const missing=setup(async()=>({groups:periodGroups}),{calendar:async()=>{throw new Error('offline');}});
   missing.open();await flush();missing.choose('trend');assert.match(missing.body.innerHTML,/grade-trend-chart/);
 });
+
+test('attendance renders in RK tables but is excluded from grade counters and trend calculations',async()=>{
+  const entries=[{name:'WT-Lab',marks:[{mark:null,status:'absent',date:'2026-09-15'},
+    {mark:null,status:'absent',date:'2026-10-30'},{mark:90,date:'2026-10-30'},{mark:0,date:'2026-11-01'},
+    {mark:null,status:'absent',date:'2026-12-15'}]}];
+  const ui=setup(async()=>({groups:entries}),{calendar:async()=>calendar()});ui.open();await flush();
+  assert.match(ui.body.innerHTML,/aria-label="Отсутствие на занятии">н</);
+  assert.match(ui.body.innerHTML,/среднее и график эта отметка не входит/);
+  assert.match(ui.body.innerHTML,/РК 2<span>2<\/span>/);
+  const trend=ui.api.trendData(entries);assert.equal(trend.count,2);assert.equal(trend.mean,45);assert.equal(trend.points.length,2);
+  ui.choose('all');assert.equal((ui.body.innerHTML.match(/grade-point-absence/g)||[]).length,3);
+  assert.match(ui.body.innerHTML,/Вне периодов РК/);
+  ui.choose('trend');assert.match(ui.body.innerHTML,/>45<\/strong>/);
+  assert.equal((ui.body.innerHTML.match(/class="grade-trend-dot"/g)||[]).length,2);
+});
+
+test('attendance-only subjects remain readable and do not create a numeric grade or trend',async()=>{
+  const ui=setup(async()=>({groups:[{name:'WT-Lab',marks:[{mark:null,status:'absent',date:'2026-11-01'}]}]}),{calendar:async()=>calendar()});
+  ui.open();await flush();assert.match(ui.body.innerHTML,/>н<\/span>/);assert.doesNotMatch(ui.body.innerHTML,/Оценок за контрольные точки пока нет/);
+  ui.choose('trend');assert.match(ui.body.innerHTML,/пока нет оценок для графика/);assert.doesNotMatch(ui.body.innerHTML,/<svg/);
+});

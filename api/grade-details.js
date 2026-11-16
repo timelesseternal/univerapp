@@ -39,7 +39,11 @@ export function normalizeGradeDetails(data) {
         if (!Array.isArray(day)) throw new Error('invalid_day');
         for (const point of day) {
           if (!point || point.Mark == null || typeof point.Mark === 'string' && point.Mark.trim() === '') continue;
-          marks.push({ mark: markValue(point.Mark), date: dateValue(point.MarkDate) });
+          const date = dateValue(point.MarkDate);
+          // Cyrillic «н» is an attendance entry, not a numeric grade or zero.
+          marks.push(typeof point.Mark === 'string' && /^н$/i.test(point.Mark.trim())
+            ? { mark: null, status: 'absent', date }
+            : { mark: markValue(point.Mark), date });
           if (marks.length > 2000) throw new Error('too_many_marks');
         }
       }

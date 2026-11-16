@@ -327,6 +327,7 @@ html, body { height:100%; min-height:0; overflow:hidden; overscroll-behavior:non
 .grade-points-table time { display:block; white-space:nowrap; font-size:12px; }
 .grade-points-table time small { display:block; font-size:10px; opacity:.65; margin-top:2px; }
 .grade-point-mark { display:inline-flex; box-sizing:border-box; justify-content:center; width:100%; max-width:54px; padding:7px 2px; border-radius:10px; color:var(--accent); background:var(--paper); font-size:15px; font-weight:800; font-variant-numeric:tabular-nums; }
+.grade-point-absence { color:var(--ink-soft); font-weight:650; }
 .grade-points-empty, .grade-points-error { margin:0; color:var(--ink-soft); font-size:13px; line-height:1.6; }
 .grade-points-retry { margin-top:8px; padding:8px 12px; border:1px solid var(--glass-border); border-radius:12px; background:var(--paper-2); color:var(--accent); font:inherit; cursor:pointer; }
 .push-preferences { margin-block:var(--card-gap); padding:16px; border:1px solid var(--glass-border); border-radius:24px; background:var(--paper-2); }

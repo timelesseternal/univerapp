@@ -35,6 +35,22 @@ test('numeric strings, decimal commas and explicit empty calendar containers pre
   assert.equal(JSON.stringify(groups).includes('private'),false);
 });
 
+test('Cyrillic attendance marks preserve their dates without turning into a zero or blocking numeric grades',()=>{
+  const data=sample();data[0].Marks[9].Marks[15]=[point(15,'н'),point(15,' Н '),point(15,0),point(15,'85')];
+  assert.deepEqual(normalizeGradeDetails(data)[0].marks,[
+    {mark:null,status:'absent',date:'2026-09-15'},{mark:null,status:'absent',date:'2026-09-15'},
+    {mark:0,date:'2026-09-15'},{mark:85,date:'2026-09-15'},{mark:80,date:'2026-09-29'},
+  ]);
+});
+
+test('a subject response containing attendance and numeric marks loads successfully through the API',async t=>{
+  let calls=0;const data=sample();data[0].Marks[9].Marks[15]=[point(15,'н'),point(15,85)];
+  t.mock.method(globalThis,'fetch',async()=>({ok:true,status:200,json:async()=>++calls===1?{studentID:7}:data}));
+  const res=response();await handler({method:'GET',headers:sessionHeaders(session),query},res);
+  assert.equal(res.code,200);assert.equal(res.body.groups[0].marks.length,3);
+  assert.equal(res.body.groups[0].marks[0].status,'absent');assert.equal(res.body.groups[0].marks[1].mark,85);
+});
+
 test('unsupported marks and populated malformed containers remain errors rather than disappearing',()=>{
   for(const mark of ['не явился','Infinity','100.1','-1','85 баллов',true,{},[]]) {
     const data=sample();data[0].Marks[9].Marks[15]=[point(15,mark)];
