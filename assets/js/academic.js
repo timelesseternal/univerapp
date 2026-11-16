@@ -76,7 +76,7 @@
   }
   // Warm data only: never activate a screen, paint hidden content or show errors.
   const prefetch = options => Promise.allSettled(Object.keys(names).map(kind => load(kind, options)));
-  window.univerAcademic = { open, prefetch, onSection: section => { active = names[section] ? section : null; }, reset: () => {
+  window.univerAcademic = { open, prefetch, loadCalendar: (options, force = false) => load('calendar', options, force), onSection: section => { active = names[section] ? section : null; }, reset: () => {
     epoch++; active = null; account = null; cache.clear(); pending.clear();
     for (const kind of Object.keys(names)) { const el = container(kind); if (el) { el.innerHTML = ''; painted.delete(el); delete el.dataset.academicKey; } }
   } };

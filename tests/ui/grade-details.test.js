@@ -5,15 +5,27 @@ import {readFileSync} from 'node:fs';
 import {installLoading} from '../helpers/loading.js';
 const source=readFileSync(new URL('../../assets/js/grade-details.js',import.meta.url),'utf8');
 const flush=()=>new Promise(resolve=>setImmediate(resolve));
-function setup(fetch) {
-  const ctx=vm.createContext({window:{}});installLoading(ctx);vm.runInContext(source,ctx);
+function setup(fetch, {calendar, now = '2026-11-16T12:00:00Z'} = {}) {
+  class Clock extends Date { constructor(...args) { super(...(args.length ? args : [now])); } }
+  const ctx=vm.createContext({window:{},Date:Clock});installLoading(ctx);vm.runInContext(source,ctx);
   const api=ctx.window.unilinkGradeDetails;
-  const body={innerHTML:'',isConnected:true,contains:()=>true,querySelector:()=>({addEventListener(){}})};
+  const buttons = new Map();
+  const body={isConnected:true,contains:()=>true,html:'',
+    set innerHTML(value) {
+      this.html=value; buttons.clear();
+      for(const match of value.matchAll(/data-grade-period="([^"]+)"/g)) buttons.set(match[1],{
+        dataset:{gradePeriod:match[1]}, addEventListener(name,fn){this[name]=fn;}, focus(){},
+      });
+    },
+    get innerHTML(){return this.html;},
+    querySelectorAll:()=>[...buttons.values()],
+    querySelector:selector=>selector.startsWith('[data-grade-period=')?buttons.get(selector.match(/"([^"]+)"/)[1]):({addEventListener(){}}),
+  };
   const details={open:true,dataset:{gradeIndex:'0'},querySelector:()=>body,matches:()=>true};
   const root={addEventListener(){},removeEventListener(){},querySelectorAll:()=>[details]};
-  const context={studentID:7,generation:1,year:2026,term:1,subjects:[{subjectID:9048,queryID:253432,studyGroupId:45903}],fetch};
+  const context={studentID:7,generation:1,year:2026,term:1,subjects:[{subjectID:9048,queryID:253432,studyGroupId:45903}],fetch,calendar};
   api.attach(root,context);
-  return {api,body,details,root,context,open(){root.gradeDetailsToggle({target:details});}};
+  return {api,body,details,root,context,open(){root.gradeDetailsToggle({target:details});},choose(id){buttons.get(id).click();}};
 }
 const groups=[{name:'Лекция',tutor:'Преподаватель',marks:[{date:'2026-10-02',mark:85}]}];
 test('real journal subjectID and queryID select each subject rather than its studyGroupId',async()=>{
@@ -72,4 +84,67 @@ test('every lesson group is visible immediately with all its marks on one row',a
   assert.match(ui.body.innerHTML,/Оценок за контрольные точки пока нет/);
   assert.doesNotMatch(ui.body.innerHTML,/data-grade-group|data-grade-page|grade-point-tabs/);
   ui.open();await flush();assert.equal(calls,1);
+});
+
+const calendar = () => ({ studentID:7, gradingPeriods:[{studyYear:2026,term:1,periods:[
+  {id:'rk1',start:'2026-09-01',end:'2026-10-24'}, {id:'rk2',start:'2026-10-25',end:'2026-12-12'},
+]}] });
+const periodGroups = [{name:'WT-Lab', marks:[
+  {date:'2026-08-31',mark:11}, {date:'2026-09-01',mark:85}, {date:'2026-10-24',mark:0},
+  {date:'2026-10-25',mark:95}, {date:'2026-12-12',mark:77}, {date:'2026-12-13',mark:33},
+]}];
+test('current RK defaults from calendar dates; switching periods preserves boundary marks and needs no fetch', async () => {
+  let calls=0, calendarCalls=0;
+  const ui=setup(async()=>{calls++;return {groups:periodGroups};},{calendar:async()=>{calendarCalls++;return calendar();}});
+  ui.open(); await flush();
+  assert.match(ui.body.innerHTML,/data-grade-period="rk2" aria-pressed="true"/);
+  assert.match(ui.body.innerHTML,/25\.10\.2026 — 12\.12\.2026/);
+  assert.match(ui.body.innerHTML,/>95</);assert.match(ui.body.innerHTML,/>77</);
+  assert.doesNotMatch(ui.body.innerHTML,/>85</);
+  ui.choose('rk1');
+  assert.match(ui.body.innerHTML,/>85</);assert.match(ui.body.innerHTML,/>0</);
+  assert.doesNotMatch(ui.body.innerHTML,/>95</);
+  ui.open();await flush();assert.match(ui.body.innerHTML,/data-grade-period="rk1" aria-pressed="true"/);
+  ui.choose('all');
+  assert.equal((ui.body.innerHTML.match(/<time /g)||[]).length,6);
+  assert.match(ui.body.innerHTML,/Вне периодов РК/);assert.match(ui.body.innerHTML,/>11</);assert.match(ui.body.innerHTML,/>33</);
+  assert.equal(calls,1);assert.equal(calendarCalls,1);
+});
+
+test('RK1 is selected through its last day and an empty RK2 keeps all lesson groups visible', async () => {
+  const ui=setup(async()=>({groups:[{name:'WT-L',marks:[{date:'2026-09-10',mark:90}]},{name:'WT-Lab',marks:[]}]}),
+    {calendar:async()=>calendar(),now:'2026-10-24T12:00:00Z'});
+  ui.open();await flush();assert.match(ui.body.innerHTML,/data-grade-period="rk1" aria-pressed="true"/);
+  ui.choose('rk2');assert.match(ui.body.innerHTML,/Лекции/);assert.match(ui.body.innerHTML,/Лабораторные/);
+  assert.match(ui.body.innerHTML,/Оценок за контрольные точки пока нет/);assert.doesNotMatch(ui.body.innerHTML,/>90</);
+});
+
+test('missing calendar, wrong account or semester, and invalid dates show every mark without guessing', async () => {
+  const other=calendar();other.studentID=8;
+  const wrongTerm=calendar();wrongTerm.gradingPeriods[0].term=2;
+  const bad=calendar();bad.gradingPeriods[0].periods[0].end='2026-02-30';
+  for(const data of [{studentID:7},other,wrongTerm,bad,null]) {
+    const ui=setup(async()=>({groups:periodGroups}),{calendar:async()=>{if(data===null)throw new Error('offline');return data;}});
+    ui.open();await flush();
+    assert.match(ui.body.innerHTML,/Не удалось определить границы/);
+    assert.equal((ui.body.innerHTML.match(/<time /g)||[]).length,6);
+    assert.match(ui.body.innerHTML,/data-grade-period="rk1" aria-pressed="false" disabled/);
+  }
+});
+
+test('grades are visible while calendar is pending and an explicit All selection survives its response', async () => {
+  let finish;
+  const ui=setup(async()=>({groups:periodGroups}),{calendar:()=>new Promise(resolve=>{finish=resolve;})});
+  ui.open();await flush();assert.match(ui.body.innerHTML,/Определяем периоды/);
+  assert.equal((ui.body.innerHTML.match(/<time /g)||[]).length,6);
+  ui.choose('all');finish(calendar());await flush();
+  assert.match(ui.body.innerHTML,/data-grade-period="all" aria-pressed="true"/);
+  assert.equal((ui.body.innerHTML.match(/<time /g)||[]).length,6);
+});
+
+test('logout discards a late calendar response', async () => {
+  let finish;
+  const ui=setup(async()=>({groups:periodGroups}),{calendar:()=>new Promise(resolve=>{finish=resolve;})});
+  ui.open();await flush();const before=ui.body.innerHTML;ui.api.reset();finish(calendar());await flush();
+  assert.equal(ui.body.innerHTML,before);
 });

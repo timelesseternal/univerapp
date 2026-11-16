@@ -43,6 +43,16 @@ test('academic screen shares in-flight loads and reuses the warm account cache',
   await ui.api.open('calendar', options); assert.equal(calls, 1);
   assert.equal(replacements, 0, 'warm reopening preserves the existing DOM');
 });
+
+test('grade details reuse the same calendar request and cache as the academic screen', async () => {
+  const ui=setup();let calls=0, finish;
+  const options={student:{studentID:7},fetch:()=>{calls++;return new Promise(resolve=>{finish=resolve;});}};
+  const first=ui.api.loadCalendar(options), second=ui.api.open('calendar',options);
+  assert.equal(calls,1);finish(data(7));
+  await Promise.all([first,second]);
+  assert.equal((await ui.api.loadCalendar(options)).studentID,7);assert.equal(calls,1);
+  const retry=ui.api.loadCalendar(options,true);assert.equal(calls,2);finish(data(7));await retry;
+});
 test('an off-screen response is cached and rendered on reopening without another request', async () => {
   const ui = setup(); let resolve, calls = 0;
   const options = { student: { studentID: 7 }, fetch: () => { calls++; return new Promise(r => { resolve = r; }); } };

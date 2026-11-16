@@ -42,6 +42,54 @@ function plainText(html) {
     .replace(/&#(\d+);/g, (_, code) => String.fromCodePoint(Math.min(Number(code), 0x10ffff)))
     .replace(/&lt;/gi, '<').replace(/&gt;/gi, '>').replace(/\s+/g, ' ').trim().slice(0, 600);
 }
+
+// Calendar dates describe teaching periods, not the date on which a mark was entered.
+function calendarRange(value, academicYear) {
+  const months = ['января','февраля','марта','апреля','мая','июня','июля','августа','сентября','октября','ноября','декабря'];
+  const parts = String(value).toLowerCase().replace(/\u00a0/g, ' ').replace(/[–—−]/g, '-')
+    .replace(/^с\s+/, '').replace(/\s+по\s+/, '-').trim().split(/\s*-\s*/);
+  if (!parts.length || parts.length > 2) return null;
+  function date(part, fallback) {
+    const match = part.trim().match(/^(\d{1,2})(?:\.(\d{1,2})(?:\.(\d{4}))?|\s+([а-яё]+)(?:\s+(\d{4})(?:\s*г\.?)?)?)?$/);
+    if (!match) return null;
+    const day = Number(match[1]), month = match[2] ? Number(match[2]) : match[4] ? months.indexOf(match[4]) + 1 : fallback?.month;
+    const year = Number(match[3] || match[5] || (month >= 7 ? academicYear : academicYear + 1));
+    if (!month || year < academicYear || year > academicYear + 1) return null;
+    const stamp = new Date(Date.UTC(year, month - 1, day));
+    if (stamp.getUTCFullYear() !== year || stamp.getUTCMonth() !== month - 1 || stamp.getUTCDate() !== day) return null;
+    return { month, iso: stamp.toISOString().slice(0, 10) };
+  }
+  const end = date(parts.at(-1));
+  const start = parts.length === 1 ? end : date(parts[0], end);
+  return start && end && start.iso <= end.iso ? { start: start.iso, end: end.iso } : null;
+}
+
+export function calendarGradingPeriods(calendar) {
+  const years = calendar.year?.match(/^(20\d{2})[–-](20\d{2})$/);
+  if (!years || Number(years[2]) !== Number(years[1]) + 1) return [];
+  const studyYear = Number(years[1]), periods = [];
+  for (const semester of calendar.semesters || []) {
+    const term = /осенн/i.test(semester.name) ? 1 : /весенн/i.test(semester.name) ? 2 : null;
+    if (!term) continue;
+    const rows = semester.groups.flatMap(group => group.rows);
+    const read = pattern => {
+      const matches = rows.filter(row => pattern.test(row.label.trim()));
+      return matches.length === 1 ? calendarRange(matches[0].value, studyYear) : null;
+    };
+    const start = read(/^Начало семестра$/i), end = read(/^Конец семестра$/i);
+    const first = read(/^(?:РК\s*1|Рубежный контроль\s*1)$/i);
+    const second = read(/^(?:РК\s*2|Рубежный контроль\s*2)$/i);
+    if (!start || !first || !second || start.start > first.start || first.end >= second.start
+      || (end && second.end > end.end)) continue;
+    const next = new Date(first.end + 'T00:00:00Z'); next.setUTCDate(next.getUTCDate() + 1);
+    periods.push({ studyYear, term, periods: [
+      { id: 'rk1', start: start.start, end: first.end },
+      { id: 'rk2', start: next.toISOString().slice(0, 10), end: second.end },
+    ] });
+  }
+  // Duplicate semester definitions are ambiguous; do not choose one arbitrarily.
+  return periods.filter(item => periods.filter(other => other.term === item.term).length === 1);
+}
 export function parseAcademicCalendar(html) {
   // Extract plain text only; never forward or execute the Platonus page/scripts.
   const clean = String(html).replace(/<!--[\s\S]*?-->/g, '').replace(/<(script|style)\b[^>]*>[\s\S]*?<\/\1>/gi, '');
@@ -65,5 +113,6 @@ export function parseAcademicCalendar(html) {
   }
   const visible = semesters.map(s => ({ ...s, groups: s.groups.filter(g => g.rows.length) })).filter(s => s.groups.length);
   if (!visible.length) throw new Error('invalid_calendar');
-  return { title, year: year ? `${year[1]}–${year[2]}` : '', semesters: visible };
+  const calendar = { title, year: year ? `${year[1]}–${year[2]}` : '', semesters: visible };
+  return { ...calendar, gradingPeriods: calendarGradingPeriods(calendar) };
 }

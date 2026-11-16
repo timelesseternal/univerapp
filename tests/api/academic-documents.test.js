@@ -1,7 +1,7 @@
 import {sessionHeaders} from '../helpers/session.js';
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { normalizeTranscript, parseAcademicCalendar } from '../../api/_lib/academic-documents.js';
+import { normalizeTranscript, parseAcademicCalendar, calendarGradingPeriods } from '../../api/_lib/academic-documents.js';
 import calendarHandler from '../../api/calendar.js';
 import transcriptHandler from '../../api/transcript.js';
 
@@ -45,6 +45,46 @@ test('hidden marks and deleted subjects are not exposed; mismatched identity is 
 });
 const session = Buffer.from(JSON.stringify({ sid: 'sid', token: 'token', cookie: 'cookie' })).toString('base64');
 const response = () => ({ setHeader(k,v) { (this.headers ||= {})[k] = v; }, status(code) { this.code = code; return this; }, json(data) { this.body = data; } });
+
+const semester = (name, start, rk1, rk2, end) => ({ name, groups: [{ name: 'Учебный период', rows: [
+  { label: 'Начало семестра', value: start }, { label: 'Конец семестра', value: end },
+  { label: 'Рубежный контроль 1', value: rk1 }, { label: 'РК 2', value: rk2 },
+] }] });
+test('calendar grading periods include the entire first control week and use the next day for RK2', () => {
+  const periods = calendarGradingPeriods({ year: '2026–2027', semesters: [
+    semester('Осенний семестр','1 сентября','19-24 октября','7–12 декабря','12 декабря'),
+    semester('Весенний семестр','25 января','15–20 марта','3-8 мая','8 мая'),
+  ] });
+  assert.deepEqual(periods, [
+    { studyYear: 2026, term: 1, periods: [{ id:'rk1',start:'2026-09-01',end:'2026-10-24' }, { id:'rk2',start:'2026-10-25',end:'2026-12-12' }] },
+    { studyYear: 2026, term: 2, periods: [{ id:'rk1',start:'2027-01-25',end:'2027-03-20' }, { id:'rk2',start:'2027-03-21',end:'2027-05-08' }] },
+  ]);
+});
+
+test('calendar dates handle numeric ranges, explicit years, month boundaries and New Year', () => {
+  const periods = calendarGradingPeriods({ year: '2026–2027', semesters: [
+    semester('Осенний семестр','01.09.2026','с 28 октября по 2 ноября','28 декабря - 2 января','10 января'),
+  ] });
+  assert.equal(periods[0].periods[0].end, '2026-11-02');
+  assert.equal(periods[0].periods[1].start, '2026-11-03');
+  assert.equal(periods[0].periods[1].end, '2027-01-02');
+  assert.equal(calendarGradingPeriods({ year:'2023–2024',semesters:[semester('Весенний семестр','1 января','29 февраля 2024 г.','01.05 - 08.05','8 мая')] })[0].periods[1].start,'2024-03-01');
+});
+
+test('missing, invalid, overlapping and ambiguous calendar boundaries never guess a period', () => {
+  const good = semester('Осенний семестр','1 сентября','19-24 октября','7-12 декабря','12 декабря');
+  const calendar = semesters => ({ year:'2026–2027',semesters });
+  for (const data of [
+    { ...calendar([good]), year:'2026–2028' }, calendar([good,good]),
+    calendar([semester('Летний семестр','1 июня','10 июня','20 июня','30 июня')]),
+    calendar([semester('Осенний семестр','1 сентября','31 сентября','7-12 декабря','12 декабря')]),
+    calendar([semester('Осенний семестр','1 сентября','19-24 октября','20-25 октября','12 декабря')]),
+    calendar([semester('Осенний семестр','1 сентября','не определено','7-12 декабря','12 декабря')]),
+    calendar([semester('Весенний семестр','1 января','29 февраля','7-12 мая','12 мая')]),
+  ]) assert.deepEqual(calendarGradingPeriods(data), [], JSON.stringify(data));
+  good.groups[0].rows = good.groups[0].rows.filter(row => row.label !== 'РК 2');
+  assert.deepEqual(calendarGradingPeriods(calendar([good])), []);
+});
 test('document routes require session and GET', async () => {
   for (const handler of [calendarHandler, transcriptHandler]) {
     let res = response(); await handler({ method: 'GET', headers: {} }, res); assert.equal(res.code, 401);

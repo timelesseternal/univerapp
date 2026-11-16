@@ -1,6 +1,7 @@
 (() => {
   'use strict';
   const cache = new Map(), opened = new Set();
+  const views = new WeakMap();
   let epoch = 0;
   const escape = value => String(value).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
   const paint = (body, html) => { if (window.unilinkMotion) window.unilinkMotion.replace(body, html); else body.innerHTML = html; };
@@ -32,8 +33,37 @@
     return `<section class="grade-points-group"><h3 title="${escape(group.name)}">${escape(groupLabel(group.name,index))}</h3>${group.tutor ? `<p class="grade-points-tutor" title="${escape(group.tutor)}">${escape(group.tutor)}</p>` : ''}${table}</section>`;
     }).join('');
   }
+  const dateLabel = value => value.split('-').reverse().join('.');
+  const rangeLabel = period => `${dateLabel(period.start)} — ${dateLabel(period.end)}`;
+  const inside = (point, period) => point.date >= period.start && point.date <= period.end;
+  const filterGroups = (groups, predicate) => groups.map(group => ({ ...group, marks: group.marks.filter(predicate) }));
+  function periodsHtml(entry) {
+    const ready = !!entry.periods, selected = ready ? entry.selected : 'all';
+    const count = predicate => entry.groups.reduce((total, group) => total + group.marks.filter(predicate).length, 0);
+    const tabs = `<div class="grade-period-tabs" role="group" aria-label="Период контрольных точек">${[['rk1','РК 1'],['rk2','РК 2'],['all','Все']].map(([id,label]) => {
+      const period = entry.periods?.find(item => item.id === id);
+      const amount = ready ? count(point => id === 'all' || inside(point, period)) : null;
+      return `<button type="button" data-grade-period="${id}" aria-pressed="${selected === id}" ${id !== 'all' && !ready ? 'disabled' : ''}>${label}${amount == null ? '' : `<span>${amount}</span>`}</button>`;
+    }).join('')}</div>`;
+    if (!ready) return tabs + `<p class="grade-period-note" role="status">${entry.calendarPending ? 'Определяем периоды по академическому календарю. Пока показаны все оценки.' : 'Не удалось определить границы РК для этого семестра. Показаны все оценки.'}</p>`
+      + (!entry.calendarPending && entry.retryCalendar ? '<button type="button" class="grade-calendar-retry">Повторить загрузку календаря</button>' : '') + groupsHtml(entry.groups);
+    const outside = point => !entry.periods.some(period => inside(point, period));
+    const extra = count(outside);
+    const section = period => `<section class="grade-period-section"><h3 class="grade-period-title">Оценки за период ${period.id === 'rk1' ? 'РК 1' : 'РК 2'}</h3><p class="grade-period-note">${rangeLabel(period)}</p>${groupsHtml(filterGroups(entry.groups, point => inside(point, period)))}</section>`;
+    const content = selected === 'all'
+      ? entry.periods.map(section).join('') + (extra ? `<section class="grade-period-section"><h3 class="grade-period-title">Вне периодов РК</h3><p class="grade-period-note">Даты этих оценок не входят в периоды календаря.</p>${groupsHtml(filterGroups(entry.groups, outside))}</section>` : '')
+      : section(entry.periods.find(period => period.id === selected)) + (extra ? `<p class="grade-period-note">Ещё ${extra} оценок вне границ периодов — в разделе «Все».</p>` : '');
+    return tabs + '<p class="grade-period-note">Разделено по датам академического календаря.</p>' + content;
+  }
   function paintGroups(body, entry) {
-    paint(body,groupsHtml(entry.groups));
+    paint(body, periodsHtml(entry));
+    body.querySelectorAll?.('[data-grade-period]').forEach(button => button.addEventListener('click', () => {
+      entry.selected = button.dataset.gradePeriod;
+      entry.userSelected = true;
+      paintGroups(body, entry);
+      body.querySelector(`[data-grade-period="${entry.selected}"]`)?.focus();
+    }));
+    body.querySelector('.grade-calendar-retry')?.addEventListener('click', entry.retryCalendar);
   }
   async function load(details, context) {
     const body = details.querySelector('.grade-details-body');
@@ -49,8 +79,37 @@
     if (!details.open) { opened.delete(key); return; }
     opened.add(key);
     const revision = epoch;
+    views.set(body, key);
+    const visible = () => revision === epoch && body.isConnected && details.open && views.get(body) === key;
     let entry = cache.get(key);
     if (!entry) { entry = {}; cache.set(key, entry); }
+    function loadCalendar(force = false) {
+      if (entry.calendarPending || typeof context.calendar !== 'function') return;
+      entry.calendarPending = true;
+      if (entry.groups && visible()) paintGroups(body, entry);
+      entry.calendarWork = Promise.resolve().then(() => context.calendar(force)).then(data => {
+        if (revision !== epoch) return;
+        const matches = Number(data?.studentID) === Number(context.studentID)
+          ? data.gradingPeriods?.filter(item => Number(item.studyYear) === Number(context.year) && Number(item.term) === Number(context.term)) : [];
+        const periods = matches?.length === 1 ? matches[0].periods : null;
+        const validDate = value => typeof value === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(value)
+          && Number.isFinite(Date.parse(value + 'T00:00:00Z')) && new Date(value + 'T00:00:00Z').toISOString().slice(0,10) === value;
+        if (!Array.isArray(periods) || periods.length !== 2 || periods.some((period,index) =>
+          period.id !== (index ? 'rk2' : 'rk1') || !validDate(period.start) || !validDate(period.end) || period.start > period.end)
+          || periods[0].end >= periods[1].start) throw new Error('calendar_periods_unavailable');
+        entry.periods = periods;
+        if (!entry.userSelected) {
+          const now = new Date(), today = `${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}-${String(now.getDate()).padStart(2,'0')}`;
+          entry.selected = today >= periods[1].start ? 'rk2' : 'rk1';
+        }
+      }).catch(() => { /* Grades remain available when the calendar cannot be resolved. */ })
+        .finally(() => { entry.calendarPending = false; });
+      entry.calendarWork.then(() => { if (entry.groups && visible()) paintGroups(body, entry); });
+    }
+    entry.retryCalendar = typeof context.calendar === 'function' ? () => loadCalendar(true) : null;
+    if (!entry.calendarWork) loadCalendar();
+    // A rerender can replace the body while the shared calendar request is pending.
+    else if (entry.calendarPending) entry.calendarWork.then(() => { if (entry.groups && visible()) paintGroups(body, entry); });
     if (entry.groups) paintGroups(body,entry);
     else paint(body, window.unilinkLoading.html('Контрольные точки загружаются'));
     if (!entry.work && (!entry.at || Date.now() - entry.at >= 60000)) {
@@ -64,9 +123,9 @@
     }
     try {
       if (entry.work) await entry.work;
-      if (revision === epoch && body.isConnected) paintGroups(body,entry);
+      if (visible()) paintGroups(body,entry);
     } catch {
-      if (revision !== epoch || !body.isConnected) return;
+      if (!visible()) return;
       paint(body, (entry.groups ? groupsHtml(entry.groups) : '') + '<div class="grade-points-error" role="status"><p>Не удалось загрузить контрольные точки.</p><button type="button" class="grade-points-retry">Попробовать снова</button></div>');
       body.querySelector('.grade-points-retry').addEventListener('click', () => load(details, context));
     }

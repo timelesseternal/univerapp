@@ -1043,6 +1043,7 @@ if ('serviceWorker' in navigator) {
         subjects: subjects || [], studentID: platonusStudent?.studentID, generation: authGeneration,
         year: period ? Number(period[0]) : current?.studyYear ?? current?.selectedStudyYear,
         term: period ? Number(period[1]) : current?.term ?? current?.selectedTerm, fetch: platonusFetch,
+        calendar: force => window.univerAcademic.loadCalendar({ student: platonusStudent, fetch: platonusFetch }, force),
       });
     });
   }
