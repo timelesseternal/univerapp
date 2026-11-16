@@ -82,7 +82,7 @@ export default async function handler(req, res) {
         {method:'PATCH',body:{last_test_at:new Date().toISOString()}});
       if(!rows?.[0]) throw new ChatError(429,'push_test_unavailable');
       const subscription=pushSubscription({endpoint:rows[0].endpoint,keys:{auth:rows[0].auth,p256dh:rows[0].p256dh}});
-      try {await webpush.sendNotification(subscription,JSON.stringify({kind:'test',owner:userID,title:'UniLink',body:'Уведомления включены. Здесь будут появляться новые сообщения.'}),{vapidDetails:await pushKeys(),TTL:300,timeout:5000});}
+      try {await webpush.sendNotification(subscription,JSON.stringify({kind:'test',owner:userID,title:'unLink.',body:'Уведомления включены. Здесь будут появляться новые сообщения.'}),{vapidDetails:await pushKeys(),TTL:300,timeout:5000});}
       catch {throw new ChatError(503,'push_unavailable');}
       res.status(200).json({ok:true});
     } else if (action === 'push-subscription' && req.method === 'DELETE') {

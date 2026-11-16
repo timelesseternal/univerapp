@@ -6,8 +6,8 @@
   function available() {
     const ios=/iPad|iPhone|iPod/.test(navigator.userAgent)||navigator.platform==='MacIntel'&&navigator.maxTouchPoints>1;
     const installed=window.matchMedia?.('(display-mode: standalone)').matches || navigator.standalone===true;
-    if(window.Telegram?.WebApp?.initData) return 'Для push открой UniLink в браузере и добавь на главный экран.';
-    if(ios&&!installed) return 'На iPhone добавь UniLink на экран «Домой» и открой с его иконки.';
+    if(window.Telegram?.WebApp?.initData) return 'Для push открой unLink. в браузере и добавь на главный экран.';
+    if(ios&&!installed) return 'На iPhone добавь unLink. на экран «Домой» и открой с его иконки.';
     if(!('serviceWorker' in navigator)||!('PushManager' in window)||!('Notification' in window)) return 'Этот браузер не поддерживает push. Можно использовать Telegram.';
     return '';
   }

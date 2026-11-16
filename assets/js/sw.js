@@ -100,7 +100,7 @@ self.addEventListener('push',event=>{
       ||(payload.kind==='chat'&&!uuid.test(payload.conversationID)))return;
     const owner=await self.unilinkPushStorage?.get();
     if(owner!==payload.owner)return; // Logout/account switches cannot reveal another student's message.
-    await self.registration.showNotification(String(payload.title||'UniLink').slice(0,160),{
+    await self.registration.showNotification(String(payload.title||'unLink.').slice(0,160),{
       body:String(payload.body||'Новое сообщение').slice(0,240),icon:'/assets/icons/unilink-dark-192.png',
       tag:payload.kind==='chat'?`chat-${payload.conversationID}`:'unilink-push-test',
       data:{owner,conversationID:payload.kind==='chat'?payload.conversationID:null},

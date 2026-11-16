@@ -45,7 +45,7 @@
     const text = (value, x, y, size, weight = 500) => {
       ctx.font = font(size, weight); ctx.fillText(String(value), x, y);
     };
-    text('UniLink', 52, 78, 29, 800);
+    text('unLink.', 52, 78, 29, 800);
     ctx.textAlign = 'right'; text('РАСПИСАНИЕ ДЛЯ ДРУГА', 848, 76, 17, 800); ctx.textAlign = 'left';
     text(model.day, 52, 160, 50, 800);
     text(`Неделя ${model.week} · ${model.term} семестр · ${model.year}–${Number(model.year) + 1}`, 52, 208, 24);
@@ -98,7 +98,7 @@
     try {
       // Keep font loading separate from the user-activated share click.
       if (document.fonts?.load) {
-        await Promise.race([Promise.all([document.fonts.load('800 34px Manrope', 'UniLink Расписание Әғ'), document.fonts.load('500 24px Manrope', 'UniLink Расписание Әғ')]).catch(() => {}),
+        await Promise.race([Promise.all([document.fonts.load('800 34px Manrope', 'unLink. Расписание Әғ'), document.fonts.load('500 24px Manrope', 'unLink. Расписание Әғ')]).catch(() => {}),
           new Promise(resolve => setTimeout(resolve, 2500))]);
       }
       if (run !== generation || !dialog.open) return;
@@ -128,7 +128,7 @@
     sharing = true; busy(false);
     try {
       // No await before share: Safari needs the activation from this exact tap.
-      await navigator.share({files: [file], title: `UniLink · ${snapshot.day}`});
+      await navigator.share({files: [file], title: `unLink. · ${snapshot.day}`});
       if (dialog.open && run === generation) status('Картинка передана в меню отправки.');
     } catch (error) {
       if (dialog.open && run === generation && error.name !== 'AbortError') {

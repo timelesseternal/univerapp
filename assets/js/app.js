@@ -994,7 +994,7 @@ if ('serviceWorker' in navigator) {
       <button type="button" class="wrapped-launch" data-action="openSemesterWrapped()"><span class="wrapped-launch-kicker">UNILINK · RECAP</span><span class="wrapped-launch-title">Твой семестр в историях <span aria-hidden="true">↗</span></span><span class="wrapped-launch-caption">Твой ритм. Твои предметы. Твои результаты.</span></button>
       <section class="push-preferences" aria-label="Уведомления о сообщениях">
         <h2>Уведомления</h2>
-        <label class="push-setting"><span>Push на этом устройстве<small>Сообщения на экране телефона, даже когда UniLink закрыт</small></span><input id="pushEnabled" type="checkbox" role="switch" disabled></label>
+        <label class="push-setting"><span>Push на этом устройстве<small>Сообщения на экране телефона, даже когда unLink. закрыт</small></span><input id="pushEnabled" type="checkbox" role="switch" disabled></label>
         <label class="push-setting"><span><span id="pushTelegramTitle">Сообщения в Telegram</span><small>Для подключённого бота. Новости версий не затрагивает</small></span><input id="pushTelegram" type="checkbox" role="switch" disabled></label>
         <p id="pushStatus" class="push-status" role="status">Подключаем настройки уведомлений…</p>
         <button type="button" id="pushRetry" class="push-retry" hidden>Повторить</button>

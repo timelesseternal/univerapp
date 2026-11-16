@@ -167,6 +167,22 @@ test('signing in again waits for old credential cleanup and opens the applicatio
   assert.ok(!env.document.body.classList.contains('login-screen'));
 });
 
+test('login sends Cyrillic and Kazakh characters unchanged', async () => {
+  const env = setup();
+  env.document.getElementById('loginInput').value = '  Әбдірахманов_Илья  ';
+  env.document.getElementById('passwordInput').value = 'test-password';
+  let sent;
+  env.ctx.fetch = async (url, options) => {
+    assert.equal(url, '/api/login');
+    sent = JSON.parse(options.body);
+    return { ok: true, json: async () => ({ ok: true }) };
+  };
+  await env.ctx.submitLogin();
+  assert.equal(sent.login, 'Әбдірахманов_Илья');
+  assert.equal(env.document.getElementById('loginInput').value, '  Әбдірахманов_Илья  ');
+  assert.equal(env.loads, 1);
+});
+
 test('remember me never writes credentials or session to browser storage', async () => {
   const env = setup();
   env.document.getElementById('rememberLoginInput').checked = true;

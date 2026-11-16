@@ -68,6 +68,7 @@ button, input, select, textarea {
   text-wrap: balance;
 }
 .login-title { font-size: clamp(2.125rem, 8vw, 2.5rem); line-height: 1.15; }
+.brand-dot { color: var(--accent); }
 .masthead-headline { font-size: clamp(1.5rem, 6vw, 1.875rem); line-height: 1.2; }
 .notice-title { font-size: 1.375rem; line-height: 1.3; }
 .modal-title { font-size: var(--text-title); line-height: 1.35; }

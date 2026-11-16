@@ -25,6 +25,21 @@ test('login extends the encrypted session only when remember me is explicitly en
   }
 });
 
+test('login forwards Cyrillic and Kazakh credentials to Platonus as UTF-8 JSON', async t => {
+  let sent;
+  t.mock.method(globalThis, 'fetch', limited(async (url, options) => {
+    assert.equal(url, 'https://platonus.kstu.kz/rest/api/login');
+    assert.match(options.headers['Content-Type'], /charset=UTF-8/);
+    sent = JSON.parse(options.body);
+    return { ok: true, status: 200, json: async () => ({ login_status: 'success', sid: 'sid', auth_token: 'token' }),
+      headers: { getSetCookie: () => ['sid=1; HttpOnly'] } };
+  }));
+  const res = response();
+  await handler({ method: 'POST', body: { login: 'Әбдірахманов_Илья', password: 'test-password' } }, res);
+  assert.equal(res.code, 200);
+  assert.equal(sent.login, 'Әбдірахманов_Илья');
+});
+
 test('login validates credentials without contacting Platonus', async t => {
   const original = globalThis.fetch;
   t.after(() => { globalThis.fetch = original; });
