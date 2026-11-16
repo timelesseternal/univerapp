@@ -303,6 +303,22 @@ html, body { height:100%; min-height:0; overflow:hidden; overscroll-behavior:non
 .grade-period-note { margin:6px 0 14px; color:var(--ink-soft); font-size:11px; line-height:1.6; overflow-wrap:anywhere; }
 .grade-period-title { margin:14px 0 0; font-size:13px; line-height:1.5; color:var(--accent); }
 .grade-period-section + .grade-period-section { margin-top:20px; padding-top:4px; border-top:1px solid var(--glass-border); }
+.grade-trend { min-width:0; margin:14px 0 18px; padding:14px 12px 0; border:1px solid var(--glass-border); border-radius:16px; background:var(--paper-2); }
+.grade-trend-title { margin:0; color:var(--ink); font-size:13px; line-height:1.5; }
+.grade-trend-stats { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:10px; margin-bottom:8px; }
+.grade-trend-stats>div { display:grid; gap:4px; min-width:0; }
+.grade-trend-stats span { color:var(--ink-soft); font-size:11px; }
+.grade-trend-stats strong { color:var(--accent); font-size:22px; line-height:1.3; font-variant-numeric:tabular-nums; }
+.grade-trend-chart { display:block; width:100%; height:auto; overflow:visible; }
+.grade-trend-grid line { stroke:var(--glass-border); stroke-width:1; }
+.grade-trend-grid text { fill:var(--ink-soft); font-family:inherit; font-size:10px; }
+.grade-trend-line { fill:none; stroke:var(--accent); stroke-width:2; stroke-linejoin:round; stroke-linecap:round; }
+.grade-trend-hit { fill:transparent; }
+.grade-trend-dot { fill:var(--accent); stroke:var(--paper-2); stroke-width:2; }
+.grade-trend-chart [role="button"] { cursor:pointer; outline:none; }
+.grade-trend-chart [role="button"]:focus-visible .grade-trend-dot { stroke:var(--ink); stroke-width:3; }
+.grade-trend-selection { margin:5px 0; color:var(--ink-soft); font-size:11px; line-height:1.6; font-variant-numeric:tabular-nums; }
+.grade-trend-selection strong { color:var(--accent); }
 .grade-calendar-retry { margin:0 0 14px; min-height:40px; padding:8px 12px; border:1px solid var(--glass-border); border-radius:12px; background:var(--paper-2); color:var(--accent); font:inherit; font-size:12px; cursor:pointer; }
 .grade-points-group + .grade-points-group { margin-top:14px; padding-top:14px; border-top:1px solid var(--glass-border); }
 .grade-points-group h3 { font-size:13px; line-height:1.5; margin:0; overflow-wrap:anywhere; }
