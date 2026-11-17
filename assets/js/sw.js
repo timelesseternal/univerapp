@@ -7,7 +7,7 @@ const FONT_PATHS = new Set([
   '/assets/fonts/manrope/cyrillic.woff2',
   '/assets/fonts/manrope/latin.woff2',
 ]);
-const SHELL_PATHS = new Set(['/', '/index.html', '/manifest.webmanifest', '/assets/icons/uniq-apple-touch-180.png', '/assets/icons/uniq-192.png', '/assets/icons/uniq-512.png', '/assets/css/app.css', '/assets/css/background.css', '/assets/css/typography.css', '/assets/css/chat.css', '/assets/css/motion.css', '/assets/css/controls.css', '/assets/js/appearance.js', '/assets/js/app.js', '/assets/js/updates.js', '/assets/js/chat.js', '/assets/js/background.js', ...FONT_PATHS]);
+const SHELL_PATHS = new Set(['/', '/index.html', '/manifest.webmanifest', '/assets/icons/uniq-v2-apple-touch-180.png', '/assets/icons/uniq-v2-192.png', '/assets/icons/uniq-v2-512.png', '/assets/css/app.css', '/assets/css/background.css', '/assets/css/typography.css', '/assets/css/chat.css', '/assets/css/motion.css', '/assets/css/controls.css', '/assets/js/appearance.js', '/assets/js/app.js', '/assets/js/updates.js', '/assets/js/chat.js', '/assets/js/background.js', ...FONT_PATHS]);
 SHELL_PATHS.add('/assets/css/wrapped.css');
 SHELL_PATHS.add('/assets/js/navigation.js');
 SHELL_PATHS.add('/assets/js/actions.js');
@@ -25,8 +25,8 @@ SHELL_PATHS.add('/assets/js/study-history.js');
 SHELL_PATHS.add('/assets/js/push.js');
 SHELL_PATHS.add('/assets/js/push-storage.js');
 SHELL_PATHS.add('/assets/css/study-history.css');
-SHELL_PATHS.add('/assets/icons/uniq-maskable-512.png');
-SHELL_PATHS.add('/assets/icons/uniq-favicon-32.png');
+SHELL_PATHS.add('/assets/icons/uniq-v2-maskable-512.png');
+SHELL_PATHS.add('/assets/icons/uniq-v2-favicon-32.png');
 SHELL_PATHS.add('/assets/css/profile.css');
 SHELL_PATHS.add('/assets/css/interface.css');
 SHELL_PATHS.add('/assets/css/layout.css');
@@ -105,7 +105,7 @@ self.addEventListener('push',event=>{
     const owner=await self.unilinkPushStorage?.get();
     if(owner!==payload.owner)return; // Logout/account switches cannot reveal another student's message.
     await self.registration.showNotification(String(payload.title||'uniq.').slice(0,160),{
-      body:String(payload.body||'Новое сообщение').slice(0,240),icon:'/assets/icons/uniq-192.png',
+      body:String(payload.body||'Новое сообщение').slice(0,240),icon:'/assets/icons/uniq-v2-192.png',
       tag:payload.kind==='chat'?`chat-${payload.conversationID}`:'unilink-push-test',
       data:{owner,conversationID:payload.kind==='chat'?payload.conversationID:null},
     });
