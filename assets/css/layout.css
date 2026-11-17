@@ -1,0 +1,99 @@
+/* Shared geometry. Text-heavy controls may grow instead of clipping their labels. */
+:root {
+  --control-height:44px;
+  --control-radius:14px;
+  --card-radius:20px;
+  --card-padding:16px;
+  --card-gap:12px;
+  --control-gap:8px;
+  --section-gap:20px;
+  --settings-row-height:56px;
+}
+:is(.login-submit,.modal-btn,.accent-default-btn,.push-retry,.grade-points-retry,.grade-calendar-retry,.academic-feedback button,.schedule-share-actions button,.schedule-share-open,.chat-action-button,.chat-older,.chat-retry) {
+  box-sizing:border-box; min-height:var(--control-height); padding:10px 14px;
+  border-radius:var(--control-radius); font-size:14px; line-height:22px;
+}
+.login-input { box-sizing:border-box; min-height:var(--control-height); padding-block:10px; line-height:22px; border-radius:var(--control-radius); }
+.password-field-wrap .password-toggle-btn { width:var(--control-height); }
+:is(.navigation-back,.profile-back) { box-sizing:border-box; min-height:var(--control-height); padding-block:10px; line-height:22px; }
+:is(.schedule-share-close,.chat-back,.chat-send,.umkd-file-action) {
+  box-sizing:border-box; width:var(--control-height); min-width:var(--control-height);
+  height:var(--control-height); min-height:var(--control-height); flex-basis:var(--control-height);
+  padding:10px; border-radius:var(--control-radius);
+}
+.screen-brand { margin-bottom:var(--section-gap); }
+#gradesContainer > .screen-brand, #sectionChat > .screen-brand { margin-bottom:var(--section-gap); }
+.screen-heading, #sectionChat .chat-page-header { margin-bottom:16px; }
+#sectionChat .chat-page-header { min-height:var(--control-height); }
+#sectionSchedule .status-bar { gap:6px var(--control-gap); margin-bottom:16px; }
+#sectionSchedule .header-right-top { gap:var(--control-gap); }
+#sectionSchedule .header-right-top > :is(.today-btn,.appearance-toggle,.theme-btn) {
+  height:var(--control-height); min-height:var(--control-height); max-height:var(--control-height); border-radius:var(--control-radius);
+}
+#sectionSchedule .header-right-top > :is(.appearance-toggle,.theme-btn) { width:var(--control-height); min-width:var(--control-height); padding:10px; }
+#sectionSchedule .header-right-top svg { width:20px; height:20px; }
+#sectionSchedule .live-lesson-badge, #sectionSchedule .weather-widget { margin-top:0; }
+#sectionSchedule .weather-widget { min-height:28px; padding:4px 8px; line-height:18px; }
+#sectionSchedule .schedule-week-tools { gap:var(--control-gap); margin-bottom:var(--card-gap); align-items:stretch; }
+#sectionSchedule .week-stepper { box-sizing:border-box; height:var(--control-height); min-height:var(--control-height); padding:0; border-radius:var(--control-radius); }
+#sectionSchedule .week-step-btn { width:42px; height:42px; min-height:42px; max-height:42px; padding:10px; }
+#sectionSchedule .week-step-label { gap:0 6px; line-height:1.4; }
+#sectionSchedule .schedule-share-launch { width:var(--control-height); height:var(--control-height); flex-basis:var(--control-height); border-radius:var(--control-radius); }
+#sectionSchedule .schedule-share-launch svg { width:20px; height:20px; }
+#sectionSchedule .days-grid { padding:4px; margin-bottom:16px; border-radius:18px; }
+#sectionSchedule .day-btn { min-height:48px; max-height:48px; height:48px; padding:5px 0; gap:2px; }
+#sectionSchedule .day-indicator { top:5px; height:calc(100% - 10px); }
+#scheduleContainer .list-card { gap:var(--card-gap); }
+#scheduleContainer .list-row { padding:14px; border-radius:var(--card-radius); }
+#scheduleContainer .row-index { padding-top:14px; }
+#scheduleContainer .lesson-subject-wrap { display:block; -webkit-line-clamp:unset; overflow:visible; }
+#gradesContainer .grade-card { padding:var(--card-padding); }
+#gradesContainer .grade-tutor { margin-bottom:12px; }
+#gradesContainer .grade-body { gap:12px; }
+#gradesContainer .grade-metrics-grid { gap:8px 6px; }
+#gradesContainer .grade-details-link { margin-top:12px; padding-top:10px; }
+#gradesContainer .grade-details-body { padding-top:12px; }
+.grade-period-tabs { gap:4px; padding:4px; }
+.grade-period-tabs button { min-height:var(--control-height); padding:8px 4px; line-height:18px; }
+#sectionChat .chat-header-search { width:var(--control-height); height:var(--control-height); border-radius:var(--control-radius); }
+#sectionChat .chat-search-toggle { width:42px; height:42px; flex-basis:42px; padding:10px; border-radius:13px; }
+#sectionChat .chat-search-toggle svg { width:20px; height:20px; }
+#sectionChat .chat-header-search .chat-search { min-height:42px; height:42px; }
+#sectionChat.chat-search-open .chat-header-search { width:100%; }
+#sectionChat .chat-person { min-height:76px; padding:14px; gap:12px; }
+#sectionChat .chat-avatar { border-radius:var(--control-radius); }
+#sectionChat .chat-send { width:var(--control-height); height:var(--control-height); min-height:var(--control-height); }
+#sectionChat .chat-composer textarea { box-sizing:border-box; min-height:var(--control-height); padding:10px 14px; line-height:22px; border-radius:var(--control-radius); }
+#profileContainer .profile-layout { gap:var(--section-gap); }
+#profileContainer .profile-block { gap:10px; }
+#profileContainer .profile-hero { gap:14px; }
+#profileContainer .profile-avatar { width:60px; height:60px; flex-basis:60px; border-radius:20px; font-size:23px; }
+#profileContainer .profile-gpa { padding:var(--card-padding); }
+#profileContainer .profile-gpa-score { font-size:34px; }
+#profileContainer .profile-study-tile { min-height:112px; padding:14px; gap:4px; }
+#profileContainer .profile-tile-icon { margin-bottom:4px; }
+#profileContainer .profile-recap, #profileContainer .profile-history { min-height:64px; padding:10px 14px; gap:12px; }
+#profileContainer .profile-history { padding-inline:4px; }
+#profileContainer .profile-row-copy { gap:4px; }
+#profileContainer .profile-row-copy strong, #profileContainer .profile-row-copy > span { line-height:20px; }
+#profileContainer .profile-row-copy small { line-height:16px; }
+#profileContainer .profile-settings { padding-inline:14px; }
+#profileContainer .profile-settings-update, #profileContainer .profile-notifications > summary { min-height:var(--settings-row-height); padding:12px 0; gap:12px; font-size:13px; }
+#profileContainer .profile-settings-update[aria-busy="true"] > .profile-row-icon { transform-origin:center; transform-box:view-box; }
+#profileContainer .profile-notifications-body { padding-bottom:12px; }
+#profileContainer .push-setting { padding-block:12px; }
+#profileContainer .profile-logout-btn { min-height:var(--control-height); padding:10px 14px; border-radius:var(--control-radius); }
+.academic-card { padding:var(--card-padding); }
+.academic-feedback button { min-height:var(--control-height); }
+.schedule-share-header { margin-bottom:12px; }
+.schedule-share-actions { gap:var(--control-gap); }
+.schedule-share-close { flex-basis:var(--control-height); }
+@media(max-width:360px) {
+  #profileContainer .profile-hero { gap:12px; }
+  #profileContainer .profile-avatar { width:56px; height:56px; flex-basis:56px; font-size:21px; }
+  #profileContainer .profile-study-tile { padding:12px; }
+  #profileContainer .profile-settings { padding-inline:12px; }
+  #profileContainer .profile-settings-update { gap:8px; }
+  #scheduleContainer .list-row { padding:12px; }
+  #sectionChat .chat-person { padding:12px; gap:10px; }
+}
