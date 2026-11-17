@@ -227,7 +227,7 @@
     const reset = (animate = true) => {
       clearTimeout(hold); start = null; direction = null; distance = 0;
       const transform = article.style.transform; article.style.transform = '';
-      article.classList.remove('chat-message-swiping','chat-message-reply-ready','chat-message-swiping-right');
+      article.classList.remove('chat-message-swiping','chat-message-reply-ready');
       returnMotion?.cancel(); returnMotion = null;
       if (animate && transform && article.animate && !window.matchMedia?.('(prefers-reduced-motion: reduce)').matches)
         returnMotion = article.animate([{transform},{transform:'translateX(0)'}],{duration:260,easing:'cubic-bezier(.4,0,.2,1)'});
@@ -248,16 +248,16 @@
       const dx = x-start.x, dy = y-start.y;
       if (Math.abs(dx)>7 || Math.abs(dy)>7) clearTimeout(hold);
       if (!direction && Math.max(Math.abs(dx),Math.abs(dy))>10) {
-        if (Math.abs(dy)>Math.abs(dx)*.8) { reset(); return; }
+        if (Math.abs(dy)>Math.abs(dx)*.8 || dx<0) { reset(); return; }
         direction = 'reply';
       }
       if (direction !== 'reply') return;
+      if (dx<0) { reset(); return; }
       if (event.cancelable) event.preventDefault();
-      distance = Math.abs(dx); suppressClick = true;
+      distance = dx; suppressClick = true;
       article.classList.add('chat-message-swiping');
-      article.classList.toggle?.('chat-message-swiping-right',dx>0);
       article.classList.toggle?.('chat-message-reply-ready',distance>=52);
-      article.style.transform = `translateX(${Math.sign(dx)*Math.min(72,distance*.7)}px)`;
+      article.style.transform = `translateX(${Math.min(72,distance*.7)}px)`;
     };
     const finish = () => {
       const reply = start && direction === 'reply' && distance>=52 && valid();

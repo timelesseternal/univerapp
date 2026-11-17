@@ -1039,7 +1039,7 @@ if ('serviceWorker' in navigator) {
       return;
     }
 
-    let html = `<div class="screen-brand"><span>uniq<span class="brand-dot">.</span></span><small>Оценки</small></div><header class="screen-heading"><p>Твои результаты</p><h1>Оценки</h1></header>`;
+    let html = `<div class="screen-brand"><span>uniq<span class="brand-dot">.</span></span></div><header class="screen-heading"><p>Твои результаты</p><h1>Оценки</h1></header>`;
 
     const subjects = Array.isArray(liveJournalData) ? liveJournalData.filter(subj => subj && typeof subj === 'object') : null;
     if (subjects?.length) {

@@ -12,9 +12,8 @@
 .chat-message-deleted { opacity:.65; font-style:italic; }
 .chat-message { position:relative; touch-action:pan-y; -webkit-touch-callout:none; -webkit-user-select:none; user-select:none; }
 .chat-message-selected { box-shadow:0 0 0 2px var(--accent),0 8px 24px rgba(0,0,0,.15); }
-.chat-swipe-reply { position:absolute; right:-40px; top:calc(50% - 16px); display:grid; place-items:center; width:32px; height:32px; border:1px solid var(--line); border-radius:50%; background:var(--paper-2); color:var(--accent); opacity:0; transform:scale(.7); pointer-events:none; transition:opacity .18s,transform .26s cubic-bezier(.4,0,.2,1); }
+.chat-swipe-reply { position:absolute; left:-40px; top:calc(50% - 16px); display:grid; place-items:center; width:32px; height:32px; border:1px solid var(--line); border-radius:50%; background:var(--paper-2); color:var(--accent); opacity:0; transform:scale(.7); pointer-events:none; transition:opacity .18s,transform .26s cubic-bezier(.4,0,.2,1); }
 .chat-swipe-reply svg { width:20px; height:20px; }
-.chat-message-swiping-right .chat-swipe-reply { right:auto; left:-40px; }
 .chat-message-swiping .chat-swipe-reply { display:grid; opacity:.55; }
 .chat-message-reply-ready .chat-swipe-reply { opacity:1; transform:scale(1); }
 .chat-message:focus-visible { outline:2px solid var(--accent); outline-offset:3px; }

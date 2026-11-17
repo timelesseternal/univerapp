@@ -122,7 +122,7 @@ async function actionUI(options={}) {
   await ui.elements.get('chatInbox').children[0].listeners.click();
   return {...ui,calls};
 }
-test('swiping left selects a quote, vertical scrolling does not, and send includes the reply ID',async()=>{
+test('swiping right selects a quote, vertical scrolling does not, and send includes the reply ID',async()=>{
   const ui=await actionUI();
   const article=findClass(ui.elements.get('chatMessages'),'chat-message');
   const down={button:0,clientX:200,clientY:100,pointerId:1,target:{}};
@@ -131,8 +131,8 @@ test('swiping left selects a quote, vertical scrolling does not, and send includ
   article.listeners.pointerup({...down,clientX:130,clientY:160});
   assert.equal(ui.elements.get('chatReply').hidden,true);
   article.listeners.pointerdown(down);
-  article.listeners.pointermove({...down,clientX:130});
-  article.listeners.pointerup({...down,clientX:130});
+  article.listeners.pointermove({...down,clientX:270});
+  article.listeners.pointerup({...down,clientX:270});
   assert.equal(ui.elements.get('chatReplyText').textContent,'История');
   ui.elements.get('chatText').value='Ответ';
   await ui.elements.get('chatComposer').listeners.submit({preventDefault(){}});
@@ -159,6 +159,38 @@ test('a right swipe selects a reply with a vector icon and an interrupted swipe 
   assert.equal(ui.elements.get('chatReply').hidden,false);
 });
 
+test('left swipes never select a reply or capture scrolling on touch or pointer input',async()=>{
+  for (const input of ['touch','pointer']) {
+    const ui=await actionUI(), article=findClass(ui.elements.get('chatMessages'),'chat-message');
+    const blocked=()=>{throw new Error('A left swipe must remain native');};
+    if(input==='touch') {
+      const touch=x=>({identifier:4,clientX:x,clientY:100});
+      article.listeners.touchstart({touches:[touch(200)]});
+      article.listeners.touchmove({touches:[touch(130)],cancelable:true,preventDefault:blocked});
+      article.listeners.touchend({changedTouches:[touch(130)],cancelable:true,preventDefault:blocked});
+    } else {
+      const down={button:0,clientX:200,clientY:100,pointerId:4,target:{}};
+      article.listeners.pointerdown(down);
+      article.listeners.pointermove({...down,clientX:130,cancelable:true,preventDefault:blocked});
+      article.listeners.pointerup({...down,clientX:130});
+    }
+    assert.equal(ui.elements.get('chatReply').hidden,true);
+    assert.equal(article.style.transform,'');
+    assert.notEqual(ui.elements.get('chatActionsDialog').open,true);
+  }
+});
+
+test('reversing an armed right swipe past its starting point cancels the reply',async()=>{
+  const ui=await actionUI(), article=findClass(ui.elements.get('chatMessages'),'chat-message');
+  const down={button:0,clientX:200,clientY:100,pointerId:1,target:{}};
+  article.listeners.pointerdown(down);
+  article.listeners.pointermove({...down,clientX:270});
+  article.listeners.pointermove({...down,clientX:180});
+  article.listeners.pointerup({...down,clientX:180});
+  assert.equal(ui.elements.get('chatReply').hidden,true);
+  assert.equal(article.style.transform,'');
+});
+
 test('real touch swipe works on a quote, ignores touch-pointer cancellation, and cancels vertical or interrupted touches',async()=>{
   const ui=await actionUI();
   const article=findClass(ui.elements.get('chatMessages'),'chat-message');
@@ -167,16 +199,16 @@ test('real touch swipe works on a quote, ignores touch-pointer cancellation, and
   start();
   article.listeners.pointercancel({pointerType:'touch'});
   let prevented=false;
-  article.listeners.touchmove({touches:[touch(160,105)],cancelable:true,preventDefault(){prevented=true;}});
-  article.listeners.touchend({changedTouches:[touch(160,105)],cancelable:true,preventDefault(){}});
+  article.listeners.touchmove({touches:[touch(300,105)],cancelable:true,preventDefault(){prevented=true;}});
+  article.listeners.touchend({changedTouches:[touch(300,105)],cancelable:true,preventDefault(){}});
   assert.equal(prevented,true);assert.equal(ui.elements.get('chatReply').hidden,false);
   ui.elements.get('chatReplyCancel').listeners.click();
   start();article.listeners.touchmove({touches:[touch(225,160)],cancelable:true,preventDefault(){throw new Error('Vertical scroll was blocked');}});
   article.listeners.touchend({changedTouches:[touch(160,160)]});
   assert.equal(ui.elements.get('chatReply').hidden,true);
-  start();article.listeners.touchmove({touches:[touch(160,105)],cancelable:true,preventDefault(){}});
+  start();article.listeners.touchmove({touches:[touch(300,105)],cancelable:true,preventDefault(){}});
   article.listeners.touchcancel();
-  article.listeners.touchend({changedTouches:[touch(160,105)]});
+  article.listeners.touchend({changedTouches:[touch(300,105)]});
   assert.equal(ui.elements.get('chatReply').hidden,true);
 });
 test('holding opens message actions, while a short swipe and scrolling never open the menu',async()=>{
@@ -188,8 +220,8 @@ test('holding opens message actions, while a short swipe and scrolling never ope
   assert.deepEqual(ui.elements.get('chatActionsContent').children.map(button=>button.textContent),['Ответить','Переслать','Удалить','Выбрать']);
   ui.elements.get('chatActionsClose').listeners.click();
   article.listeners.touchstart({touches:[{identifier:1,clientX:200,clientY:100}]});
-  article.listeners.touchmove({touches:[{identifier:1,clientX:175,clientY:100}],cancelable:true,preventDefault(){}});
-  article.listeners.touchend({changedTouches:[{identifier:1,clientX:175,clientY:100}],cancelable:true,preventDefault(){}});
+  article.listeners.touchmove({touches:[{identifier:1,clientX:225,clientY:100}],cancelable:true,preventDefault(){}});
+  article.listeners.touchend({changedTouches:[{identifier:1,clientX:225,clientY:100}],cancelable:true,preventDefault(){}});
   assert.equal(ui.elements.get('chatReply').hidden,true);assert.equal(ui.elements.get('chatActionsDialog').open,false);
 });
 test('personal deletion sends self scope and late history responses cannot restore its bubble',async()=>{
