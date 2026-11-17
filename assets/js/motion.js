@@ -2,7 +2,7 @@
 (() => {
   'use strict';
   const running = new WeakMap(), disclosures = new WeakMap(), closing = new WeakMap(), cascades = new WeakMap(), cardAnimations = new WeakMap();
-  const ease = 'cubic-bezier(.16,1,.3,1)';
+  const ease = 'cubic-bezier(.4,0,.2,1)';
   const reduced = () => document.hidden || window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
   function cascade(element) {
     if (!element) return false;
@@ -18,8 +18,8 @@
     const animations = targets.map((target, index) => {
       cardAnimations.get(target)?.cancel();
       const animation=target.animate([
-        {opacity:0, transform:'translateY(10px)'}, {opacity:1, transform:'translateY(0)'},
-      ], {duration:300, delay:Math.min(index, 4) * 70, easing:ease, fill:'backwards'});
+        {opacity:0, transform:'translateY(6px)'}, {opacity:1, transform:'translateY(0)'},
+      ], {duration:420, delay:Math.min(index, 4) * 45, easing:ease, fill:'backwards'});
       cardAnimations.set(target,animation);
       animation.finished.catch(()=>{}).then(()=>{if(cardAnimations.get(target)===animation)cardAnimations.delete(target);});
       return animation;
@@ -30,7 +30,7 @@
     });
     return true;
   }
-  function enter(element, {x = 0, y = 0, duration = 260} = {}) {
+  function enter(element, {x = 0, y = 0, duration = 420} = {}) {
     if (!element) return;
     running.get(element)?.cancel(); running.delete(element);
     if (cascade(element)) return;
@@ -48,16 +48,16 @@
     }, () => {});
   }
   function day(element, before, after) {
-    if (element?.querySelector?.('.day-off-weather')) {enter(element, {y:10});return;}
+    if (element?.querySelector?.('.day-off-weather')) {enter(element, {y:6});return;}
     const order = ['Понедельник','Вторник','Среда','Четверг','Пятница','Суббота','Воскресенье'];
-    enter(element, {x: order.indexOf(after) >= order.indexOf(before) ? 14 : -14});
+    enter(element, {x: order.indexOf(after) >= order.indexOf(before) ? 8 : -8});
   }
   function closeDialog(dialog) {
     if (!dialog?.open || closing.has(dialog)) return;
     if (reduced() || !dialog.animate) {dialog.close(); return;}
     dialog.setAttribute('data-motion-closing', '');
     const animation = dialog.animate([{opacity:1,transform:'scale(1)'},{opacity:0,transform:'scale(.975)'}],
-      {duration:180,easing:'ease-in',fill:'forwards'});
+      {duration:220,easing:ease,fill:'forwards'});
     closing.set(dialog, animation);
     const finish = () => {
       if (closing.get(dialog) !== animation) return;
@@ -79,7 +79,7 @@
     const overflow = details.style.overflow;
     details.style.overflow = 'hidden';
     details.setAttribute('data-motion-expanded', String(wanted));
-    const animation = details.animate([{height:`${from}px`},{height:`${to}px`}], {duration:260,easing:ease});
+    const animation = details.animate([{height:`${from}px`},{height:`${to}px`}], {duration:360,easing:ease});
     const entry = {animation,overflow,wanted}; disclosures.set(details, entry);
     const finish = () => {
       if (disclosures.get(details) !== entry) return;

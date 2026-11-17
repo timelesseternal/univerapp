@@ -962,7 +962,7 @@ if ('serviceWorker' in navigator) {
 <details class="gpa-card profile-gpa" id="profileGpaDetails" ${gpaExpanded ? 'open' : ''}>
         <summary class="profile-gpa-summary" aria-label="Академический GPA ${gpaText} из 4: раскрыть остальные показатели">
           <span class="profile-gpa-copy"><span class="gpa-label">Средний балл</span><span class="profile-gpa-score">${gpaText}<span>/ 4,00</span></span>${!hasAcademicGpa ? '<span class="profile-gpa-unavailable">Показатель пока недоступен</span>' : ''}</span>
-          <span class="profile-gpa-toggle">GPA <svg aria-hidden="true" class="profile-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"/></svg></span>
+          <span class="profile-gpa-toggle">GPA <svg aria-hidden="true" class="profile-chevron profile-gpa-arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m9 6 6 6-6 6"/></svg></span>
         </summary>
         <div class="profile-gpa-extra">
         <div class="gpa-row"><span class="gpa-label">Научный GPA</span><span class="gpa-value">${escapeHtml(s.scientificGpa ?? '—')}</span></div>

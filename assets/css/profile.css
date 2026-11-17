@@ -20,7 +20,7 @@
 #profileContainer .profile-gpa-score > span { font-size:13px; font-weight:500; color:var(--text-secondary); letter-spacing:0; }
 #profileContainer .profile-gpa-unavailable { font-size:12px; color:var(--text-secondary); }
 #profileContainer .profile-gpa-toggle { display:flex; align-items:center; gap:8px; color:var(--accent); font-size:12px; flex-shrink:0; }
-#profileContainer .profile-gpa[open] .profile-gpa-toggle .profile-chevron { transform:rotate(180deg); }
+#profileContainer .profile-gpa[open]:not([data-motion-expanded="false"]) .profile-gpa-toggle .profile-chevron { transform:rotate(90deg); }
 #profileContainer .profile-gpa-extra { margin-top:16px; padding-top:5px; border-top:1px solid var(--glass-border); }
 #profileContainer .profile-block { display:grid; gap:12px; min-width:0; }
 #profileContainer .profile-block > h2 { margin:0; font-size:14px; line-height:1.5; font-weight:700; letter-spacing:0; }
@@ -32,7 +32,7 @@
 #profileContainer .profile-tile-caption { font-size:11px; color:var(--text-secondary); line-height:1.5; margin-top:0; }
 #profileContainer .profile-tile-arrow { display:none; }
 #profileContainer .profile-row-icon, #profileContainer .profile-chevron { width:20px; height:20px; fill:none; stroke:currentColor; stroke-width:1.7; stroke-linecap:round; stroke-linejoin:round; flex:0 0 20px; }
-#profileContainer .profile-chevron { width:16px; height:16px; flex-basis:16px; margin-left:auto; color:var(--text-secondary); }
+#profileContainer .profile-chevron { width:16px; height:16px; flex-basis:16px; margin-left:auto; color:var(--text-secondary); transition:transform var(--motion-normal) var(--motion-ease); transform-origin:center; }
 #profileContainer .profile-row-copy { display:grid; gap:4px; min-width:0; }
 #profileContainer .profile-row-copy strong { font-size:14px; font-weight:700; }
 #profileContainer .profile-row-copy small { font-size:12px; line-height:1.45; color:var(--text-secondary); }
@@ -48,6 +48,7 @@
 #profileContainer .profile-notifications > summary::-webkit-details-marker { display:none; }
 #profileContainer .profile-notifications > summary > .profile-row-icon { color:var(--text-secondary); }
 #profileContainer .profile-notifications[open] > summary .profile-chevron { transform:rotate(180deg); }
+#profileContainer .profile-notifications[data-motion-expanded="false"] > summary .profile-chevron { transform:rotate(0deg); }
 #profileContainer .profile-notifications-body { padding:0 0 14px; }
 #profileContainer .push-setting { gap:12px; font-size:13px; }
 #profileContainer .push-setting:first-child { padding-top:2px; }

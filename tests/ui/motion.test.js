@@ -31,14 +31,14 @@ test('section transitions never transform fixed chat ancestors; rapid navigation
 });
 test('day navigation follows weekday direction without animating the dock',()=>{
   const s=setup(),content=s.element();
-  s.api.day(content,'Среда','Вторник');assert.match(s.animations[0].frames[0].transform,/-14px/);
-  s.api.day(content,'Вторник','Четверг');assert.match(s.animations[1].frames[0].transform,/\(14px/);
+  s.api.day(content,'Среда','Вторник');assert.match(s.animations[0].frames[0].transform,/-8px/);
+  s.api.day(content,'Вторник','Четверг');assert.match(s.animations[1].frames[0].transform,/\(8px/);
 });
 
 test('weather day-off panels enter vertically instead of sliding in from the right',()=>{
   const s=setup(),content=s.element();content.querySelector=()=>({});
   s.api.day(content,'Понедельник','Вторник');
-  assert.equal(s.animations[0].frames[0].transform,'translate(0px,10px)');
+  assert.equal(s.animations[0].frames[0].transform,'translate(0px,6px)');
 });
 
 test('a weather card shared by nested cascade roots never gets simultaneous entrance animations',async()=>{
@@ -57,7 +57,7 @@ test('cascade animates only visible cards, caps delay and cancels the previous g
   section.querySelectorAll=()=>cards;
   s.api.enter(section);
   assert.equal(s.animations.length,8);
-  assert.deepEqual(s.animations.map(a=>a.options.delay),[0,70,140,210,280,280,280,280]);
+  assert.deepEqual(s.animations.map(a=>a.options.delay),[0,45,90,135,180,180,180,180]);
   assert.equal(s.animations[0].options.fill,'backwards');
   const previous=[...s.animations];s.api.enter(section);
   assert.ok(previous.every(a=>a.cancelled));
