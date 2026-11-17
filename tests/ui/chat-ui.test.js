@@ -24,7 +24,7 @@ function setup(fetch, options = {}) {
     addEventListener(type, fn) { this.listeners[type] = fn; } };
   const timers = new Map(); let timerID = 0;
   const context = { document, window: options.window || {}, platonusStudent: options.student, fetch, URLSearchParams, AbortSignal,
-    authGeneration: 1, platonusSession: 'verified-session', crypto: { randomUUID: () => 'retry-id' },
+    authGeneration: 1, platonusSession: 'verified-session', crypto: { randomUUID: options.randomUUID || (() => 'retry-id') },
     setTimeout(fn, delay) { const id = ++timerID; timers.set(id, { fn, delay }); return id; },
     clearTimeout(id) { timers.delete(id); }, silentRelogin: async () => false, logout() {} };
   installLoading(context);
@@ -112,11 +112,12 @@ async function actionUI(options={}) {
     if(url.includes('action=messages')&&request.method==='DELETE')return reply({ok:true});
     if(url.includes('action=messages')&&request.method==='POST') {
       const body=JSON.parse(request.body);
+      if (options.send) return options.send(body);
       return reply({message:{...message,id:'2',senderID:'me',text:body.text || 'История',reply:body.replyTo?{...message,name:'Друг'}:null}});
     }
     if(url.includes('action=messages'))return reply({messages:[{...message,...options.message}],hasMore:false,actionsAvailable:true,deleteScopes:true,revision:'0',deletedIDs:[],...options.page?.()});
     return reply({ok:true});
-  },{window:{innerWidth:390}});
+  },{window:{innerWidth:390},randomUUID:options.randomUUID});
   ui.api.onSection('chat');await settle();
   await ui.elements.get('chatInbox').children[0].listeners.click();
   return {...ui,calls};
@@ -178,13 +179,13 @@ test('real touch swipe works on a quote, ignores touch-pointer cancellation, and
   article.listeners.touchend({changedTouches:[touch(160,105)]});
   assert.equal(ui.elements.get('chatReply').hidden,true);
 });
-test('holding opens three actions, while a short swipe and scrolling never open the menu',async()=>{
+test('holding opens message actions, while a short swipe and scrolling never open the menu',async()=>{
   const ui=await actionUI();
   const article=findClass(ui.elements.get('chatMessages'),'chat-message');
   article.listeners.touchstart({touches:[{identifier:1,clientX:200,clientY:100}]});
   const hold=[...ui.timers.values()].find(timer=>timer.delay===450);hold.fn();
   assert.equal(ui.elements.get('chatActionsDialog').open,true);
-  assert.deepEqual(ui.elements.get('chatActionsContent').children.map(button=>button.textContent),['Ответить','Переслать','Удалить']);
+  assert.deepEqual(ui.elements.get('chatActionsContent').children.map(button=>button.textContent),['Ответить','Переслать','Удалить','Выбрать']);
   ui.elements.get('chatActionsClose').listeners.click();
   article.listeners.touchstart({touches:[{identifier:1,clientX:200,clientY:100}]});
   article.listeners.touchmove({touches:[{identifier:1,clientX:175,clientY:100}],cancelable:true,preventDefault(){}});
@@ -217,7 +218,7 @@ test('own-message deletion requires confirmation and synchronizes quotes from in
   const ui=await actionUI({message:{senderID:'me'},page:()=>removed?{messages:[],deletedIDs:['1'],revision:'1'}:{}});
   findClass(ui.elements.get('chatMessages'),'chat-message').listeners.contextmenu({preventDefault(){}});
   const content=ui.elements.get('chatActionsContent');
-  assert.equal(content.children.length,3);
+  assert.equal(content.children.length,4);
   content.children[2].listeners.click();
   assert.equal(ui.calls.some(call=>call.method==='DELETE'),false);
   assert.equal(content.children[0].textContent,'Удалить у меня');
@@ -228,19 +229,88 @@ test('own-message deletion requires confirmation and synchronizes quotes from in
   removed=true;await ui.api.refreshNow();
   assert.equal(findClass(ui.elements.get('chatMessages'),'chat-message-more'),undefined);
 });
-test('forwarding shows a recipient and confirmation before sending source ID with no client-authored text',async()=>{
+test('forwarding opens the recipient composer and sends the source before a separate comment only on submit',async()=>{
   const ui=await actionUI();
   findClass(ui.elements.get('chatMessages'),'chat-message').listeners.contextmenu({preventDefault(){}});
   const content=ui.elements.get('chatActionsContent');
-  assert.equal(content.children.length,3);
+  assert.equal(content.children.length,4);
   content.children[1].listeners.click();
-  content.children[1].children[0].listeners.click();
+  await content.children[1].children[0].listeners.click();
   assert.equal(ui.calls.some(call=>call.method==='POST'&&call.url.includes('action=messages')),false);
-  const button=content.children[0];await button.listeners.click({currentTarget:button});
-  const sent=ui.calls.find(call=>call.method==='POST'&&call.url.includes('action=messages'));
-  assert.equal(JSON.parse(sent.body).forwardID,'1');
-  assert.equal(JSON.parse(sent.body).text,undefined);
-  assert.equal(ui.elements.get('chatActionsStatus').textContent,'Сообщение переслано');
+  assert.equal(ui.elements.get('chatActionsDialog').open,false);
+  assert.equal(ui.elements.get('chatThread').hidden,false);
+  assert.equal(ui.elements.get('chatReplyName').textContent,'Переслать сообщение');
+  assert.equal(ui.elements.get('chatSend').disabled,false);
+  ui.elements.get('chatText').value='Комментарий';
+  await ui.elements.get('chatComposer').listeners.submit({preventDefault(){}});
+  const sent=ui.calls.filter(call=>call.method==='POST'&&call.url.includes('action=messages')).map(call=>JSON.parse(call.body));
+  assert.equal(sent.length,2); assert.equal(sent[0].forwardID,'1'); assert.equal(sent[0].text,undefined);
+  assert.equal(sent[1].text,'Комментарий'); assert.equal(sent[1].forwardID,undefined);
+  assert.equal(ui.elements.get('chatReply').hidden,true);
+});
+
+test('the messages tab returns from a peer profile to the inbox and keeps the text draft',async()=>{
+  const ui=await actionUI();
+  ui.elements.get('chatText').value='Черновик';
+  ui.elements.get('chatPeerAvatar').listeners.click();
+  ui.api.showInbox();
+  assert.equal(ui.elements.get('chatThread').hidden,true);
+  assert.equal(ui.elements.get('chatPeerProfile').hidden,true);
+  assert.equal(ui.elements.get('chatInboxView').hidden,false);
+  await ui.elements.get('chatInbox').children[0].listeners.click();
+  assert.equal(ui.elements.get('chatText').value,'Черновик');
+});
+
+test('cancelling a forward preserves the comment and sends no source message',async()=>{
+  const ui=await actionUI();
+  findClass(ui.elements.get('chatMessages'),'chat-message').listeners.contextmenu({preventDefault(){}});
+  const content=ui.elements.get('chatActionsContent');content.children[1].listeners.click();
+  await content.children[1].children[0].listeners.click();
+  ui.elements.get('chatText').value='Только текст';
+  ui.elements.get('chatReplyCancel').listeners.click();
+  await ui.elements.get('chatComposer').listeners.submit({preventDefault(){}});
+  const sent=ui.calls.filter(call=>call.url.includes('action=messages')&&call.method==='POST');
+  assert.equal(sent.length,1);assert.equal(JSON.parse(sent[0].body).text,'Только текст');assert.equal(JSON.parse(sent[0].body).forwardID,undefined);
+});
+
+test('multi-selection forwards in order and retry does not resend the already successful source',async()=>{
+  let uuid=0,failed=false;const sent=[];
+  const ui=await actionUI({randomUUID:()=>`id-${++uuid}`,page:()=>({messages:[{...message},{...message,id:'2',text:'Второе'}]}),send:body=>{
+    sent.push(body);
+    if(body.forwardID==='2'&&!failed){failed=true;throw new Error('offline');}
+    return reply({message:{...message,id:String(10+sent.length),senderID:'me'}});
+  }});
+  findClass(ui.elements.get('chatMessages'),'chat-message').listeners.contextmenu({preventDefault(){}});
+  ui.elements.get('chatActionsContent').children[3].listeners.click();
+  let articles=ui.elements.get('chatMessages').children.flatMap(e=>e.className==='chat-selection-row'?e.children:[e]).filter(e=>e.className?.split(' ').includes('chat-message'));
+  articles[1].listeners.click({preventDefault(){},stopPropagation(){}});
+  assert.equal(ui.elements.get('chatSelectionCount').textContent,'Выбрано 2');
+  ui.elements.get('chatSelectionForward').listeners.click();
+  await ui.elements.get('chatActionsContent').children[1].children[0].listeners.click();
+  assert.equal(ui.elements.get('chatReplyName').textContent,'Переслать сообщения: 2');
+  await ui.elements.get('chatComposer').listeners.submit({preventDefault(){}});
+  assert.equal(ui.elements.get('chatReplyName').textContent,'Переслать сообщение');
+  await ui.elements.get('chatComposer').listeners.submit({preventDefault(){}});
+  assert.deepEqual(sent.map(item=>item.forwardID),['1','2','2']);
+  assert.equal(sent[1].clientID,sent[2].clientID);
+  assert.equal(ui.elements.get('chatReply').hidden,true);
+});
+
+test('multi-selection deletion waits for a scope confirmation and removes each selected message',async()=>{
+  const ui=await actionUI({page:()=>({messages:[{...message},{...message,id:'2',text:'Второе'}]})});
+  findClass(ui.elements.get('chatMessages'),'chat-message').listeners.contextmenu({preventDefault(){}});
+  ui.elements.get('chatActionsContent').children[3].listeners.click();
+  const articles=ui.elements.get('chatMessages').children.flatMap(e=>e.className==='chat-selection-row'?e.children:[e]).filter(e=>e.className?.split(' ').includes('chat-message'));
+  articles[1].listeners.click({preventDefault(){},stopPropagation(){}});
+  ui.elements.get('chatSelectionDelete').listeners.click();
+  assert.equal(ui.calls.some(call=>call.method==='DELETE'),false);
+  const button=ui.elements.get('chatActionsContent').children[0];
+  await button.listeners.click({currentTarget:button});
+  const removed=ui.calls.filter(call=>call.method==='DELETE').map(call=>JSON.parse(call.body));
+  assert.deepEqual(removed.map(item=>item.messageID),['1','2']);
+  assert.ok(removed.every(item=>item.scope==='self'));
+  assert.equal(findClass(ui.elements.get('chatMessages'),'chat-message'),undefined);
+  assert.equal(ui.elements.get('chatSelection').hidden,true);
 });
 
 test('malformed chat snapshots offer retry without corrupting the saved inbox',async()=>{

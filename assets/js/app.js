@@ -2247,6 +2247,7 @@ if ('serviceWorker' in navigator) {
   }
   async function tapTab(section) {
     window.unilinkUpdates?.check(true);
+    if (section === 'chat') window.univerChat?.showInbox?.();
     if (section !== currentSection) { switchSection(section); return animateTabRefresh(section); }
     if (refreshingTabs.has(section)) return;
     refreshingTabs.add(section);

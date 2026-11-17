@@ -50,3 +50,12 @@ test('tapping another tab navigates without refreshing the old screen', async ()
   ui.finishTurn(); await running;
   assert.equal(ui.classes.size, 0);
 });
+
+test('the messages tab resets nested chat navigation before switching or refreshing',async()=>{
+  for (const section of ['schedule','chat']) {
+    const ui=setup(section);let returned=0;
+    ui.context.window.univerChat.showInbox=()=>returned++;
+    const running=ui.context.tapTab('chat');
+    assert.equal(returned,1);ui.finishTurn();ui.finish();await running;
+  }
+});

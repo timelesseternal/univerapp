@@ -22,7 +22,7 @@
 #sectionSchedule .schedule-toolbar .weather-widget { min-width:0; max-width:132px; overflow:hidden; white-space:nowrap; text-overflow:ellipsis; text-align:center; }
 #sectionSchedule .status-info-left { gap:2px; padding:0; }
 #sectionSchedule .status-bar { align-items:center; }
-#sectionSchedule .status-bar > .today-btn { flex-shrink:0; min-height:var(--control-height); height:var(--control-height); padding:10px 12px; border:1px solid var(--glass-border); border-radius:var(--control-radius); background:var(--surface-bg); }
+#sectionSchedule .status-bar > .today-btn { box-sizing:border-box; flex:0 0 auto; min-width:78px; min-height:var(--control-height); height:var(--control-height); padding:10px 12px; border:1px solid var(--glass-border); border-radius:var(--control-radius); background:var(--surface-bg); color:var(--ink); line-height:22px; }
 #sectionSchedule .schedule-week-tools { margin-bottom:12px; }
 #sectionSchedule .week-stepper { border:1px solid var(--glass-border); border-radius:18px; box-shadow:none; background:var(--surface-bg); margin:0; }
 #sectionSchedule .week-step-label { font-size:13px; font-weight:600; }

@@ -96,6 +96,10 @@ html, body { height:100%; min-height:0; overflow:hidden; overscroll-behavior:non
   line-height: 1;
 }
 
+:is(.action-icon,.profile-row-icon,.profile-chevron,.profile-gpa-arrow,.academic-chevron,.bottom-tab-icon),
+:is(.appearance-toggle,.theme-btn,.chat-action-symbol,.chat-send,.chat-attach) svg {
+  stroke-width:1.8; stroke-linecap:round; stroke-linejoin:round;
+}
 /* Schedule day and lesson status stay together below the top toolbar. */
 #sectionSchedule .status-bar {
   display: flex;

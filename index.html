@@ -186,7 +186,7 @@
     <section class="app-section" id="sectionCalendar" style="display:none;" aria-label="Академический календарь"><button type="button" class="profile-back navigation-back" data-action="switchSection('profile')"><svg aria-hidden="true" class="action-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m14 6-6 6 6 6"/></svg><span>Назад</span></button><div class="academic-container" id="calendarContainer"></div></section>
     <section class="app-section" id="sectionTranscript" style="display:none;" aria-label="Транскрипт"><button type="button" class="profile-back navigation-back" data-action="switchSection('profile')"><svg aria-hidden="true" class="action-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m14 6-6 6 6 6"/></svg><span>Назад</span></button><div class="academic-container" id="transcriptContainer"></div></section>
     <section class="app-section chat-section" id="sectionChat" style="display:none;" aria-label="Личные сообщения">
-      <div class="screen-brand"><span>uniq<span class="brand-dot">.</span></span><small>Сообщения</small></div>
+      <div class="screen-brand"><span>uniq<span class="brand-dot">.</span></span></div>
       <header class="chat-page-header">
         <h1 class="masthead-headline">Сообщения</h1>
         <div id="chatHeaderSearch" class="chat-header-search">
@@ -209,28 +209,31 @@
           <button id="chatPeerAvatar" type="button" class="chat-avatar chat-profile-trigger" aria-label="Открыть профиль собеседника"></button>
           <div class="chat-peer-info"><h2 id="chatPeerName" class="chat-peer-name"></h2><span id="chatPeerStatus" class="chat-peer-caption" role="status">Статус неизвестен</span></div>
         </header>
+        <div id="chatSelection" class="chat-selection" hidden><strong id="chatSelectionCount">Выбрано 0</strong><button id="chatSelectionCancel" type="button">Отмена</button></div>
         <button id="chatOlder" class="chat-older" type="button" hidden>Предыдущие сообщения</button>
         <div id="chatMessages" class="chat-messages" role="log" aria-label="История сообщений" tabindex="0"></div>
         <div id="chatTyping" class="chat-typing" role="status" aria-label="Собеседник печатает" hidden><span></span><span></span><span></span></div>
         <div id="chatReply" class="chat-reply-compose" hidden>
-          <svg class="chat-reply-icon" aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M9 7 4 12l5 5v-4h4c3 0 5 2 7 5 0-7-3-10-7-10H9Z"/></svg>
+          <svg class="chat-reply-icon" aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="m9 17-5-5 5-5M4 12h11a5 5 0 0 1 5 5v2"/></svg>
           <div><strong id="chatReplyName"></strong><p id="chatReplyText"></p></div>
           <button id="chatReplyCancel" type="button" aria-label="Отменить ответ"><svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="m6 6 12 12M18 6 6 18"/></svg></button>
         </div>
         <form id="chatComposer" class="chat-composer">
+          <button id="chatAttach" class="chat-attach" type="button" aria-label="Прикрепить файл — скоро" aria-disabled="true" title="Прикрепление файлов появится позже"><svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="m21 11-8.5 8.5a6 6 0 0 1-8.5-8.5L13 2a4 4 0 0 1 5.7 5.7l-9 9a2 2 0 0 1-2.8-2.8l8.5-8.5"/></svg></button>
           <label class="chat-sr-only" for="chatText">Сообщение</label>
           <textarea id="chatText" rows="1" maxlength="2000" placeholder="Сообщение…"></textarea>
           <button id="chatSend" class="chat-send" type="submit" aria-label="Отправить сообщение" disabled>
-            <svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 19V5m-6 6 6-6 6 6"/></svg>
+            <svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="m21 3-6 18-4-8-8-4 18-6ZM21 3 11 13"/></svg>
           </button>
         </form>
+        <div id="chatSelectionActions" class="chat-selection-actions" hidden><button id="chatSelectionDelete" type="button" aria-label="Удалить выбранные сообщения"><svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18M9 6V3h6v3M5 6l1 15h12l1-15M10 10v7m4-7v7"/></svg></button><button id="chatSelectionForward" type="button" aria-label="Переслать выбранные сообщения"><svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="m15 17 5-5-5-5M20 12H9a5 5 0 0 0-5 5v2"/></svg></button></div>
       </div>
       <section id="chatPeerProfile" class="chat-peer-profile" aria-label="Профиль собеседника" hidden>
         <button id="chatProfileBack" type="button" class="profile-back navigation-back"><svg aria-hidden="true" class="action-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m14 6-6 6 6 6"/></svg><span>Назад</span></button>
         <div id="chatPeerProfileContent" aria-live="polite"></div>
       </section>
       <dialog id="chatActionsDialog" class="chat-actions-dialog" aria-labelledby="chatActionsTitle">
-        <header><h2 id="chatActionsTitle">Сообщение</h2><button id="chatActionsClose" type="button" aria-label="Закрыть действия с сообщением">×</button></header>
+        <header><h2 id="chatActionsTitle">Сообщение</h2><button id="chatActionsClose" type="button" aria-label="Закрыть действия с сообщением"><svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="m6 6 12 12M18 6 6 18"/></svg></button></header>
         <p id="chatActionsPreview" class="chat-actions-preview"></p>
         <div id="chatActionsContent"></div>
         <p id="chatActionsStatus" class="chat-actions-status" role="status"></p>
