@@ -1039,7 +1039,7 @@ if ('serviceWorker' in navigator) {
       return;
     }
 
-    let html = `<div class="screen-brand"><span>uniq<span class="brand-dot">.</span></span></div><header class="screen-heading"><p>Твои результаты</p><h1>Оценки</h1></header>`;
+    let html = `<header class="screen-brand grades-toolbar"><span>uniq<span class="brand-dot">.</span></span><div class="grades-heading"><p>Твои результаты</p><h1>Оценки</h1></div></header>`;
 
     const subjects = Array.isArray(liveJournalData) ? liveJournalData.filter(subj => subj && typeof subj === 'object') : null;
     if (subjects?.length) {
@@ -1398,17 +1398,6 @@ if ('serviceWorker' in navigator) {
     }
   }
 
-  function weatherEmoji(code) {
-    if (code === 0) return '☀';
-    if (code >= 1 && code <= 3) return '⛅';
-    if (code >= 45 && code <= 48) return '≈';
-    if (code >= 51 && code <= 67) return '☂';
-    if (code >= 71 && code <= 77) return '❄';
-    if (code >= 80 && code <= 82) return '☔';
-    if (code >= 95) return '⚡';
-    return '—';
-  }
-
   function weatherDescription(code) {
     const map = {
       0: 'Ясно', 1: 'Малооблачно', 2: 'Облачно с прояснениями', 3: 'Пасмурно',
@@ -1739,15 +1728,6 @@ if ('serviceWorker' in navigator) {
     unlockBodyScroll();
   }
 
-  function openPdf(title, url) {
-    haptic('light');
-    if (tg && tg.openLink) {
-      tg.openLink(url);
-    } else {
-      window.open(url, '_blank');
-    }
-  }
-
   const contentAnimations = new WeakMap();
   function swapContent(container, html, animate = true, onInserted) {
     // Commit synchronously: an old transition can never overwrite newer data.
@@ -1961,8 +1941,7 @@ if ('serviceWorker' in navigator) {
       browsedWeekInfo.week === trueCurrentWeekInfo.week);
   }
 
-
-  const DAY_NAMES_BY_INDEX = ['Воскресенье', 'Понедельник', 'Вторник', 'Среда', 'Четверг', 'Пятница', 'Суббота'];
+const DAY_NAMES_BY_INDEX = ['Воскресенье', 'Понедельник', 'Вторник', 'Среда', 'Четверг', 'Пятница', 'Суббота'];
 
   function detectToday(resetSelected = false) {
     realTodayName = DAY_NAMES_BY_INDEX[new Date().getDay()];
@@ -2229,26 +2208,10 @@ if ('serviceWorker' in navigator) {
   }
 
   const refreshingTabs = new Set();
-  const tabTurns = new Map();
-  function animateTabRefresh(section) {
-    if (tabTurns.has(section)) return tabTurns.get(section);
-    const button = document.getElementById('section-' + section);
-    const reduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-    if (!reduced) button.classList.add('tab-refreshing');
-    const turn = new Promise(resolve => setTimeout(() => {
-      if (tabTurns.get(section) === turn) {
-        button.classList.remove('tab-refreshing');
-        tabTurns.delete(section);
-      }
-      resolve();
-    }, reduced ? 0 : 1100));
-    tabTurns.set(section, turn);
-    return turn;
-  }
   async function tapTab(section) {
     window.unilinkUpdates?.check(true);
     if (section === 'chat') window.univerChat?.showInbox?.();
-    if (section !== currentSection) { switchSection(section); return animateTabRefresh(section); }
+    if (section !== currentSection) { switchSection(section); return; }
     if (refreshingTabs.has(section)) return;
     refreshingTabs.add(section);
     const button = document.getElementById('section-' + section);
@@ -2256,7 +2219,7 @@ if ('serviceWorker' in navigator) {
     button.setAttribute('aria-busy', 'true');
     haptic('light');
     const reduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-    const turn = animateTabRefresh(section);
+    if (!reduced) button.classList.add('tab-refreshing');
     if (section !== 'chat') scrollAppTo({ top: 0, behavior: reduced ? 'auto' : 'smooth' });
     try {
       const refreshData = async () => {
@@ -2272,11 +2235,12 @@ if ('serviceWorker' in navigator) {
         }
         if (generation === authGeneration && currentSection === section) renderCurrentSection();
       };
-      await Promise.allSettled([refreshData(), turn]);
+      await refreshData();
     } catch (error) {
       // Keep the last rendered data; each loader presents its own failure state.
     } finally {
       refreshingTabs.delete(section);
+      button.classList.remove('tab-refreshing');
       button.removeAttribute('aria-busy');
     }
   }
@@ -2291,7 +2255,6 @@ if ('serviceWorker' in navigator) {
 
     document.querySelectorAll('.bottom-tab-btn').forEach(btn => {
       btn.classList.remove('active', 'tab-refreshing');
-      tabTurns.delete(btn.id.replace('section-', ''));
     });
     const profileChild = ['umkd', 'exams', 'calendar', 'transcript'].includes(section);
     const activeBtn = document.getElementById(`section-${profileChild ? 'profile' : section}`);
@@ -2777,7 +2740,6 @@ if ('serviceWorker' in navigator) {
     setViewportZoomable(false);
   }
 
-
   let EXAMS_SCHEDULE = null;
   let examsLoadFailed = false, examsUpdatedAt = 0, examsRequest = null;
   function fetchExams(force = false) {
@@ -2982,7 +2944,6 @@ if ('serviceWorker' in navigator) {
     document.addEventListener('visibilitychange', checkStudyChanges);
 
     await restoreSavedLogin();
-
 
   });
   window.addEventListener('offline', () => {

@@ -17,7 +17,7 @@
 .chat-thread:not([hidden]) { animation: interfaceEnter var(--motion-enter) var(--motion-ease); }
 .profile-menu[open] .profile-menu-items, .profile-gpa[open] .profile-gpa-extra { animation:none; }
 /* JavaScript owns the cascade on navigation; background refreshes stay still. */
-.row-enter, .bottom-tab-icon.icon-filled.pop { animation: none !important; }
+.row-enter { animation: none !important; }
 #scheduleContainer, .section-inner { transition: none; }
 button, .day-btn, .theme-btn, .profile-menu summary, .profile-gpa summary,
 .chat-person, .umkd-subject-row {

@@ -648,6 +648,21 @@ test('a concurrent send cannot move the cursor past undelivered history pages', 
   assert.deepEqual(messageTexts(ui), [...history.map(item => item.text), 'Привет']);
 });
 
+test('unchanged history polling skips storage writes while new messages persist immediately',async()=>{
+  let writes=0,changed=false;
+  const ui=setup(async url=>{
+    if(url.includes('action=session'))return reply({profile,conversations:[conversation]});
+    if(url.includes('action=messages'))return reply({messages:[{...message,text:changed?'Новое сообщение':message.text}],hasMore:false});
+    return reply({conversations:[conversation],ok:true});
+  },{student:{studentID:23},window:{innerWidth:390,sessionStorage:{getItem:()=>null,setItem(){writes++;}}}});
+  ui.api.onSection('chat');await settle();await ui.elements.get('chatInbox').children[0].listeners.click();
+  await settle();const initial=writes;assert.ok(initial>0);
+  const poll=()=>[...ui.timers.values()].find(timer=>timer.delay>=250&&timer.delay<=2500).fn();
+  await poll();await poll();assert.equal(writes,initial);
+  changed=true;await poll();assert.ok(writes>initial);
+  assert.deepEqual(messageTexts(ui),['Новое сообщение']);
+});
+
 test('unchanged inbox refresh preserves its DOM and logout resets the render cache', async () => {
   const ui = setup(async (url, options) => {
     if (options.method === 'DELETE') return reply({ ok: true });

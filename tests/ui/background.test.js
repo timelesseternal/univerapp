@@ -32,7 +32,8 @@ function setup({ reduced = false, saveData = false, available = true } = {}) {
     get paints() { return paints; }, start: () => pages.get('univer-ready')?.(),
     step(timestamp) { const [id, callback] = [...frames][0]; frames.delete(id); callback(timestamp); },
     appearance(rgb) { accent = rgb; observer(); },
-    wrapped(open) { if (open) bodyClasses.add('wrapped-open'); else bodyClasses.delete('wrapped-open'); bodyObserver(); } };
+    wrapped(open) { if (open) bodyClasses.add('wrapped-open'); else bodyClasses.delete('wrapped-open'); bodyObserver(); },
+    keyboard(open) { if (open) bodyClasses.add('chat-keyboard-open'); else bodyClasses.delete('chat-keyboard-open'); bodyObserver(); } };
 }
 
 function recordPaths(viewportWidth = 390, viewportHeight = 844) {
@@ -165,4 +166,12 @@ test('opaque recap pauses the background and closing it resumes animation', () =
   assert.equal(env.frames.size, 1);
   env.step(500000); env.step(500040);
   assert.ok(env.paints > before);
+});
+
+test('software keyboard pauses background frames and dismissal resumes them without a time jump',()=>{
+  const env=setup();env.start();env.step(0);env.step(40);const before=env.paints;
+  env.keyboard(true);assert.equal(env.frames.size,0);assert.equal(env.paints,before);
+  env.keyboard(false);assert.equal(env.frames.size,1);
+  env.step(900000);assert.equal(env.paints,before);
+  env.step(900040);assert.ok(env.paints>before);
 });

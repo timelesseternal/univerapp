@@ -341,6 +341,7 @@
     const id = typeof platonusStudent !== 'undefined' && Number(platonusStudent?.studentID);
     return Number.isSafeInteger(id) && id > 0 ? `univer-chat-preview-${id}` : null;
   }
+  let previewWrittenAt = 0;
   function persistPreview() {
     const key = previewKey();
     if (!key || !state.profile) return;
@@ -349,7 +350,7 @@
       const history = [...state.history].slice(-5).map(([id, entry]) => [id,
         { messages: entry.messages.slice(-40), hasOlder: entry.hasOlder || entry.messages.length > 40, at: entry.at }]);
       const snapshot = JSON.stringify({ at: Date.now(), profileID: state.profile.id, inbox: state.inbox.slice(0, 30), history });
-      if (snapshot.length < 300000) window.sessionStorage?.setItem(key, snapshot);
+      if (snapshot.length < 300000) { window.sessionStorage?.setItem(key, snapshot); previewWrittenAt = Date.now(); }
     } catch { /* Memory previews still work when session storage is unavailable. */ }
   }
   function restorePreview() {
@@ -771,9 +772,14 @@
       if (typeof hiddenID === 'string' && /^[1-9]\d{0,18}$/.test(hiddenID)) { deletedMessages.add(hiddenID); changed = true; }
     }
     for (const deletedID of deletedMessages) eraseMessage(deletedID);
-    rememberHistory();
-    if (changed || initial || older) drawMessages({ scroll: initial ? 'bottom' : older ? 'older' : 'keep',
-      newIDs: initial || older ? new Set() : newIDs });
+    if (changed || initial || older) {
+      rememberHistory();
+      drawMessages({ scroll: initial ? 'bottom' : older ? 'older' : 'keep',newIDs: initial || older ? new Set() : newIDs });
+    } else {
+      const cached = state.history.get(id);
+      if (cached) cached.at = Date.now();
+      if (Date.now() - previewWrittenAt >= 60000) persistPreview();
+    }
     // Continue from this response, not a newer message concurrently sent locally.
     if (params.after && data.hasMore && data.messages.length) {
       const cursor = data.messages.at(-1).id;

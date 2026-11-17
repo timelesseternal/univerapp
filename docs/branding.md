@@ -2,7 +2,7 @@
 
 Полное строчное название `uniq.` набрано светлыми буквами с сиреневой точкой на тёмном фоне. Текущая версия — `uniq-v2-*`: надпись увеличена примерно на 10%, обычные иконки имеют скруглённые прозрачные углы радиусом около 23%.
 
-- [PNG-мастер](../assets/icons/uniq-v2-master.png).
+- [PNG-мастер](branding/uniq-master.png).
 - [512 × 512](../assets/icons/uniq-v2-512.png) и [192 × 192](../assets/icons/uniq-v2-192.png) для установки.
 - [Maskable 512 × 512](../assets/icons/uniq-v2-maskable-512.png) для Android.
 - [Apple touch 180 × 180](../assets/icons/uniq-v2-apple-touch-180.png).

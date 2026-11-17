@@ -26,11 +26,11 @@ html, body { height:100%; min-height:0; overflow:hidden; overscroll-behavior:non
 .tab-refresh-icon { color:var(--text-secondary); }
 .content-loading svg { display:block; width:38px; height:38px; }
 .content-loading-track { opacity:.24; }
-.content-loading-arrow { transform-box:view-box; transform-origin:16px 16px; animation:contentLoadingTurn .9s linear infinite; }
+.loading-ring { transform-origin:50% 50%; animation:contentLoadingTurn .9s linear infinite; }
 .content-loading-compact { display:inline-grid; min-height:0; vertical-align:middle; }
 .content-loading-compact svg { width:18px; height:18px; }
 @keyframes contentLoadingTurn { to { transform:rotate(360deg); } }
-@media(prefers-reduced-motion:reduce) { .content-loading-arrow { animation:none; } }
+@media(prefers-reduced-motion:reduce) { .loading-ring { animation:none; } }
 .exam-when { color:var(--accent); font-size:13px; font-weight:700; line-height:1.5; overflow-wrap:anywhere; }
 .exam-title { margin:8px 0; font-size:18px; line-height:1.45; letter-spacing:-.02em; overflow-wrap:anywhere; }
 .exam-card .row-meta { margin:0; overflow-wrap:anywhere; }

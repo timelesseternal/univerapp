@@ -5,8 +5,8 @@ import {readFileSync} from 'node:fs';
 const source=readFileSync(new URL('../../assets/js/navigation.js',import.meta.url),'utf8');
 function setup(){
   const nodes=new Map(),events={},stack=[null],actions=[];
-  let index=0,observer,loggedOut=false;
-  function node(id){if(!nodes.has(id))nodes.set(id,{shown:false,getClientRects(){return this.shown?[{}]:[];},
+  let index=0,observer,loggedOut=false,layoutReads=0;
+  function node(id){if(!nodes.has(id))nodes.set(id,{id,shown:false,getClientRects(){layoutReads++;return this.shown?[{}]:[];},
     hasAttribute(name){return name==='data-motion-closing' && !!this.closing;},
     classList:{contains:()=>false},querySelector:()=>null,click(){actions.push(id);}});return nodes.get(id);}
   const history={get state(){return stack[index];},replaceState(state){stack[index]=state;},pushState(state){stack.splice(++index);stack.push(state);},go(n){index+=n;},back(){this.go(-1);}};
@@ -17,7 +17,7 @@ function setup(){
   const nativeBack=()=>{history.back();pop();};
   node('chatBack').click=()=>{actions.push('chat');node('chatThread').shown=false;};
   node('chatProfileBack').click=()=>{actions.push('profile');node('chatPeerProfile').shown=false;node('chatThread').shown=true;};
-  return {node,actions,history,observer,nativeBack,pop,stack,logout:()=>{loggedOut=true;observer();}};
+  return {node,actions,history,observer,nativeBack,pop,stack,get layoutReads(){return layoutReads;},logout:()=>{loggedOut=true;observer();}};
 }
 test('native back closes peer profile, then the conversation, one level at a time',()=>{
   const app=setup();app.node('sectionChat').shown=true;app.node('chatThread').shown=true;app.observer();
@@ -64,4 +64,14 @@ test('city and accent pickers do not participate in native back history',()=>{
     modal.shown=false;modal.classList.contains=()=>false;app.observer();
     assert.equal(app.history.state.unilinkNavigation.depth,0);
   }
+});
+
+test('message swipes and polling do not force navigation layout reads',()=>{
+  const app=setup(),before=app.layoutReads;
+  app.observer([{type:'attributes',target:{id:'',tagName:'ARTICLE'}}]);
+  app.observer([{type:'childList',target:{id:'chatMessages'},addedNodes:[{tagName:'ARTICLE'}],removedNodes:[]}]);
+  assert.equal(app.layoutReads,before);
+  app.node('sectionChat').shown=true;app.node('chatThread').shown=true;
+  app.observer([{type:'attributes',target:app.node('chatThread')}]);
+  assert.ok(app.layoutReads>before);assert.equal(app.history.state.unilinkNavigation.depth,1);
 });

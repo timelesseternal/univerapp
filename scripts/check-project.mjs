@@ -19,6 +19,10 @@ let checked = 0;
 for (const path of files.filter(path => ['.js', '.mjs'].includes(extname(path)))) {
   const result = spawnSync(process.execPath, ['--check', path], { encoding: 'utf8' });
   if (result.status !== 0) throw new Error(result.stderr || `Invalid JavaScript: ${path}`);
+  const source = readFileSync(path,'utf8');
+  for (const match of source.matchAll(/\b(?:import|export)\s+(?:[^'";\n]*?\s+from\s*)?['"]([^'"]+)['"]/g)) {
+    if (/^\.{1,2}\//.test(match[1])) verify(match[1],path);
+  }
   checked++;
 }
 function verify(reference, source) {
@@ -49,4 +53,4 @@ const lock = JSON.parse(readFileSync(resolve(root, 'package-lock.json'), 'utf8')
 if (JSON.stringify(packageJSON.engines) !== JSON.stringify(lock.packages[''].engines)) {
   throw new Error('Node.js requirements differ between package.json and package-lock.json');
 }
-console.log(`Checked ${checked} JavaScript files, HTML/CSS resources, documentation links, manifest icons, runtime metadata and service worker paths.`);
+console.log(`Checked ${checked} JavaScript files and local imports, HTML/CSS resources, documentation links, manifest icons, runtime metadata and service worker paths.`);

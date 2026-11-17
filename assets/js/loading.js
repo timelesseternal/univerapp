@@ -1,7 +1,7 @@
 (() => {
   'use strict';
   const escape = value => String(value).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
-  const icon = () => '<svg aria-hidden="true" viewBox="0 0 32 32" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><circle class="content-loading-track" cx="16" cy="16" r="11"/><circle class="content-loading-arrow" cx="16" cy="16" r="11" stroke-dasharray="24 46" transform="rotate(-90 16 16)"/></svg>';
+  const icon = () => '<svg class="loading-ring" aria-hidden="true" viewBox="0 0 32 32" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><circle class="content-loading-track" cx="16" cy="16" r="11"/><circle class="content-loading-arrow" cx="16" cy="16" r="11" stroke-dasharray="24 46" transform="rotate(-90 16 16)"/></svg>';
   window.unilinkLoading = {
     icon,
     html(label = 'Загрузка', compact = false) {

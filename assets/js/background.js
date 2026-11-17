@@ -142,7 +142,8 @@
     }
   }
   function allowed() {
-    return ready && !suspended && !document.hidden && !document.body.classList.contains('wrapped-open') && !motion.matches && !connection?.saveData;
+    return ready && !suspended && !document.hidden && !document.body.classList.contains('wrapped-open')
+      && !document.body.classList.contains('chat-keyboard-open') && !motion.matches && !connection?.saveData;
   }
   function tick(timestamp) {
     frame = null;

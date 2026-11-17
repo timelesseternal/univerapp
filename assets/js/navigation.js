@@ -72,7 +72,17 @@
     history.replaceState(marker(entries.length), '');
     sync();
   });
-  const observer = new window.MutationObserver(sync);
+  const screenIDs = new Set(['sectionChat','sectionUmkd','sectionExams','sectionCalendar','sectionTranscript',
+    'chatThread','chatPeerProfile','umkdFileOverlay','umkdContainer']);
+  const observer = new window.MutationObserver(records => {
+    // Message swipes, typing indicators and progress bars do not change Back history.
+    const relevant = !records || records.some(record => {
+      const target = record.target;
+      if (target === document.body || screenIDs.has(target?.id) || target?.tagName === 'DIALOG') return true;
+      return record.type === 'childList' && [...record.addedNodes,...record.removedNodes].some(node => node.tagName === 'DIALOG');
+    });
+    if (relevant) sync();
+  });
   observer.observe(document.body,{subtree:true,childList:true,attributes:true,attributeFilter:['class','style','hidden','open','data-motion-closing']});
   sync();
 })();

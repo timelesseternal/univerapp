@@ -19,10 +19,6 @@
       --accent-tint-strong: rgba(59, 130, 246, 0.16);
       --accent-tint-soft: rgba(59, 130, 246, 0.06);
 
-
-
-
-
       /* Панель управления Telegram в fullscreen-режиме (кнопка «Закрыть»,
          шеврон, «•••») занимает собственную высоту поверх WebView, которую
          env(safe-area-inset-top) не учитывает. Telegram сообщает её через
@@ -106,18 +102,12 @@
     .masthead-eyebrow {
       display: block;
 
-
-
       color: var(--accent);
       margin-bottom: 2px;
     }
 
     .masthead-headline {
       display: block;
-
-
-
-
 
       color: var(--ink);
       white-space: nowrap;
@@ -129,8 +119,6 @@
       display: flex;
       align-items: center;
       gap: 6px;
-
-
 
       color: var(--ink-soft);
       margin-top: 6px;
@@ -174,8 +162,6 @@
 
     .weather-widget, .theme-btn {
 
-
-
       color: var(--ink);
       background: var(--paper-2);
       border: none;
@@ -198,8 +184,6 @@
       border: none;
       border-radius: 20px;
       padding: 6px 12px;
-
-
 
       cursor: pointer;
       transition: transform 0.15s ease, opacity 0.15s ease;
@@ -237,8 +221,6 @@
 
     .modal-title {
 
-
-
       margin-bottom: 14px;
       color: var(--ink);
       padding-bottom: 12px;
@@ -252,7 +234,6 @@
       border-bottom: 0.5px solid var(--line);
       background: transparent;
       color: var(--ink);
-
 
       outline: none;
       margin-bottom: 12px;
@@ -268,7 +249,6 @@
     }
     .city-list-item {
       padding: 11px 4px;
-
 
       color: var(--ink);
       cursor: pointer;
@@ -289,7 +269,6 @@
       text-align: center;
       color: var(--ink-soft);
 
-
     }
 
     .modal-buttons { display: flex; gap: 10px; }
@@ -298,8 +277,6 @@
       padding: 11px;
       border: none;
       border-radius: 12px;
-
-
 
       cursor: pointer;
       background: var(--paper);
@@ -322,7 +299,6 @@
       border-radius: 12px;
       padding: 10px 4px;
       cursor: pointer;
-
 
       text-align: center;
       transition: box-shadow 0.15s ease, transform 0.15s ease;
@@ -348,8 +324,6 @@
       padding: 11px;
       margin-bottom: 14px;
       cursor: pointer;
-
-
 
       display: flex;
       align-items: center;
@@ -381,8 +355,6 @@
       background: none;
       color: var(--ink);
 
-
-
       border-radius: 8px;
       cursor: pointer;
       display: flex;
@@ -396,8 +368,6 @@
     .week-step-label {
       flex: 1;
       text-align: center;
-
-
 
       color: var(--ink);
     }
@@ -433,8 +403,6 @@
       background: none;
       color: var(--ink-soft);
 
-
-
       border-radius: 8px;
       cursor: pointer;
       text-align: center;
@@ -462,8 +430,6 @@
       padding: 8px 4px;
       background: none;
       border-radius: 8px;
-
-
 
       color: var(--accent);
       position: relative;
@@ -513,7 +479,6 @@
     .row-index-main {
       display: block;
 
-
       color: var(--ink);
     }
     .row-index-sub {
@@ -535,9 +500,6 @@
     }
     .row-title {
 
-
-
-
       color: var(--ink);
 
     }
@@ -546,8 +508,6 @@
       display: flex;
       align-items: center;
       gap: 5px;
-
-
 
       color: var(--accent);
     }
@@ -562,8 +522,6 @@
     .row-tags { margin-top: 8px; display: flex; flex-wrap: wrap; gap: 6px; }
     .tag {
       display: inline-block;
-
-
 
       padding: 3px 8px;
       border-radius: 20px;
@@ -595,16 +553,11 @@
     }
     .notice-eyebrow {
 
-
-
       color: var(--accent);
       margin-bottom: 6px;
       display: block;
     }
     .notice-title {
-
-
-
 
       color: var(--ink);
       margin-bottom: 16px;
@@ -612,20 +565,16 @@
     .notice-divider { height: 0.5px; background: var(--line); margin: 16px 0; }
     .notice-hint {
 
-
       color: var(--ink);
 
     }
     .notice-hint-label {
       display: block;
 
-
-
       color: var(--ink-soft);
       margin-bottom: 6px;
     }
     .empty-state.compact {
-
 
       color: var(--ink-soft);
       padding: 10px 0;
@@ -678,8 +627,6 @@
       border-bottom: 0.5px solid var(--line);
       cursor: pointer;
 
-
-
       color: var(--ink);
     }
 
@@ -700,8 +647,6 @@
       border: none;
       padding: 8px 0;
       margin-bottom: 12px;
-
-
 
       color: var(--accent);
       cursor: pointer;
@@ -746,22 +691,16 @@
     .login-card { max-width: 380px; margin: 0 auto; width: 100%; }
     .login-title {
 
-
-
-
       color: var(--ink);
       margin-bottom: 4px;
     }
     .login-subtitle {
-
 
       color: var(--ink-soft);
       margin-bottom: 24px;
 
     }
     .login-field-label {
-
-
 
       color: var(--ink-soft);
       margin-bottom: 6px;
@@ -774,7 +713,6 @@
       border-radius: 12px;
       background: var(--paper-2);
       color: var(--ink);
-
 
       outline: none;
       margin-bottom: 14px;
@@ -817,8 +755,6 @@
       background: var(--accent);
       color: var(--accent-text);
 
-
-
       cursor: pointer;
       margin-top: 6px;
       transition: transform 0.15s ease, opacity 0.15s ease;
@@ -827,7 +763,6 @@
     .login-submit:disabled { opacity: 0.6; }
     .login-error {
 
-
       color: #DC2626;
       margin-top: 12px;
       display: none;
@@ -835,7 +770,6 @@
     }
     .login-error.visible { display: block; }
     .login-hint {
-
 
       color: var(--ink-soft);
       margin-top: 18px;
@@ -870,9 +804,6 @@
     .grade-card:not(:last-child) { margin-bottom: 10px; }
     .grade-title {
 
-
-
-
       color: var(--ink);
       margin-bottom: 2px;
 
@@ -903,8 +834,6 @@
       align-items: center;
       justify-content: center;
 
-
-
       color: var(--ink);
     }
     .grade-metrics-grid {
@@ -916,8 +845,6 @@
     }
     .grade-metric { text-align: center; }
     .grade-metric-value {
-
-
 
       color: var(--ink);
       display: block;
@@ -991,7 +918,6 @@
       color: #FFFFFF;
       text-align: center;
 
-
       padding: 40px 20px;
     }
 
@@ -1034,9 +960,6 @@
       cursor: pointer;
       color: var(--ink-soft);
 
-
-
-
       transition: color 0.15s ease, transform 0.15s ease;
     }
     .bottom-tab-btn:active { transform: scale(0.93); }
@@ -1067,13 +990,6 @@
     .bottom-tab-btn.active .icon-outline { opacity: 0; transform: scale(0.55); }
     .bottom-tab-btn.active .icon-filled { opacity: 1; transform: scale(1); }
 
-    @keyframes tabIconPop {
-      0% { transform: scale(1); }
-      45% { transform: scale(1.32); }
-      100% { transform: scale(1); }
-    }
-    .bottom-tab-icon.icon-filled.pop { animation: tabIconPop 0.38s cubic-bezier(0.34, 1.56, 0.64, 1); }
-
     .profile-header {
       display: flex;
       align-items: center;
@@ -1087,14 +1003,10 @@
       color: var(--accent-text);
       display: flex; align-items: center; justify-content: center;
 
-
-
       flex-shrink: 0;
     }
     .profile-header-info { min-width: 0; }
     .profile-name {
-
-
 
       color: var(--ink);
 
@@ -1103,7 +1015,6 @@
       text-overflow: ellipsis;
     }
     .profile-id {
-
 
       color: var(--ink-soft);
       margin-top: 2px;
@@ -1116,8 +1027,6 @@
       border-radius: 12px;
       background: var(--paper-2);
       color: #DC2626;
-
-
 
       cursor: pointer;
       transition: transform 0.15s ease, opacity 0.15s ease;
@@ -1306,7 +1215,6 @@
     .masthead-eyebrow {   margin-bottom: 6px; }
     .masthead-headline {
 
-
       white-space: normal;
       overflow-wrap: anywhere;
       text-wrap: balance;
@@ -1338,7 +1246,6 @@
       max-width: 100%;
       min-height: 32px;
       padding: 6px 10px;
-
 
       white-space: normal;
       overflow-wrap: anywhere;
@@ -1511,8 +1418,6 @@
 
     .login-submit { background: linear-gradient(110deg, var(--flame-start), var(--flame-end)); color: var(--flame-ink); box-shadow: 0 6px 22px rgba(255, 154, 158, 0.18); }
 
-
-
     .status-bar { margin-bottom: 24px; }
 
     .day-indicator { background: linear-gradient(110deg, var(--flame-start), var(--flame-end)); box-shadow: 0 3px 12px rgba(255, 154, 158, 0.18); }
@@ -1534,12 +1439,6 @@
     #scheduleContainer .row-index { position: relative; border-left: 2px solid var(--line); min-width: 58px; padding-left: 12px; }
     #scheduleContainer .is-live { box-shadow: var(--surface-shadow), inset 3px 0 0 var(--accent), inset 0 0 0 1px var(--surface-border); }
     #scheduleContainer .is-live .row-index { border-left-color: var(--accent); }
-
-
-
-
-
-
 
     .profile-avatar { background: linear-gradient(110deg, var(--flame-start), var(--flame-end)); color: var(--flame-ink); border-radius: 18px; }
     .bottom-tab-bar { border-radius: 24px; }
@@ -1982,9 +1881,9 @@ svg.umkd-arrow, .profile-gpa-arrow { width:20px; height:20px; flex:0 0 20px; dis
 .umkd-document-action { display:flex; align-items:center; gap:6px; flex-shrink:0; color:var(--ink-soft); font-size:12px; }
 .tab-refresh-icon { display:none; position:absolute; inset:0; width:100%; height:100%; }
 .tab-refresh-icon > svg { display:block; width:100%; height:100%; }
-.tab-refreshing .icon-outline { opacity:0!important; }
-.tab-refreshing .tab-refresh-icon { display:block; }
-.tab-refreshing .bottom-tab-icon.icon-filled { opacity:0!important; animation:none!important; transition:none; }
+:is(.tab-refreshing,.bottom-tab-btn.active[aria-busy="true"]) .icon-outline { opacity:0!important; }
+:is(.tab-refreshing,.bottom-tab-btn.active[aria-busy="true"]) .tab-refresh-icon { display:block; }
+:is(.tab-refreshing,.bottom-tab-btn.active[aria-busy="true"]) .bottom-tab-icon.icon-filled { opacity:0!important; animation:none!important; transition:none; }
 
 .logout-dialog { width:calc(100% - 40px); max-width:340px; margin:auto; padding:22px; border:1px solid var(--glass-border); border-radius:24px; background:var(--paper-2); color:var(--ink); box-shadow:var(--glass-shadow); }
 .logout-dialog::backdrop { background:var(--overlay); backdrop-filter:blur(6px); }
