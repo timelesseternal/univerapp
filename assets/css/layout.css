@@ -33,7 +33,7 @@
 #sectionSchedule .header-right-top > :is(.appearance-toggle,.theme-btn) { width:var(--control-height); min-width:var(--control-height); padding:10px; }
 #sectionSchedule .header-right-top svg { width:20px; height:20px; }
 #sectionSchedule .live-lesson-badge, #sectionSchedule .weather-widget { margin-top:0; }
-#sectionSchedule .weather-widget { min-height:28px; padding:4px 8px; line-height:18px; }
+#sectionSchedule .weather-widget { min-height:var(--control-height); padding:8px; line-height:18px; border-radius:var(--control-radius); }
 #sectionSchedule .schedule-week-tools { gap:var(--control-gap); margin-bottom:var(--card-gap); align-items:stretch; }
 #sectionSchedule .week-stepper { box-sizing:border-box; height:var(--control-height); min-height:var(--control-height); padding:0; border-radius:var(--control-radius); }
 #sectionSchedule .week-step-btn { width:42px; height:42px; min-height:42px; max-height:42px; padding:10px; }
@@ -60,8 +60,8 @@
 #sectionChat .chat-search-toggle svg { width:20px; height:20px; }
 #sectionChat .chat-header-search .chat-search { min-height:42px; height:42px; }
 #sectionChat.chat-search-open .chat-header-search { width:100%; }
-#sectionChat .chat-person { min-height:76px; padding:14px; gap:12px; }
-#sectionChat .chat-avatar { border-radius:var(--control-radius); }
+#sectionChat .chat-person { min-height:80px; padding:12px 0; gap:12px; }
+#sectionChat .chat-avatar { border-radius:50%; }
 #sectionChat .chat-send { width:var(--control-height); height:var(--control-height); min-height:var(--control-height); }
 #sectionChat .chat-composer textarea { box-sizing:border-box; min-height:var(--control-height); padding:10px 14px; line-height:22px; border-radius:var(--control-radius); }
 #profileContainer .profile-layout { gap:var(--section-gap); }
@@ -95,5 +95,5 @@
   #profileContainer .profile-settings { padding-inline:12px; }
   #profileContainer .profile-settings-update { gap:8px; }
   #scheduleContainer .list-row { padding:12px; }
-  #sectionChat .chat-person { padding:12px; gap:10px; }
+  #sectionChat .chat-person { padding:12px 0; gap:12px; }
 }

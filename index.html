@@ -133,15 +133,10 @@
   <div class="container">
 
     <div class="app-section" id="sectionSchedule">
-      <div class="screen-brand"><span>uniq<span class="brand-dot">.</span></span></div>
-      <div class="status-bar">
-        <div class="status-info-left">
-          <span id="weekStatusText"><span class="masthead-eyebrow">Расписание</span><span class="masthead-headline">—</span></span>
-          <span class="live-lesson-badge" id="liveLessonBadge"><span class="live-dot"></span><span>Идёт пара…</span></span>
-        </div>
+      <div class="screen-brand schedule-toolbar"><span>uniq<span class="brand-dot">.</span></span>
         <div class="header-right-block">
+          <button type="button" class="weather-widget" id="weatherWidget" data-action="openCityModal()" aria-label="Выбрать город для погоды">— · —°</button>
           <div class="header-right-top">
-            <button class="today-btn" id="todayBtn" data-action="jumpToToday()" aria-label="Перейти к сегодняшнему дню">Сегодня</button>
             <button type="button" class="appearance-toggle" data-action="toggleColorMode()" aria-label="Включить тёмную тему" aria-pressed="false">
               <svg class="appearance-moon" aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20.9 13.1A9 9 0 0 1 10.9 3.1a9 9 0 1 0 10 10Z"/></svg>
               <svg class="appearance-sun" aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="4"/><path d="M12 2v2m0 16v2M2 12h2m16 0h2M5 5l1.4 1.4m11.2 11.2L19 19M5 19l1.4-1.4M17.6 6.4 19 5"/></svg>
@@ -150,8 +145,14 @@
               <svg aria-hidden="true" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3a9 9 0 1 0 0 18h1a2 2 0 0 0 1.4-3.4 1.5 1.5 0 0 1 1.1-2.6H18a3 3 0 0 0 3-3 9 9 0 0 0-9-9Z"/><circle cx="7.5" cy="10" r=".7"/><circle cx="10" cy="6.5" r=".7"/><circle cx="14.5" cy="6.5" r=".7"/><circle cx="17" cy="10" r=".7"/></svg>
             </button>
           </div>
-          <button type="button" class="weather-widget" id="weatherWidget" data-action="openCityModal()" aria-label="Выбрать город для погоды">— · —°</button>
         </div>
+      </div>
+      <div class="status-bar">
+        <div class="status-info-left">
+          <span id="weekStatusText"><span class="masthead-eyebrow">Расписание</span><span class="masthead-headline">—</span></span>
+          <span class="live-lesson-badge" id="liveLessonBadge"><span class="live-dot"></span><span>Идёт пара…</span></span>
+        </div>
+        <button class="today-btn" id="todayBtn" data-action="jumpToToday()" aria-label="Перейти к сегодняшнему дню">Сегодня</button>
       </div>
 
 
@@ -212,8 +213,9 @@
         <div id="chatMessages" class="chat-messages" role="log" aria-label="История сообщений" tabindex="0"></div>
         <div id="chatTyping" class="chat-typing" role="status" aria-label="Собеседник печатает" hidden><span></span><span></span><span></span></div>
         <div id="chatReply" class="chat-reply-compose" hidden>
+          <svg class="chat-reply-icon" aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M9 7 4 12l5 5v-4h4c3 0 5 2 7 5 0-7-3-10-7-10H9Z"/></svg>
           <div><strong id="chatReplyName"></strong><p id="chatReplyText"></p></div>
-          <button id="chatReplyCancel" type="button" aria-label="Отменить ответ">×</button>
+          <button id="chatReplyCancel" type="button" aria-label="Отменить ответ"><svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="m6 6 12 12M18 6 6 18"/></svg></button>
         </div>
         <form id="chatComposer" class="chat-composer">
           <label class="chat-sr-only" for="chatText">Сообщение</label>

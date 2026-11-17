@@ -139,6 +139,25 @@ test('swiping left selects a quote, vertical scrolling does not, and send includ
   assert.equal(JSON.parse(sent.body).replyTo,'1');
   assert.equal(ui.elements.get('chatReply').hidden,true);
 });
+test('a right swipe selects a reply with a vector icon and an interrupted swipe does not',async()=>{
+  const ui=await actionUI();
+  const article=findClass(ui.elements.get('chatMessages'),'chat-message');
+  const indicator=findClass(article,'chat-swipe-reply');
+  assert.match(indicator.innerHTML,/<svg[^>]+viewBox="0 0 24 24"/);
+  const touch=x=>({identifier:4,clientX:x,clientY:100});
+  article.listeners.touchstart({touches:[touch(120)]});
+  article.listeners.touchmove({touches:[touch(190)],cancelable:true,preventDefault(){}});
+  assert.match(article.style.transform,/translateX\(49px\)/);
+  article.listeners.touchcancel();
+  article.listeners.touchend({changedTouches:[touch(190)]});
+  assert.equal(ui.elements.get('chatReply').hidden,true);
+  article.listeners.touchstart({touches:[touch(120)]});
+  article.listeners.touchmove({touches:[touch(190)],cancelable:true,preventDefault(){}});
+  article.listeners.touchend({changedTouches:[touch(190)],cancelable:true,preventDefault(){}});
+  assert.equal(ui.elements.get('chatReplyText').textContent,'История');
+  assert.equal(ui.elements.get('chatReply').hidden,false);
+});
+
 test('real touch swipe works on a quote, ignores touch-pointer cancellation, and cancels vertical or interrupted touches',async()=>{
   const ui=await actionUI();
   const article=findClass(ui.elements.get('chatMessages'),'chat-message');

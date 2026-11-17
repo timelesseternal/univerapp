@@ -16,6 +16,13 @@
 #sectionSchedule .header-right-top > :is(.appearance-toggle,.theme-btn) { width:36px; min-width:36px; padding:8px; }
 #sectionSchedule .today-btn { font-size:11px; }
 #sectionSchedule .weather-widget { font-size:12px; margin-top:8px; }
+#sectionSchedule .schedule-toolbar { gap:12px; margin-bottom:12px; }
+#sectionSchedule .schedule-toolbar > span { flex-shrink:0; }
+#sectionSchedule .schedule-toolbar .header-right-block { display:flex; flex-direction:row; align-items:center; justify-content:flex-end; gap:8px; width:auto; max-width:none; min-width:0; flex-shrink:1; }
+#sectionSchedule .schedule-toolbar .weather-widget { min-width:0; max-width:132px; overflow:hidden; white-space:nowrap; text-overflow:ellipsis; text-align:center; }
+#sectionSchedule .status-info-left { gap:2px; padding:0; }
+#sectionSchedule .status-bar { align-items:center; }
+#sectionSchedule .status-bar > .today-btn { flex-shrink:0; min-height:var(--control-height); height:var(--control-height); padding:10px 12px; border:1px solid var(--glass-border); border-radius:var(--control-radius); background:var(--surface-bg); }
 #sectionSchedule .schedule-week-tools { margin-bottom:12px; }
 #sectionSchedule .week-stepper { border:1px solid var(--glass-border); border-radius:18px; box-shadow:none; background:var(--surface-bg); margin:0; }
 #sectionSchedule .week-step-label { font-size:13px; font-weight:600; }
@@ -45,12 +52,17 @@
 #sectionChat .chat-search-toggle { box-sizing:border-box; flex:0 0 44px; width:44px; height:44px; padding:10px; border:0; background:transparent; border-radius:14px; }
 #sectionChat.chat-search-open .chat-header-search { width:100%; }
 #sectionChat .chat-header-search .chat-search { border:0; background:transparent; border-radius:0; }
-#sectionChat .chat-list { gap:var(--card-gap); }
-#sectionChat .chat-person { padding:16px 14px; gap:12px; border:1px solid var(--line); border-radius:var(--card-radius); background:var(--interface-surface); box-shadow:none; }
-#sectionChat .chat-avatar { width:44px; height:44px; border:0; border-radius:16px; background:var(--accent-tint-strong); color:var(--accent); font-size:15px; }
-#sectionChat .chat-person-name { font-size:14px; font-weight:700; }
-#sectionChat .chat-person-preview { margin-top:4px; font-size:12px; color:var(--text-secondary); }
-#sectionChat .chat-person-time { font-size:10px; color:var(--text-secondary); }
+#sectionChat .chat-list { gap:0; }
+#sectionChat .chat-person { position:relative; min-height:80px; padding:12px 0; gap:12px; border:0; border-radius:0; background:transparent; box-shadow:none; }
+#sectionChat .chat-person:not(:last-child)::after { content:''; position:absolute; bottom:0; left:64px; right:0; height:1px; background:var(--line); }
+#sectionChat .chat-person:active { background:var(--highlight-bg); }
+#sectionChat .chat-avatar { width:52px; height:52px; border:0; border-radius:50%; background:var(--accent-tint-strong); color:var(--accent); font-size:18px; }
+#sectionChat .chat-thread-header .chat-avatar { width:44px; height:44px; font-size:15px; }
+#sectionChat .chat-person-content { gap:5px; }
+#sectionChat .chat-person-name { font-size:15px; font-weight:700; }
+#sectionChat .chat-person-preview { margin-top:0; font-size:13px; color:var(--text-secondary); }
+#sectionChat .chat-person-time { margin:0; align-self:auto; font-size:11px; color:var(--text-secondary); }
+#sectionChat .chat-person-meta { display:flex; flex-direction:column; align-items:flex-end; align-self:stretch; justify-content:space-between; gap:6px; flex:0 0 auto; min-width:34px; padding:3px 0; }
 #sectionChat .chat-unread { background:var(--accent); color:var(--accent-text); }
 #sectionChat .chat-status, #sectionChat .chat-search { background:var(--surface-bg); border:1px solid var(--glass-border); border-radius:16px; }
 #sectionChat .chat-thread-header { border-bottom:1px solid var(--glass-border); margin-bottom:6px; }
@@ -74,8 +86,9 @@
 #profileContainer .profile-gpa, #profileContainer .profile-recap { background:linear-gradient(120deg,var(--accent-tint-strong),var(--accent-tint-soft)),var(--interface-surface); }
 @media(max-width:360px) {
   .screen-brand { margin-bottom:20px; }
-  #sectionSchedule .header-right-top > :is(.today-btn,.appearance-toggle,.theme-btn) { min-height:32px; height:32px; max-height:32px; }
-  #sectionSchedule .header-right-top > :is(.appearance-toggle,.theme-btn) { width:32px; min-width:32px; padding:6px; }
+  #sectionSchedule .schedule-toolbar { gap:8px; }
+  #sectionSchedule .schedule-toolbar .header-right-block, #sectionSchedule .header-right-top { gap:6px; }
+  #sectionSchedule .schedule-toolbar .weather-widget { max-width:100px; padding-inline:6px; font-size:11px; }
   #gradesContainer .grade-card { padding:16px 13px; }
-  #sectionChat .chat-person { padding:14px 12px; gap:9px; }
+  #sectionChat .chat-person { padding:12px 0; gap:12px; }
 }

@@ -12,7 +12,9 @@
 .chat-message-deleted { opacity:.65; font-style:italic; }
 .chat-message { position:relative; touch-action:pan-y; -webkit-touch-callout:none; -webkit-user-select:none; user-select:none; }
 .chat-message-selected { box-shadow:0 0 0 2px var(--accent),0 8px 24px rgba(0,0,0,.15); }
-.chat-swipe-reply { position:absolute; right:-36px; top:calc(50% - 14px); display:none; place-items:center; width:28px; height:28px; border-radius:50%; background:var(--paper-2); color:var(--accent); font-size:23px; opacity:0; transform:scale(.7); pointer-events:none; transition:opacity .12s,transform .12s; }
+.chat-swipe-reply { position:absolute; right:-40px; top:calc(50% - 16px); display:grid; place-items:center; width:32px; height:32px; border:1px solid var(--line); border-radius:50%; background:var(--paper-2); color:var(--accent); opacity:0; transform:scale(.7); pointer-events:none; transition:opacity .18s,transform .26s cubic-bezier(.4,0,.2,1); }
+.chat-swipe-reply svg { width:20px; height:20px; }
+.chat-message-swiping-right .chat-swipe-reply { right:auto; left:-40px; }
 .chat-message-swiping .chat-swipe-reply { display:grid; opacity:.55; }
 .chat-message-reply-ready .chat-swipe-reply { opacity:1; transform:scale(1); }
 .chat-message:focus-visible { outline:2px solid var(--accent); outline-offset:3px; }
@@ -208,6 +210,14 @@
 .chat-message-time { margin-top: 3px; font-size: 10px; }
 .chat-message-own .chat-message-time { color: inherit; opacity: .72; }
 .chat-date { align-self: center; padding: 4px 10px; border-radius: 99px; background: var(--paper-2); font-size: 10px; }
+.chat-message-quote { border-left-color:var(--accent); background:var(--accent-tint-soft); padding:8px 10px; border-radius:8px; }
+.chat-message-quote strong { color:var(--accent); margin-bottom:3px; font-size:12px; }
+.chat-message-quote span { font-size:13px; }
+.chat-message-own { background:var(--accent-tint-strong); color:var(--ink); border:1px solid var(--glass-border); }
+.chat-reply-compose { margin-top:6px; padding:8px 10px; gap:10px; background:var(--paper-2); }
+.chat-reply-icon { width:24px; height:24px; flex:0 0 24px; color:var(--accent); }
+#chatReplyCancel { display:grid; place-items:center; padding:10px; }
+#chatReplyCancel svg { width:20px; height:20px; }
 .chat-composer { align-items: center; padding: 8px 0 0; gap: 8px; }
 .chat-composer textarea { border-radius: 24px; min-height: 44px; padding: 11px 15px; font-size: 16px; line-height: 22px; }
 .chat-send { width: 42px; height: 42px; border-radius: 50%; }

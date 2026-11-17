@@ -4,6 +4,7 @@
   const root = document.getElementById('sectionChat');
   if (!root) return;
   const byID = id => document.getElementById(id);
+  const replyPath = 'M9 7 4 12l5 5v-4h4c3 0 5 2 7 5 0-7-3-10-7-10H9Z';
   const state = { profile: null, conversation: null, messages: new Map(), drafts: new Map(),
     epoch: 0, visible: false, sessionWork: null, timer: null, searchTimer: null,
     searchVersion: 0, refreshing: false, sending: false, hasOlder: false,
@@ -46,7 +47,7 @@
   function actionButton(text, callback, className = '') {
     const button = node('button', `chat-action-button ${className}`, text);
     button.type = 'button';
-    const paths = { 'Ответить':'M10 8 4 12l6 4v-3h4c3 0 5 2 6 5 0-7-3-10-10-10Z',
+    const paths = { 'Ответить':replyPath,
       'Переслать':'m14 8 6 4-6 4v-3h-4c-3 0-5 2-6 5 0-7 3-10 10-10Z',
       'Удалить':'M4 7h16M9 7V4h6v3M6 7l1 13h10l1-13M10 10v7m4-7v7' };
     if (paths[text]) {
@@ -179,14 +180,16 @@
     const conversationID = state.conversation?.id, epoch = state.epoch;
     const valid = () => !stale(epoch) && state.visible && state.conversation?.id === conversationID && !deletedMessages.has(message.id);
     let start = null, hold = null, direction = null, distance = 0, suppressClick = false, returnMotion = null;
-    const indicator = node('span','chat-swipe-reply','↩'); indicator.setAttribute('aria-hidden','true'); article.append(indicator);
+    const indicator = node('span','chat-swipe-reply'); indicator.setAttribute('aria-hidden','true');
+    indicator.innerHTML = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="${replyPath}"/></svg>`;
+    article.append(indicator);
     const reset = (animate = true) => {
       clearTimeout(hold); start = null; direction = null; distance = 0;
       const transform = article.style.transform; article.style.transform = '';
-      article.classList.remove('chat-message-swiping','chat-message-reply-ready');
+      article.classList.remove('chat-message-swiping','chat-message-reply-ready','chat-message-swiping-right');
       returnMotion?.cancel(); returnMotion = null;
       if (animate && transform && article.animate && !window.matchMedia?.('(prefers-reduced-motion: reduce)').matches)
-        returnMotion = article.animate([{transform},{transform:'translateX(0)'}],{duration:170,easing:'cubic-bezier(.2,.8,.2,1)'});
+        returnMotion = article.animate([{transform},{transform:'translateX(0)'}],{duration:260,easing:'cubic-bezier(.4,0,.2,1)'});
     };
     const begin = (x,y,id) => {
       if (!valid()) return;
@@ -204,15 +207,16 @@
       const dx = x-start.x, dy = y-start.y;
       if (Math.abs(dx)>7 || Math.abs(dy)>7) clearTimeout(hold);
       if (!direction && Math.max(Math.abs(dx),Math.abs(dy))>10) {
-        if (Math.abs(dy)>Math.abs(dx)*.8 || dx>0) { reset(); return; }
+        if (Math.abs(dy)>Math.abs(dx)*.8) { reset(); return; }
         direction = 'reply';
       }
       if (direction !== 'reply') return;
       if (event.cancelable) event.preventDefault();
-      distance = Math.max(0,-dx); suppressClick = true;
+      distance = Math.abs(dx); suppressClick = true;
       article.classList.add('chat-message-swiping');
+      article.classList.toggle?.('chat-message-swiping-right',dx>0);
       article.classList.toggle?.('chat-message-reply-ready',distance>=52);
-      article.style.transform = `translateX(${-Math.min(72,distance*.7)}px)`;
+      article.style.transform = `translateX(${Math.sign(dx)*Math.min(72,distance*.7)}px)`;
     };
     const finish = () => {
       const reply = start && direction === 'reply' && distance>=52 && valid();
@@ -558,19 +562,21 @@
       const content = node('span', 'chat-person-content');
       const heading = node('span', 'chat-person-heading');
       heading.append(node('span', 'chat-person-name', conversation.peer.name));
-      if (conversation.unread > 0) heading.append(node('span', 'chat-unread', conversation.unread > 99 ? '99+' : String(conversation.unread)));
       content.append(heading);
       const prefix = conversation.lastMessage?.senderID === ownID ? 'Вы: ' : '';
       content.append(node('span', 'chat-person-preview', conversation.lastMessage ? prefix + conversation.lastMessage.text : 'Начните переписку'));
       button.append(content);
+      const meta = node('span', 'chat-person-meta');
       if (conversation.lastMessage?.createdAt) {
         const date = new Date(conversation.lastMessage.createdAt);
         const stamp = node('time', 'chat-person-time', date.toLocaleDateString() === new Date().toLocaleDateString()
           ? date.toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' })
           : date.toLocaleDateString('ru-RU', { day: 'numeric', month: 'short' }));
         stamp.dateTime = conversation.lastMessage.createdAt;
-        button.append(stamp);
+        meta.append(stamp);
       }
+      if (conversation.unread > 0) meta.append(node('span', 'chat-unread', conversation.unread > 99 ? '99+' : String(conversation.unread)));
+      button.append(meta);
       button.addEventListener('click', () => openConversation(conversation));
       list.append(button);
     }
@@ -617,8 +623,8 @@
   }
   function animateMessage(element) {
     if (!state.visible || document.hidden || !element.animate || window.matchMedia?.('(prefers-reduced-motion: reduce)').matches) return;
-    element.animate([{opacity:0,transform:'translateY(10px) scale(.96)'},{opacity:1,transform:'translateY(0) scale(1)'}],
-      {duration:320,easing:'cubic-bezier(.16,1,.3,1)'});
+    element.animate([{opacity:0,transform:'translateY(6px)'},{opacity:1,transform:'translateY(0)'}],
+      {duration:420,easing:'cubic-bezier(.4,0,.2,1)'});
   }
   function drawMessages({ scroll = 'keep', newIDs = new Set(), pendingID } = {}) {
     const list = byID('chatMessages');
