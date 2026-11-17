@@ -2,6 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import vm from 'node:vm';
+import {installLoading} from '../helpers/loading.js';
 const source=readFileSync(new URL('../../assets/js/app.js',import.meta.url),'utf8');
 const context=vm.createContext({});
 vm.runInContext(source.slice(source.indexOf('  function escapeHtml('),source.indexOf('  function renderProfile(')),context);
@@ -27,6 +28,7 @@ test('profile refresh preserves disclosure state and module controls with incomp
     document:{getElementById:id=>id==='profileContainer'?container:{open:true}},
     window:{unilinkUpdates:{render:()=>calls.push('updates')},unilinkPush:{render:()=>calls.push('push')},unilinkStudy:{render:()=>calls.push('study')}},
     swapContent:(target,html,animate,callback)=>{target.innerHTML=html;callback();}});
+  installLoading(env);
   vm.runInContext(source.slice(source.indexOf('  function escapeHtml('),source.indexOf('  function renderGrades(')),env);
   env.renderProfile(false);
   assert.match(container.innerHTML,/&lt;Студент&gt;/);

@@ -20,6 +20,7 @@
   },
   "dependencies": {
     "@vercel/functions": "^3.9.11",
+    "@vercel/speed-insights": "^2.1.0",
     "web-push": "^3.6.7"
   }
 }

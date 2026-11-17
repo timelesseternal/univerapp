@@ -11,7 +11,7 @@ test('all four tab indicators mount the same SVG used by content loading',()=>{
   assert.equal((html.match(/class="tab-refresh-icon" data-loading-icon/g)||[]).length,4);
 });
 
-test('shared loading is an accessible rotating arrow without visible text or a notice card',()=>{
+test('shared loading is an accessible ring without visible text or a notice card',()=>{
   const ctx={window:{}};installLoading(ctx);
   const html=ctx.window.unilinkLoading.html('Материалы "<img src=x>"');
   assert.match(html,/role="status"/);assert.match(html,/aria-label="Материалы &quot;&lt;img/);

@@ -4,6 +4,7 @@ docs/
 tests/
 scripts/*
 !scripts/build-release.mjs
+!scripts/prepare-speed-insights.mjs
 supabase/
 coverage/
 private-supabase-migration/

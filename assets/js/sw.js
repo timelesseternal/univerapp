@@ -17,6 +17,8 @@ SHELL_PATHS.add('/assets/js/wrapped.js');
 SHELL_PATHS.add('/assets/css/academic.css');
 SHELL_PATHS.add('/assets/js/academic.js');
 SHELL_PATHS.add('/assets/js/loading.js');
+SHELL_PATHS.add('/assets/js/performance.js');
+SHELL_PATHS.add('/assets/js/vendor/speed-insights.js');
 SHELL_PATHS.add('/assets/js/motion.js');
 SHELL_PATHS.add('/assets/js/grade-details.js');
 SHELL_PATHS.add('/assets/js/schedule-share.js');

@@ -1005,7 +1005,7 @@ if ('serviceWorker' in navigator) {
       <h2 id="profileSettingsHeading">Настройки</h2>
       <div class="profile-settings">
       <div id="appUpdateAvailable" class="profile-update-available" role="status" hidden><span class="profile-update-dot" aria-hidden="true"></span>Доступна новая версия</div>
-      <button type="button" id="appUpdateButton" class="profile-settings-update" data-action="updateApplication(this)"><svg aria-hidden="true" class="profile-row-icon" viewBox="0 0 24 24"><path d="M20 7a9 9 0 0 0-15-2L3 8m0-6v6h6m-5 9a9 9 0 0 0 15 2l2-3m0 6v-6h-6"/></svg><span id="appUpdateLabel">Обновление приложения</span><span id="appUpdateHint">Проверить</span></button>
+      <button type="button" id="appUpdateButton" class="profile-settings-update" data-action="updateApplication(this)"><span aria-hidden="true" class="profile-row-icon profile-update-icon">${window.unilinkLoading.icon()}</span><span id="appUpdateLabel">Обновление приложения</span><span id="appUpdateHint">Проверить</span></button>
       <p id="appUpdateStatus" class="profile-update-status" role="status"></p>
       <details class="profile-notifications" id="profileNotifications" ${notificationsExpanded ? 'open' : ''}>
         <summary><svg aria-hidden="true" class="profile-row-icon" viewBox="0 0 24 24"><path d="M18 8a6 6 0 0 0-12 0c0 7-3 7-3 9h18c0-2-3-2-3-9M10 21h4"/></svg><span>Уведомления</span><svg aria-hidden="true" class="profile-chevron" viewBox="0 0 24 24"><path d="m6 9 6 6 6-6"/></svg></summary>

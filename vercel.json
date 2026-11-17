@@ -1,5 +1,5 @@
 {
-  "buildCommand": "node scripts/build-release.mjs",
+  "buildCommand": "node scripts/prepare-speed-insights.mjs && node scripts/build-release.mjs",
   "outputDirectory": ".",
   "regions": [
     "fra1"
