@@ -55,7 +55,8 @@
   function updateSelection() {
     byID('chatSelection').hidden = byID('chatSelectionActions').hidden = !selectionMode;
     byID('chatSelectionCount').textContent = `Выбрано ${selectedMessages.size}`;
-    byID('chatSelectionDelete').disabled = byID('chatSelectionForward').disabled = !selectedMessages.size;
+    byID('chatSelectionForward').disabled = !selectedMessages.size;
+    byID('chatSelectionDelete').disabled = !selectedMessages.size || (!deleteScopes && selectedItems().some(message=>message.senderID!==state.profile?.id));
     root.classList.toggle?.('chat-selecting',selectionMode);
   }
   function endSelection(redraw = true) { selectionMode = false; selectedMessages.clear(); updateSelection(); if (redraw) drawMessages(); }
@@ -1214,7 +1215,7 @@
   byID('chatReplyCancel').addEventListener('click',() => {setForward([]);setReply(null);saveDraft();});
   byID('chatSelectionCancel').addEventListener('click',()=>endSelection());
   byID('chatSelectionForward').addEventListener('click',()=>{const items=selectedItems();if(items.length)chooseForward(items);});
-  byID('chatSelectionDelete').addEventListener('click',()=>{const items=selectedItems();if(items.length)confirmDelete(items);});
+  byID('chatSelectionDelete').addEventListener('click',()=>{const items=selectedItems();if(items.length && (deleteScopes || items.every(message=>message.senderID===state.profile?.id)))confirmDelete(items);});
   byID('chatActionsClose').addEventListener('click',closeActions);
   byID('chatActionsDialog').addEventListener('cancel',event => { event.preventDefault(); closeActions(); });
   byID('chatActionsDialog').addEventListener('click',event => {

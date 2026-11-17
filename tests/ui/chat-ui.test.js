@@ -313,6 +313,17 @@ test('multi-selection deletion waits for a scope confirmation and removes each s
   assert.equal(ui.elements.get('chatSelection').hidden,true);
 });
 
+test('selection respects older servers that only permit deleting your own messages',async()=>{
+  const ui=await actionUI({page:()=>({deleteScopes:false})});
+  findClass(ui.elements.get('chatMessages'),'chat-message').listeners.contextmenu({preventDefault(){}});
+  ui.elements.get('chatActionsContent').children.at(-1).listeners.click();
+  assert.equal(ui.elements.get('chatSelectionDelete').disabled,true);
+  assert.equal(ui.elements.get('chatSelectionForward').disabled,false);
+  ui.elements.get('chatSelectionDelete').listeners.click();
+  assert.equal(ui.elements.get('chatActionsDialog').open,false);
+  assert.equal(ui.calls.some(call=>call.method==='DELETE'),false);
+});
+
 test('malformed chat snapshots offer retry without corrupting the saved inbox',async()=>{
   let broken=false;
   const ui=setup(async url=>reply(url.includes('action=session')?{profile,conversations:[conversation]}:
