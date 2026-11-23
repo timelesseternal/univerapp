@@ -84,3 +84,14 @@ test('only a successful empty refresh replaces cached lessons on screen and disk
     assert.equal(ui.context.weekStepBusy, false);
   }
 });
+
+test('Platonus Sunday lessons survive parsing and week cache validation',async()=>{
+  const {context,storage}=setup();
+  const response={...emptyResponse(),lessonHours:[{number:1,displayNumber:1,start:'09:00',finish:'10:45'}],
+    timetable:{days:{7:{lessons:{1:{lessons:[{number:1,subjectName:'Воскресная пара',groupTypeShortName:'ЛК'}]}}}}}};
+  const entry=context.buildScheduleEntryFromPlatonus(response,true,info(8));
+  assert.equal(entry.schedule.Воскресенье[0].subjectTitle,'Воскресная пара');
+  storage.set('platonus_week_7-2026-1-8',JSON.stringify(entry));
+  const restored=await context.loadPersistedWeekEntry('7-2026-1-8');
+  assert.equal(restored.schedule.Воскресенье[0].subjectTitle,'Воскресная пара');
+});

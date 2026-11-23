@@ -122,7 +122,7 @@ button, input, select, textarea {
 .live-lesson-badge { font-size: var(--text-xs); font-weight: 500; line-height: 1.5; }
 .weather-widget { font-size: var(--text-xs); font-weight: 500; line-height: 1.4; }
 .theme-btn, .today-btn { font-size: var(--text-xs); font-weight: 600; line-height: 1.4; }
-.day-btn, .weekend-badge { font-size: var(--text-sm); font-weight: 600; line-height: 1.4; }
+.day-btn { font-size: var(--text-sm); font-weight: 600; line-height: 1.4; }
 .week-step-label { font-size: var(--text-md); font-weight: 600; line-height: 1.45; }
 .week-step-btn { font-size: 1.125rem; font-weight: 600; line-height: 1; }
 .bottom-tab-btn { font-size: var(--text-xs); font-weight: 600; line-height: 1.3; }

@@ -2,7 +2,7 @@
 (() => {
   const requests = new Map();
   let revision = 0;
-  const buttons = ['ПН','ВТ','СР','ЧТ','ПТ','СБ'];
+  const buttons = ['ПН','ВТ','СР','ЧТ','ПТ','СБ','ВС'];
   const iso = date => date.toISOString().slice(0,10);
   const short = date => `${String(date.getUTCDate()).padStart(2,'0')}.${String(date.getUTCMonth()+1).padStart(2,'0')}`;
   function dates(start, week) {

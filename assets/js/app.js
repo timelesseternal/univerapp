@@ -801,7 +801,7 @@ if ('serviceWorker' in navigator) {
     return data;
   }
 
-  const PLT_DAY_NAMES = { 1: 'Понедельник', 2: 'Вторник', 3: 'Среда', 4: 'Четверг', 5: 'Пятница', 6: 'Суббота' };
+  const PLT_DAY_NAMES = { 1: 'Понедельник', 2: 'Вторник', 3: 'Среда', 4: 'Четверг', 5: 'Пятница', 6: 'Суббота', 7: 'Воскресенье' };
   const PLT_GROUP_TYPE_LABEL = { 'Л': 'Лекция', 'ЛЗ': 'Лаб. работа', 'СПЗ': 'Семинар', 'П': 'Практика' };
 
   function transformPlatonusSchedule(data, hadExplicitOverride, requested) {
@@ -1755,7 +1755,8 @@ if ('serviceWorker' in navigator) {
     if (activeBtn && indicator && daysGrid.style.display !== 'none') {
       indicator.style.width = activeBtn.offsetWidth + 'px';
       indicator.style.height = activeBtn.offsetHeight + 'px';
-      indicator.style.transform = `translateX(${activeBtn.offsetLeft - 3}px)`;
+      indicator.style.top = activeBtn.offsetTop + 'px';
+      indicator.style.transform = `translateX(${activeBtn.offsetLeft - indicator.offsetLeft}px)`;
       indicator.style.opacity = '1';
     } else if (indicator) {
       indicator.style.opacity = '0';
@@ -1820,7 +1821,7 @@ if ('serviceWorker' in navigator) {
     return Array.isArray(SCHEDULE[dayName]) && SCHEDULE[dayName].length > 0;
   }
 
-  const WEEKDAY_ORDER = ['Понедельник', 'Вторник', 'Среда', 'Четверг', 'Пятница', 'Суббота'];
+  const WEEKDAY_ORDER = ['Понедельник', 'Вторник', 'Среда', 'Четверг', 'Пятница', 'Суббота', 'Воскресенье'];
 
   // Platonus присылает корпус и номер аудитории отдельными полями
   // (building/auditory) — склеиваем их для отображения в одном месте.
@@ -1872,13 +1873,13 @@ if ('serviceWorker' in navigator) {
     `;
   }
 
-  function buildDayOffScreen(dayName, animateEntrance = true) {
+  function buildDayOffScreen(dayName) {
     const hint = getUpcomingHintInLoadedWeek(dayName);
     const isActuallyToday = dayName === realTodayName && isViewingTrueCurrentWeek();
     const title = isActuallyToday ? 'Сегодня без пар' : `${dayName}: пар нет`;
     return `
       <div class="notice-panel">
-        <span class="notice-eyebrow">выходной</span>
+        <span class="notice-eyebrow">нет занятий</span>
         <div class="notice-title">${title}</div>
         <div class="day-off-weather" id="dayOffWeatherDetail">${weatherSkeletonHtml()}</div>
         <div class="notice-divider"></div>
@@ -1888,35 +1889,6 @@ if ('serviceWorker' in navigator) {
         </div>
       </div>
     `;
-  }
-
-  function buildDayFinishedScreen(dayName, animateEntrance = true) {
-    const hint = getUpcomingHintInLoadedWeek(dayName);
-    return `
-      <div class="notice-panel">
-        <span class="notice-eyebrow">на сегодня всё</span>
-        <div class="notice-title">${dayName}: пары закончились</div>
-        <div class="day-off-weather" id="dayOffWeatherDetail">${weatherSkeletonHtml()}</div>
-        <div class="notice-divider"></div>
-        <div class="notice-hint">
-          <span class="notice-hint-label">ближайшая пара</span>
-          ${hint}
-        </div>
-      </div>
-    `;
-  }
-
-  function getDayLastLessonEndMins(dayName) {
-    const lessons = SCHEDULE[dayName] || [];
-    let maxEnd = null;
-    lessons.forEach(l => {
-      const t = LESSON_TIMES[l.пара];
-      if (t) {
-        const endMins = timeToMins(t.end);
-        if (maxEnd === null || endMins > maxEnd) maxEnd = endMins;
-      }
-    });
-    return maxEnd;
   }
 
   let currentSection = 'schedule';
@@ -1941,47 +1913,17 @@ if ('serviceWorker' in navigator) {
       browsedWeekInfo.week === trueCurrentWeekInfo.week);
   }
 
-const DAY_NAMES_BY_INDEX = ['Воскресенье', 'Понедельник', 'Вторник', 'Среда', 'Четверг', 'Пятница', 'Суббота'];
+  const DAY_NAMES_BY_INDEX = ['Воскресенье', 'Понедельник', 'Вторник', 'Среда', 'Четверг', 'Пятница', 'Суббота'];
 
   function detectToday(resetSelected = false) {
     realTodayName = DAY_NAMES_BY_INDEX[new Date().getDay()];
     if (resetSelected) selectedDay = realTodayName;
 
+    document.querySelectorAll('.day-btn.is-today').forEach(button => button.classList.remove('is-today'));
     const shortName = getShortDayName(realTodayName);
     if (shortName) {
       const todayBtnEl = document.getElementById(`btn-${shortName}`);
       if (todayBtnEl) todayBtnEl.classList.add('is-today');
-    }
-    updateWeekendBadge();
-  }
-
-  let weekendBadgeHideTimer = null;
-
-  function updateWeekendBadge() {
-    const badge = document.getElementById('weekendBadge');
-    if (!badge) return;
-    const hasOwnButton = ['Понедельник', 'Вторник', 'Среда', 'Четверг', 'Пятница', 'Суббота'].includes(realTodayName);
-    const shouldShow = !hasOwnButton;
-
-    if (weekendBadgeHideTimer) {
-      clearTimeout(weekendBadgeHideTimer);
-      weekendBadgeHideTimer = null;
-    }
-
-    if (shouldShow) {
-      if (badge.style.display !== 'block') {
-        badge.style.display = 'block';
-        void badge.offsetWidth;
-      }
-      badge.classList.add('active');
-      requestAnimationFrame(updateDayIndicator);
-    } else {
-      badge.classList.remove('active');
-      weekendBadgeHideTimer = setTimeout(() => {
-        badge.style.display = 'none';
-        weekendBadgeHideTimer = null;
-        updateDayIndicator();
-      }, 220);
     }
   }
 
@@ -2374,25 +2316,10 @@ const DAY_NAMES_BY_INDEX = ['Воскресенье', 'Понедельник', 
     const weekKey = browsedWeekInfo ? `${browsedWeekInfo.studyYear}-${browsedWeekInfo.term}-${browsedWeekInfo.week}` : 'no-week';
     const isViewingLiveToday = isViewingTrueCurrentWeek() && selectedDay === realTodayName;
 
-    if (isViewingLiveToday && lessons.length > 0) {
-      const lastEndMins = getDayLastLessonEndMins(selectedDay);
-      const now = new Date();
-      const nowMins = now.getHours() * 60 + now.getMinutes();
-      if (lastEndMins !== null && nowMins > lastEndMins + 30) {
-        const screenKey = `${selectedDay}|${weekKey}|finished`;
-        const animateEntrance = screenKey !== lastRenderedScreenKey;
-        lastRenderedScreenKey = screenKey;
-        const html = buildDayFinishedScreen(selectedDay, animateEntrance);
-        swapContent(container, html, animate, fillDayOffWeather);
-        return;
-      }
-    }
-
     if (lessons.length === 0) {
       const screenKey = `${selectedDay}|${weekKey}|off`;
-      const animateEntrance = screenKey !== lastRenderedScreenKey;
       lastRenderedScreenKey = screenKey;
-      const html = buildDayOffScreen(selectedDay, animateEntrance);
+      const html = buildDayOffScreen(selectedDay);
       swapContent(container, html, animate, fillDayOffWeather);
       return;
     }

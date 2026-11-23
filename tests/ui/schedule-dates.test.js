@@ -23,6 +23,7 @@ test('late calendar results cannot paint the previous week and calendars are iso
   resolve({studentID:7,gradingPeriods:[{studyYear:2026,term:1,periods:[{start:'2026-09-01'}]}]});
   await Promise.all([old,current]);assert.equal(calls,1);
   assert.equal(nodes.get('btn-ПН').children[1].textContent,'16');
+  assert.equal(nodes.get('btn-ВС').children[1].textContent,'22');
   assert.equal(nodes.get('weekStepLabel').children.at(-1).textContent,'16.11–22.11');
   await api.render({...request(12),student:{studentID:8},calendar:async()=>({studentID:7})});
   assert.equal(nodes.get('btn-ПН').children[1].textContent,'—');
