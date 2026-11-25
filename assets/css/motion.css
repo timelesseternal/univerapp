@@ -3,24 +3,32 @@
 .app-booting .boot-screen { position:fixed; inset:0; z-index:2100; display:grid; place-items:center; overflow:hidden; isolation:isolate; }
 .app-booting .login-overlay { visibility:hidden; }
 .boot-backdrop { position:absolute; inset:0; background:var(--paper); }
-.boot-wordmark { position:relative; display:flex; align-items:baseline; color:var(--ink); font-family:var(--font-body); font-size:48px; font-weight:800; letter-spacing:-.06em; line-height:1; }
+.boot-wordmark { position:relative; display:flex; align-items:baseline; color:var(--ink); font-family:var(--font-body); font-size:48px; font-weight:800; letter-spacing:-.06em; line-height:1; animation:bootWordmarkEnter 700ms cubic-bezier(.22,1,.36,1) both; }
 .boot-dot { display:block; flex:0 0 .17em; width:.17em; height:.17em; margin-left:.06em; border-radius:50%; background:var(--accent); }
 .boot-bloom { display:none; position:absolute; left:var(--boot-x); top:var(--boot-y); width:var(--boot-dot-size); height:var(--boot-dot-size); border-radius:50%; background:var(--accent); transform:translate(-50%,-50%); }
-.boot-screen.is-revealing .boot-bloom { display:block; animation:bootDotReveal 460ms cubic-bezier(.2,.7,.2,1) both; }
-.boot-screen.is-revealing .boot-backdrop { animation:bootBackdropReveal 460ms linear both; }
-.boot-screen.is-revealing .boot-wordmark { opacity:0; transition:opacity 100ms ease; }
+.boot-screen.is-revealing .boot-bloom { display:block; animation:bootDotReveal var(--boot-reveal-duration,1200ms) cubic-bezier(.45,0,.2,1) both; }
+.boot-screen.is-revealing .boot-backdrop { animation:bootBackdropReveal var(--boot-reveal-duration,1200ms) cubic-bezier(.4,0,.2,1) both; }
+.boot-screen.is-revealing .boot-wordmark { animation:bootWordmarkExit 500ms ease both; }
 .boot-screen.is-dismissed { opacity:0; transition:opacity 140ms ease; }
 @keyframes bootDotReveal {
   0% { transform:translate(-50%,-50%) scale(1); opacity:1; }
-  65% { transform:translate(-50%,-50%) scale(var(--boot-scale)); opacity:1; }
+  80% { transform:translate(-50%,-50%) scale(var(--boot-scale)); opacity:.28; }
   100% { transform:translate(-50%,-50%) scale(var(--boot-scale)); opacity:0; }
 }
 @keyframes bootBackdropReveal {
-  0%, 55% { opacity:1; }
-  65%, 100% { opacity:0; }
+  0% { opacity:1; }
+  100% { opacity:0; }
+}
+@keyframes bootWordmarkEnter {
+  from { opacity:0; transform:translateY(6px) scale(.985); }
+  to { opacity:1; transform:none; }
+}
+@keyframes bootWordmarkExit {
+  from { opacity:1; }
+  to { opacity:0; }
 }
 @media(prefers-reduced-motion:reduce) {
-  .boot-screen.is-revealing .boot-bloom, .boot-screen.is-revealing .boot-backdrop { animation:none; }
+  .boot-wordmark, .boot-screen.is-revealing .boot-wordmark, .boot-screen.is-revealing .boot-bloom, .boot-screen.is-revealing .boot-backdrop { animation:none; }
   .boot-screen.is-dismissed, .boot-screen.is-revealing .boot-wordmark { transition:none; }
 }
 :root {
