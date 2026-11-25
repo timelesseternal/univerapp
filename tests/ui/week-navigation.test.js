@@ -95,3 +95,45 @@ test('Platonus Sunday lessons survive parsing and week cache validation',async()
   const restored=await context.loadPersistedWeekEntry('7-2026-1-8');
   assert.equal(restored.schedule.Воскресенье[0].subjectTitle,'Воскресная пара');
 });
+
+test('manual navigation shares an in-flight prefetch without changing the viewed week early',async()=>{
+  const {context,calls,views}=setup();let finish;
+  context.platonusFetch=path=>{calls.push(path);return new Promise(resolve=>{finish=resolve;});};
+  const background=context.requestWeekEntry(2026,1,6);
+  assert.equal(background,context.requestWeekEntry(2026,1,6));
+  const navigation=context.stepWeek(-1);
+  await new Promise(setImmediate);
+  assert.equal(calls.length,1);assert.equal(context.browsedWeekInfo.week,7);assert.equal(views.length,0);
+  finish({...emptyResponse(),selectedWeek:6});
+  await Promise.all([background,navigation]);
+  assert.equal(context.browsedWeekInfo.week,6);assert.deepEqual(views,[{}]);
+});
+
+test('late week requests cannot populate another account and failed requests may be retried',async()=>{
+  const {context}=setup();let finish;
+  context.platonusFetch=()=>new Promise(resolve=>{finish=resolve;});
+  const old=context.requestWeekEntry(2026,1,6);
+  context.authGeneration++;context.platonusStudent={studentID:8};
+  finish({...emptyResponse(),selectedWeek:6});
+  await assert.rejects(old,/session_changed/);
+  assert.deepEqual(context.weekScheduleCache,{});
+  context.platonusFetch=async()=>{throw new Error('timeout');};
+  await assert.rejects(context.requestWeekEntry(2026,1,6),/timeout/);
+  context.platonusFetch=async()=>({...emptyResponse(),selectedWeek:6});
+  const fresh=await context.requestWeekEntry(2026,1,6);assert.equal(fresh.weekInfo.week,6);
+});
+
+test('prefetch fills the correct student and semester cache without rendering or changing selected week',async()=>{
+  const {context,storage,views,calls}=setup();let options;
+  context.platonusSession='session';context.trueCurrentWeekInfo=info(9);context.liveLoadInFlight=false;
+  context.window.unilinkSchedulePrefetch={start:config=>{options=config;}};
+  context.startPastWeekPrefetch();
+  assert.equal(options.currentWeek,9);assert.equal(options.canRun(),true);
+  assert.equal(await options.loadCached(8),false);
+  await options.loadWeek(8);
+  assert.equal(calls.length,1);assert.ok(storage.has('platonus_week_7-2026-1-8'));
+  assert.equal(await options.loadCached(8),true);
+  assert.equal(context.browsedWeekInfo.week,7);assert.equal(views.length,0);
+  context.weekStepBusy=true;assert.equal(options.canRun(),false);
+  context.authGeneration++;assert.equal(options.isCurrent(),false);
+});

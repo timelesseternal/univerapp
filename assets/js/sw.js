@@ -22,6 +22,7 @@ SHELL_PATHS.add('/assets/js/vendor/speed-insights.js');
 SHELL_PATHS.add('/assets/js/motion.js');
 SHELL_PATHS.add('/assets/js/grade-details.js');
 SHELL_PATHS.add('/assets/js/schedule-share.js');
+SHELL_PATHS.add('/assets/js/schedule-prefetch.js');
 SHELL_PATHS.add('/assets/css/schedule-share.css');
 SHELL_PATHS.add('/assets/js/study-history.js');
 SHELL_PATHS.add('/assets/js/push.js');

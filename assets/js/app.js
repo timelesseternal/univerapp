@@ -338,6 +338,49 @@ if ('serviceWorker' in navigator) {
     return { schedule, lessonTimes, weekInfo };
   }
 
+  // One request per account/week, shared by navigation and background warming.
+  const weekScheduleRequests = new Map();
+  function requestWeekEntry(studyYear, term, week) {
+    const generation = authGeneration;
+    const studentID = platonusStudent.studentID;
+    const key = `${generation}-${studentID}-${studyYear}-${term}-${week}`;
+    if (weekScheduleRequests.has(key)) return weekScheduleRequests.get(key);
+    const work = (async () => {
+      const data = await platonusFetch(
+        `/api/schedule?studentID=${studentID}&year=${studyYear}&term=${term}&week=${week}`
+      );
+      if (generation !== authGeneration || studentID !== platonusStudent?.studentID) throw new Error('session_changed');
+      return buildScheduleEntryFromPlatonus(data, true, {studyYear, term, week});
+    })().finally(() => weekScheduleRequests.delete(key));
+    weekScheduleRequests.set(key, work);
+    return work;
+  }
+
+  function startPastWeekPrefetch() {
+    if (!window.unilinkSchedulePrefetch || !platonusSession || !platonusStudent?.studentID || !trueCurrentWeekInfo) return;
+    const generation = authGeneration, studentID = platonusStudent.studentID;
+    const {studyYear, term, week} = normWeekInfo(trueCurrentWeekInfo);
+    const isCurrent = () => generation === authGeneration && studentID === platonusStudent?.studentID
+      && !!platonusSession && trueCurrentWeekInfo?.studyYear === studyYear
+      && trueCurrentWeekInfo?.term === term && trueCurrentWeekInfo?.week === week;
+    window.unilinkSchedulePrefetch.start({
+      key: `${generation}-${studentID}-${studyYear}-${term}-${week}`,
+      currentWeek: Math.min(week, MAX_TERM_WEEKS + 1), isCurrent,
+      canRun: () => !offlineStudyMode && !weekStepBusy && !liveLoadInFlight,
+      async loadCached(previousWeek) {
+        const key = weekCacheKey(studyYear, term, previousWeek);
+        const entry = weekScheduleCache[key] || await loadPersistedWeekEntry(key);
+        if (!isCurrent()) return false;
+        if (entry) weekScheduleCache[key] = entry;
+        return !!entry;
+      },
+      async loadWeek(previousWeek) {
+        const entry = await requestWeekEntry(studyYear, term, previousWeek);
+        if (isCurrent()) cacheWeekEntry(entry);
+      },
+    });
+  }
+
   // ==================================================================
   // ============ КЭШ ДАННЫХ (stale-while-revalidate) ============
   // ==================================================================
@@ -647,6 +690,7 @@ if ('serviceWorker' in navigator) {
     // sign-out locally so a later launch cannot silently reuse that cookie.
     if (forget) lsSafe(() => localStorage.setItem(localCacheKey('signed_out'), '1'));
     authGeneration++;
+    window.unilinkSchedulePrefetch?.stop();
     reloginInFlight = null;
     const keys = forget ? ['platonus_session', 'platonus_student', 'platonus_login', 'platonus_password',
       META_CACHE_KEY, JOURNAL_CACHE_KEY, UMKD_CACHE_KEY] : [];
@@ -803,12 +847,6 @@ if ('serviceWorker' in navigator) {
 
   const PLT_DAY_NAMES = { 1: 'Понедельник', 2: 'Вторник', 3: 'Среда', 4: 'Четверг', 5: 'Пятница', 6: 'Суббота', 7: 'Воскресенье' };
   const PLT_GROUP_TYPE_LABEL = { 'Л': 'Лекция', 'ЛЗ': 'Лаб. работа', 'СПЗ': 'Семинар', 'П': 'Практика' };
-
-  function transformPlatonusSchedule(data, hadExplicitOverride, requested) {
-    const entry = buildScheduleEntryFromPlatonus(data, hadExplicitOverride, requested);
-    applyWeekCacheEntry(entry);
-    cacheWeekEntry(entry);
-  }
 
   // Раскладка показателей: 3 колонки × 2 строки
   //   Ср.тек.1 | Ср.тек.2 | Рейтинг
@@ -1299,6 +1337,8 @@ if ('serviceWorker' in navigator) {
       updateWeekStepperUI();
       renderCurrentSection();
       saveCachedStudentData();
+
+      startPastWeekPrefetch();
 
       // 3) Оценки и УМКД
       const info = liveScheduleWeekInfo;
@@ -1971,11 +2011,8 @@ if ('serviceWorker' in navigator) {
   async function refreshWeekInBackground(studyYear, term, week) {
     const generation = authGeneration;
     try {
-      const data = await platonusFetch(
-        `/api/schedule?studentID=${platonusStudent.studentID}&year=${studyYear}&term=${term}&week=${week}`
-      );
+      const entry = await requestWeekEntry(studyYear, term, week);
       if (generation !== authGeneration) return;
-      const entry = buildScheduleEntryFromPlatonus(data, true, { studyYear, term, week });
       cacheWeekEntry(entry);
 
       const stillViewingThisWeek = browsedWeekInfo
@@ -2050,11 +2087,10 @@ if ('serviceWorker' in navigator) {
     updateWeekStepperUI();
 
     try {
-      const data = await platonusFetch(
-        `/api/schedule?studentID=${platonusStudent.studentID}&year=${studyYear}&term=${term}&week=${nextWeekRaw}`
-      );
+      const entry = await requestWeekEntry(studyYear, term, nextWeekRaw);
       if (generation !== authGeneration) return;
-      transformPlatonusSchedule(data, true, { studyYear, term, week: nextWeekRaw });
+      cacheWeekEntry(entry);
+      applyWeekCacheEntry(entry);
       detectToday();
       updateStatusBarAndLive();
       renderSchedule();

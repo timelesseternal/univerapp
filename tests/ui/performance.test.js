@@ -107,7 +107,8 @@ test('cached studentID lets schedule render while GPA remains pending', async ()
     buildScheduleEntryFromPlatonus: () => ({ weekInfo: { studyYear: 2026, term: 1, week: 6 }, schedule: {}, lessonTimes: {} }),
     normWeekInfo: x => x, cacheWeekEntry() {}, applyWeekCacheEntry() {},
     detectToday() {}, updateStatusBarAndLive() {}, updateWeekStepperUI() {},
-    renderCurrentSection() { renders++; }, saveCachedStudentData() {}, csSet() {}, console,
+    renderCurrentSection() { renders++; }, startPastWeekPrefetch() { assert.ok(renders > 0); },
+    saveCachedStudentData() {}, csSet() {}, console,
   });
   vm.runInContext(app.slice(app.indexOf('  async function loadLiveStudentData()'), app.indexOf('  const CITY_COORDS')), ctx);
   await ctx.loadLiveStudentData();
