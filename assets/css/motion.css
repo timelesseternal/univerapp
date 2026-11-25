@@ -11,9 +11,8 @@
 .boot-screen.is-revealing .boot-wordmark { animation:bootWordmarkExit 500ms ease both; }
 .boot-screen.is-dismissed { opacity:0; transition:opacity 140ms ease; }
 @keyframes bootDotReveal {
-  0% { transform:translate(-50%,-50%) scale(1); opacity:1; }
-  35% { opacity:1; }
-  55% { opacity:.45; }
+  0% { transform:translate(-50%,-50%) scale(1); opacity:.45; }
+  55% { opacity:.3; }
   80% { transform:translate(-50%,-50%) scale(var(--boot-scale)); opacity:.18; }
   100% { transform:translate(-50%,-50%) scale(var(--boot-scale)); opacity:0; }
 }
