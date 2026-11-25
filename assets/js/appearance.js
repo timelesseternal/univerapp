@@ -2,6 +2,7 @@
     (() => {
       const storageKey = 'user_color_mode';
       const root = document.documentElement;
+      root.classList.add('app-booting');
       const systemTheme = window.matchMedia ? window.matchMedia('(prefers-color-scheme: dark)') : null;
       const telegram = window.Telegram?.WebApp?.initData ? window.Telegram.WebApp : null;
       const standalone = !telegram && (window.navigator?.standalone || window.matchMedia?.('(display-mode: standalone)').matches);

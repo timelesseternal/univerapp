@@ -78,6 +78,13 @@ test('checking a saved login uses the shared indicator while retry retains an ac
   assert.equal(env.document.getElementById('loginRestoreRetry').hidden,false);
 });
 
+test('a missing optional launch script never leaves the application behind a splash',()=>{
+  const env=setup();env.document.documentElement=env.document.body;
+  env.document.documentElement.classList.add('app-booting');
+  env.ctx.showLoginOverlay(false);
+  assert.equal(env.document.documentElement.classList.contains('app-booting'),false);
+});
+
 test('an offline logout prevents a later launch from reusing an old cookie',async()=>{
   const env=setup();env.ctx.fetch=async()=>{throw new Error('offline');};
   env.ctx.logout();await env.read('authStorageWork');
@@ -334,6 +341,17 @@ test('a fresh launch restores a remembered session without asking for credential
   assert.equal(env.read('platonusSession'), 'cookie');
   assert.equal(env.loads, 1);
   assert.equal(env.document.getElementById('loginOverlay').style.display, 'none');
+});
+
+test('launch reveal waits for authenticated cached data and retry remains reachable on connection errors',async()=>{
+  const env=setupRestore();let ready,entered,reveals=[];
+  const reading=new Promise(resolve=>{entered=resolve;});
+  env.ctx.loadCachedStudentData=()=>{entered();return new Promise(resolve=>{ready=resolve;});};
+  env.ctx.window.unilinkBoot={finish:open=>reveals.push(open)};
+  const restoring=env.ctx.restoreSavedLogin();await reading;
+  assert.deepEqual(reveals,[]);
+  ready(null);await restoring;assert.deepEqual(reveals,[true]);
+  env.ctx.setLoginRestoreState('retry');assert.deepEqual(reveals,[true,false]);
 });
 
 test('offline startup offers retry instead of a password form, then restores the same account', async () => {

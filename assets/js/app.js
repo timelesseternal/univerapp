@@ -517,6 +517,10 @@ if ('serviceWorker' in navigator) {
   }
 
   let loginHideTimer = null;
+  function finishBootScreen(openApplication) {
+    if (window.unilinkBoot) window.unilinkBoot.finish(openApplication);
+    else document.documentElement?.classList.remove('app-booting');
+  }
   function showLoginOverlay(show) {
     const el = document.getElementById('loginOverlay');
     clearTimeout(loginHideTimer);
@@ -537,6 +541,7 @@ if ('serviceWorker' in navigator) {
         initTabIndicatorNoAnim();
       });
     }
+    finishBootScreen(!show);
   }
 
   function setLoginError(msg) {
@@ -555,7 +560,10 @@ if ('serviceWorker' in navigator) {
     document.getElementById('loginRestoreStatus').hidden = !state;
     document.getElementById('loginRestoreRetry').hidden = state !== 'retry';
     const message = document.getElementById('loginRestoreMessage');
-    if (state === 'retry') message.textContent = 'Не удалось проверить сохранённый вход. Проверь подключение и повтори.';
+    if (state === 'retry') {
+      message.textContent = 'Не удалось проверить сохранённый вход. Проверь подключение и повтори.';
+      finishBootScreen(false);
+    }
     else message.innerHTML = state ? loadingHtml('Восстановление входа') : '';
   }
 
@@ -2827,9 +2835,6 @@ if ('serviceWorker' in navigator) {
       window.unilinkStudy?.offline(false);
       const savedStudy = window.unilinkStudy?.read();
       if (Array.isArray(savedStudy?.exams)) {EXAMS_SCHEDULE = savedStudy.exams; examsUpdatedAt = savedStudy.examsAt || 0;}
-      showLoginOverlay(false);
-      document.getElementById('loginOverlay').style.display = 'none';
-
       // Сразу показываем то, что есть в кэше — без ожидания сети.
       const cachedData = await loadCachedStudentData();
       if (generation !== authGeneration) return;
@@ -2848,6 +2853,9 @@ if ('serviceWorker' in navigator) {
           renderSchedule(false);
         }
       }
+
+      showLoginOverlay(false);
+      document.getElementById('loginOverlay').style.display = 'none';
 
       // Свежие данные всё равно грузим в фоне и тихо обновляем экран,
       // когда придёт ответ (см. конец loadLiveStudentData).

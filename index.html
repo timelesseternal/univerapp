@@ -43,6 +43,12 @@
 
 <div class="aurora-backdrop" aria-hidden="true"><span class="aurora-grain"></span></div>
 
+<div class="boot-screen" id="appBoot" role="status" aria-label="Открываем uniq.">
+  <div class="boot-backdrop" aria-hidden="true"></div>
+  <div class="boot-wordmark" aria-hidden="true">uniq<span class="boot-dot"></span></div>
+  <div class="boot-bloom" aria-hidden="true"></div>
+</div>
+
 <div class="login-overlay" id="loginOverlay">
   <div class="login-card">
     <button type="button" class="appearance-toggle" data-action="toggleColorMode()" aria-label="Включить тёмную тему" aria-pressed="false">
@@ -284,6 +290,7 @@
 </nav>
 
 <script defer src="./assets/js/loading.js"></script>
+<script defer src="./assets/js/boot.js"></script>
 <script type="module" src="./assets/js/performance.js"></script>
 <script defer src="./assets/js/motion.js"></script>
 <script defer src="./assets/js/grade-details.js"></script>
