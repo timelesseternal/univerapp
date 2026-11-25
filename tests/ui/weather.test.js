@@ -11,11 +11,11 @@ test('the solar marker is a separate square sun, never a circle stretched with t
   const html=ctx.smartWeatherHtml('Караганда',data);
   const chart=html.match(/<svg class="weather-solar-path"[\s\S]*?<\/svg>/)[0];
   assert.doesNotMatch(chart,/<circle/);
-  assert.match(html,/<svg class="weather-solar-sun"[^>]*viewBox="0 0 24 24"/);
+  assert.match(html,/<svg class="[^"]*\bweather-solar-sun\b[^"]*"[^>]*viewBox="0 0 24 24"/);
   const track=html.match(/<div class="weather-solar-track"[\s\S]*?<\/div>/)[0];
   assert.match(track,/weather-solar-path/);assert.match(track,/weather-solar-sun/);
   assert.match(html,/left:58\.13%;top:16\.97%/);
-  assert.doesNotMatch(ctx.smartWeatherHtml('Караганда',{...data,current:{...data.current,is_day:0}}),/class="weather-solar-sun"/);
+  assert.doesNotMatch(ctx.smartWeatherHtml('Караганда',{...data,current:{...data.current,is_day:0}}),/class="[^"]*\bweather-solar-sun\b/);
 });
 
 test('blocked local storage does not break the weather card',()=>{

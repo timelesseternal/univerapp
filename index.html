@@ -46,8 +46,8 @@
 <div class="login-overlay" id="loginOverlay">
   <div class="login-card">
     <button type="button" class="appearance-toggle" data-action="toggleColorMode()" aria-label="Включить тёмную тему" aria-pressed="false">
-      <svg class="appearance-moon" aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20.9 13.1A9 9 0 0 1 10.9 3.1a9 9 0 1 0 10 10Z"/></svg>
-      <svg class="appearance-sun" aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="4"/><path d="M12 2v2m0 16v2M2 12h2m16 0h2M5 5l1.4 1.4m11.2 11.2L19 19M5 19l1.4-1.4M17.6 6.4 19 5"/></svg>
+      <svg class="ui-icon appearance-moon" aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" width="20" height="20"><path d="M20.9 13.1A9 9 0 0 1 10.9 3.1a9 9 0 1 0 10 10Z"/></svg>
+      <svg class="ui-icon appearance-sun" aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" width="20" height="20"><circle cx="12" cy="12" r="4"/><path d="M12 2v2m0 16v2M2 12h2m16 0h2M5 5l1.4 1.4m11.2 11.2L19 19M5 19l1.4-1.4M17.6 6.4 19 5"/></svg>
     </button>
     <div class="login-title">uniq<span class="brand-dot">.</span></div>
     <div class="login-subtitle">Твоя учёба в одном месте.<br>Войди через Platonus, чтобы открыть расписание, оценки и профиль.</div>
@@ -64,7 +64,7 @@
     <div class="password-field-wrap">
       <input type="password" id="passwordInput" class="login-input password-input" autocomplete="current-password" placeholder="Пароль от Platonus">
       <button type="button" class="password-toggle-btn" id="passwordToggleBtn" data-action="togglePasswordVisibility()" aria-label="Показать пароль">
-        <svg id="passwordEyeIcon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7-10-7-10-7Z"/><circle cx="12" cy="12" r="3"/></svg>
+        <svg class="ui-icon" id="passwordEyeIcon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7-10-7-10-7Z"/><circle cx="12" cy="12" r="3"/></svg>
       </button>
     </div>
 
@@ -103,7 +103,7 @@
     <div class="modal-title">Акцентный цвет</div>
     <div class="accent-swatch-grid" id="accentSwatchGrid"></div>
     <button class="accent-default-btn" id="accentDefaultBtn" data-action="selectAccentSwatch('default')">
-      <span class="accent-default-check">✓</span>
+      <span class="accent-default-check"><svg class="ui-icon" aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" width="20" height="20"><path d="m5 12 4 4L19 6"/></svg></span>
       <span>По умолчанию</span>
     </button>
     <div class="modal-buttons">
@@ -116,7 +116,7 @@
 <div class="umkd-file-overlay" id="umkdFileOverlay">
   <div class="umkd-file-topbar">
     <button class="umkd-file-action" id="umkdShareBtn" data-action="shareUmkdFile()" aria-label="Поделиться"></button>
-    <button type="button" class="umkd-file-close navigation-back" data-action="closeUmkdFile()" aria-label="Назад"><svg aria-hidden="true" class="action-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m14 6-6 6 6 6"/></svg><span>Назад</span></button>
+    <button type="button" class="umkd-file-close navigation-back" data-action="closeUmkdFile()" aria-label="Назад"><svg aria-hidden="true" class="ui-icon action-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" width="20" height="20"><path d="m14 6-6 6 6 6"/></svg><span>Назад</span></button>
   </div>
   <div class="umkd-file-frame" id="umkdFileFrame"></div>
 </div>
@@ -138,11 +138,11 @@
           <button type="button" class="weather-widget" id="weatherWidget" data-action="openCityModal()" aria-label="Выбрать город для погоды">— · —°</button>
           <div class="header-right-top">
             <button type="button" class="appearance-toggle" data-action="toggleColorMode()" aria-label="Включить тёмную тему" aria-pressed="false">
-              <svg class="appearance-moon" aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20.9 13.1A9 9 0 0 1 10.9 3.1a9 9 0 1 0 10 10Z"/></svg>
-              <svg class="appearance-sun" aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="4"/><path d="M12 2v2m0 16v2M2 12h2m16 0h2M5 5l1.4 1.4m11.2 11.2L19 19M5 19l1.4-1.4M17.6 6.4 19 5"/></svg>
+              <svg class="ui-icon appearance-moon" aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" width="20" height="20"><path d="M20.9 13.1A9 9 0 0 1 10.9 3.1a9 9 0 1 0 10 10Z"/></svg>
+              <svg class="ui-icon appearance-sun" aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" width="20" height="20"><circle cx="12" cy="12" r="4"/><path d="M12 2v2m0 16v2M2 12h2m16 0h2M5 5l1.4 1.4m11.2 11.2L19 19M5 19l1.4-1.4M17.6 6.4 19 5"/></svg>
             </button>
             <button class="theme-btn" id="themeBtn" data-action="openAccentModal()" aria-label="Выбрать акцентный цвет" title="Акцентный цвет">
-              <svg aria-hidden="true" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3a9 9 0 1 0 0 18h1a2 2 0 0 0 1.4-3.4 1.5 1.5 0 0 1 1.1-2.6H18a3 3 0 0 0 3-3 9 9 0 0 0-9-9Z"/><circle cx="7.5" cy="10" r=".7"/><circle cx="10" cy="6.5" r=".7"/><circle cx="14.5" cy="6.5" r=".7"/><circle cx="17" cy="10" r=".7"/></svg>
+              <svg class="ui-icon" aria-hidden="true" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3a9 9 0 1 0 0 18h1a2 2 0 0 0 1.4-3.4 1.5 1.5 0 0 1 1.1-2.6H18a3 3 0 0 0 3-3 9 9 0 0 0-9-9Z"/><circle cx="7.5" cy="10" r=".7"/><circle cx="10" cy="6.5" r=".7"/><circle cx="14.5" cy="6.5" r=".7"/><circle cx="17" cy="10" r=".7"/></svg>
             </button>
           </div>
         </div>
@@ -158,11 +158,11 @@
 
       <div class="schedule-week-tools">
       <div class="week-stepper" id="weekStepper">
-        <button class="week-step-btn" id="weekPrevBtn" data-action="stepWeek(-1)" aria-label="Предыдущая неделя"><svg aria-hidden="true" class="action-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m14 6-6 6 6 6"/></svg></button>
+        <button class="week-step-btn" id="weekPrevBtn" data-action="stepWeek(-1)" aria-label="Предыдущая неделя"><svg aria-hidden="true" class="ui-icon action-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" width="20" height="20"><path d="m14 6-6 6 6 6"/></svg></button>
         <span class="week-step-label" id="weekStepLabel">Неделя —</span>
-        <button class="week-step-btn" id="weekNextBtn" data-action="stepWeek(1)" aria-label="Следующая неделя"><svg aria-hidden="true" class="action-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m9 6 6 6-6 6"/></svg></button>
+        <button class="week-step-btn" id="weekNextBtn" data-action="stepWeek(1)" aria-label="Следующая неделя"><svg aria-hidden="true" class="ui-icon action-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" width="20" height="20"><path d="m9 6 6 6-6 6"/></svg></button>
       </div>
-      <button type="button" class="schedule-share-launch" id="scheduleShareLaunch" aria-label="Поделиться расписанием"><svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 15V3m-4 4 4-4 4 4M5 12v7a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-7"/></svg></button>
+      <button type="button" class="schedule-share-launch" id="scheduleShareLaunch" aria-label="Поделиться расписанием"><svg class="ui-icon" aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" width="20" height="20"><path d="M12 15V3m-4 4 4-4 4 4M5 12v7a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-7"/></svg></button>
       </div>
 
       <div class="days-grid" id="daysGrid">
@@ -179,12 +179,12 @@
       <div id="scheduleContainer"></div>
     </div>
 
-    <div class="app-section" id="sectionUmkd" style="display:none;"><button type="button" class="profile-back navigation-back" data-action="switchSection('profile')"><svg aria-hidden="true" class="action-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m14 6-6 6 6 6"/></svg><span>Назад</span></button><div class="section-inner" id="umkdContainer"></div></div>
-    <div class="app-section" id="sectionExams" style="display:none;"><button type="button" class="profile-back navigation-back" data-action="switchSection('profile')"><svg aria-hidden="true" class="action-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m14 6-6 6 6 6"/></svg><span>Назад</span></button><div class="section-inner" id="examsContainer"></div></div>
+    <div class="app-section" id="sectionUmkd" style="display:none;"><button type="button" class="profile-back navigation-back" data-action="switchSection('profile')"><svg aria-hidden="true" class="ui-icon action-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" width="20" height="20"><path d="m14 6-6 6 6 6"/></svg><span>Назад</span></button><div class="section-inner" id="umkdContainer"></div></div>
+    <div class="app-section" id="sectionExams" style="display:none;"><button type="button" class="profile-back navigation-back" data-action="switchSection('profile')"><svg aria-hidden="true" class="ui-icon action-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" width="20" height="20"><path d="m14 6-6 6 6 6"/></svg><span>Назад</span></button><div class="section-inner" id="examsContainer"></div></div>
     <div class="app-section" id="sectionGrades" style="display:none;"><div class="section-inner" id="gradesContainer"></div></div>
     <div class="app-section" id="sectionProfile" style="display:none;"><div class="section-inner" id="profileContainer"></div></div>
-    <section class="app-section" id="sectionCalendar" style="display:none;" aria-label="Академический календарь"><button type="button" class="profile-back navigation-back" data-action="switchSection('profile')"><svg aria-hidden="true" class="action-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m14 6-6 6 6 6"/></svg><span>Назад</span></button><div class="academic-container" id="calendarContainer"></div></section>
-    <section class="app-section" id="sectionTranscript" style="display:none;" aria-label="Транскрипт"><button type="button" class="profile-back navigation-back" data-action="switchSection('profile')"><svg aria-hidden="true" class="action-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m14 6-6 6 6 6"/></svg><span>Назад</span></button><div class="academic-container" id="transcriptContainer"></div></section>
+    <section class="app-section" id="sectionCalendar" style="display:none;" aria-label="Академический календарь"><button type="button" class="profile-back navigation-back" data-action="switchSection('profile')"><svg aria-hidden="true" class="ui-icon action-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" width="20" height="20"><path d="m14 6-6 6 6 6"/></svg><span>Назад</span></button><div class="academic-container" id="calendarContainer"></div></section>
+    <section class="app-section" id="sectionTranscript" style="display:none;" aria-label="Транскрипт"><button type="button" class="profile-back navigation-back" data-action="switchSection('profile')"><svg aria-hidden="true" class="ui-icon action-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" width="20" height="20"><path d="m14 6-6 6 6 6"/></svg><span>Назад</span></button><div class="academic-container" id="transcriptContainer"></div></section>
     <section class="app-section chat-section" id="sectionChat" style="display:none;" aria-label="Личные сообщения">
       <div class="screen-brand"><span>uniq<span class="brand-dot">.</span></span></div>
       <header class="chat-page-header">
@@ -193,8 +193,8 @@
           <label class="chat-sr-only" for="chatSearch">Найти студента</label>
           <input id="chatSearch" class="chat-search" type="search" maxlength="60" autocomplete="off" placeholder="Найти студента" disabled tabindex="-1">
           <button id="chatSearchToggle" type="button" class="chat-search-toggle" aria-label="Найти студента" aria-expanded="false" aria-controls="chatSearch">
-            <svg class="chat-search-magnifier" aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><circle cx="10.5" cy="10.5" r="6.5"/><path d="m16 16 4 4"/></svg>
-            <svg class="chat-search-close" aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="m6 6 12 12M18 6 6 18"/></svg>
+            <svg class="ui-icon chat-search-magnifier" aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" width="20" height="20"><circle cx="10.5" cy="10.5" r="6.5"/><path d="m16 16 4 4"/></svg>
+            <svg class="ui-icon chat-search-close" aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" width="20" height="20"><path d="m6 6 12 12M18 6 6 18"/></svg>
           </button>
         </div>
       </header>
@@ -205,7 +205,7 @@
       </div>
       <div id="chatThread" class="chat-thread" hidden>
         <header class="chat-thread-header">
-          <button id="chatBack" type="button" class="chat-back" aria-label="Вернуться к списку чатов"><svg aria-hidden="true" class="action-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m14 6-6 6 6 6"/></svg></button>
+          <button id="chatBack" type="button" class="chat-back" aria-label="Вернуться к списку чатов"><svg aria-hidden="true" class="ui-icon action-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" width="20" height="20"><path d="m14 6-6 6 6 6"/></svg></button>
           <button id="chatPeerAvatar" type="button" class="chat-avatar chat-profile-trigger" aria-label="Открыть профиль собеседника"></button>
           <div class="chat-peer-info"><h2 id="chatPeerName" class="chat-peer-name"></h2><span id="chatPeerStatus" class="chat-peer-caption" role="status">Статус неизвестен</span></div>
         </header>
@@ -214,26 +214,26 @@
         <div id="chatMessages" class="chat-messages" role="log" aria-label="История сообщений" tabindex="0"></div>
         <div id="chatTyping" class="chat-typing" role="status" aria-label="Собеседник печатает" hidden><span></span><span></span><span></span></div>
         <div id="chatReply" class="chat-reply-compose" hidden>
-          <svg class="chat-reply-icon" aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="m9 17-5-5 5-5M4 12h11a5 5 0 0 1 5 5v2"/></svg>
+          <svg class="ui-icon chat-reply-icon" aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" width="20" height="20"><path d="m9 17-5-5 5-5M4 12h9a7 7 0 0 1 7 7"/></svg>
           <div><strong id="chatReplyName"></strong><p id="chatReplyText"></p></div>
-          <button id="chatReplyCancel" type="button" aria-label="Отменить ответ"><svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="m6 6 12 12M18 6 6 18"/></svg></button>
+          <button id="chatReplyCancel" type="button" aria-label="Отменить ответ"><svg class="ui-icon" aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" width="20" height="20"><path d="m6 6 12 12M18 6 6 18"/></svg></button>
         </div>
         <form id="chatComposer" class="chat-composer">
-          <button id="chatAttach" class="chat-attach" type="button" aria-label="Прикрепить файл — скоро" aria-disabled="true" title="Прикрепление файлов появится позже"><svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="m21 11-8.5 8.5a6 6 0 0 1-8.5-8.5L13 2a4 4 0 0 1 5.7 5.7l-9 9a2 2 0 0 1-2.8-2.8l8.5-8.5"/></svg></button>
+          <button id="chatAttach" class="chat-attach" type="button" aria-label="Прикрепить файл — скоро" aria-disabled="true" title="Прикрепление файлов появится позже"><svg class="ui-icon" aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" width="20" height="20"><path d="m21 11-8.5 8.5a6 6 0 0 1-8.5-8.5L13 2a4 4 0 0 1 5.7 5.7l-9 9a2 2 0 0 1-2.8-2.8l8.5-8.5"/></svg></button>
           <label class="chat-sr-only" for="chatText">Сообщение</label>
           <textarea id="chatText" name="message" rows="1" maxlength="2000" inputmode="text" enterkeyhint="enter" autocomplete="on" autocorrect="on" autocapitalize="sentences" spellcheck="true" placeholder="Сообщение…"></textarea>
           <button id="chatSend" class="chat-send" type="submit" aria-label="Отправить сообщение" disabled>
-            <svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="m21 3-6 18-4-8-8-4 18-6ZM21 3 11 13"/></svg>
+            <svg class="ui-icon" aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" width="20" height="20"><path d="m21 3-6 18-4-8-8-4 18-6ZM21 3 11 13"/></svg>
           </button>
         </form>
-        <div id="chatSelectionActions" class="chat-selection-actions" hidden><button id="chatSelectionDelete" type="button" aria-label="Удалить выбранные сообщения"><svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18M9 6V3h6v3M5 6l1 15h12l1-15M10 10v7m4-7v7"/></svg></button><button id="chatSelectionForward" type="button" aria-label="Переслать выбранные сообщения"><svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="m15 17 5-5-5-5M20 12H9a5 5 0 0 0-5 5v2"/></svg></button></div>
+        <div id="chatSelectionActions" class="chat-selection-actions" hidden><button id="chatSelectionDelete" type="button" aria-label="Удалить выбранные сообщения"><svg class="ui-icon" aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" width="20" height="20"><path d="M3 6h18M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2M5 6l1 13a2 2 0 0 0 2 2h8a2 2 0 0 0 2-2l1-13M10 10v7m4-7v7"/></svg></button><button id="chatSelectionForward" type="button" aria-label="Переслать выбранные сообщения"><svg class="ui-icon" aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" width="20" height="20"><path d="m15 17 5-5-5-5M20 12h-9a7 7 0 0 0-7 7"/></svg></button></div>
       </div>
       <section id="chatPeerProfile" class="chat-peer-profile" aria-label="Профиль собеседника" hidden>
-        <button id="chatProfileBack" type="button" class="profile-back navigation-back"><svg aria-hidden="true" class="action-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m14 6-6 6 6 6"/></svg><span>Назад</span></button>
+        <button id="chatProfileBack" type="button" class="profile-back navigation-back"><svg aria-hidden="true" class="ui-icon action-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" width="20" height="20"><path d="m14 6-6 6 6 6"/></svg><span>Назад</span></button>
         <div id="chatPeerProfileContent" aria-live="polite"></div>
       </section>
       <dialog id="chatActionsDialog" class="chat-actions-dialog" aria-labelledby="chatActionsTitle">
-        <header><h2 id="chatActionsTitle">Сообщение</h2><button id="chatActionsClose" type="button" aria-label="Закрыть действия с сообщением"><svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="m6 6 12 12M18 6 6 18"/></svg></button></header>
+        <header><h2 id="chatActionsTitle">Сообщение</h2><button id="chatActionsClose" type="button" aria-label="Закрыть действия с сообщением"><svg class="ui-icon" aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" width="20" height="20"><path d="m6 6 12 12M18 6 6 18"/></svg></button></header>
         <p id="chatActionsPreview" class="chat-actions-preview"></p>
         <div id="chatActionsContent"></div>
         <p id="chatActionsStatus" class="chat-actions-status" role="status"></p>
@@ -250,24 +250,24 @@
   <button class="bottom-tab-btn active" id="section-schedule" data-action="tapTab('schedule')" aria-label="Расписание">
     <div class="bottom-tab-icon-wrap">
       <span aria-hidden="true" class="tab-refresh-icon" data-loading-icon></span>
-      <svg aria-hidden="true" class="bottom-tab-icon icon-outline" viewBox="0 0 24 24" fill="none" fill-opacity="1" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="5" width="16" height="15" rx="3"/><path d="M8 3v4m8-4v4M4 10h16" fill="none"/></svg>
-      <svg aria-hidden="true" class="bottom-tab-icon icon-filled" viewBox="0 0 24 24" fill="currentColor" fill-opacity=".14" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="5" width="16" height="15" rx="3"/><path d="M8 3v4m8-4v4M4 10h16" fill="none"/></svg>
+      <svg aria-hidden="true" class="ui-icon bottom-tab-icon icon-outline" viewBox="0 0 24 24" fill="none" fill-opacity="1" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" width="20" height="20"><rect x="4" y="5" width="16" height="15" rx="3"/><path d="M8 3v4m8-4v4M4 10h16" fill="none"/></svg>
+      <svg aria-hidden="true" class="ui-icon bottom-tab-icon icon-filled" viewBox="0 0 24 24" fill="currentColor" fill-opacity=".14" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" width="20" height="20"><rect x="4" y="5" width="16" height="15" rx="3"/><path d="M8 3v4m8-4v4M4 10h16" fill="none"/></svg>
     </div>
     <span>Расписание</span>
   </button>
   <button class="bottom-tab-btn" id="section-grades" data-action="tapTab('grades')">
     <div class="bottom-tab-icon-wrap">
       <span aria-hidden="true" class="tab-refresh-icon" data-loading-icon></span>
-      <svg aria-hidden="true" class="bottom-tab-icon icon-outline" viewBox="0 0 24 24" fill="none" fill-opacity="1" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="12" width="4" height="8" rx="1.5"/><rect x="10" y="4" width="4" height="16" rx="1.5"/><rect x="16" y="8" width="4" height="12" rx="1.5"/></svg>
-      <svg aria-hidden="true" class="bottom-tab-icon icon-filled" viewBox="0 0 24 24" fill="currentColor" fill-opacity=".14" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="12" width="4" height="8" rx="1.5"/><rect x="10" y="4" width="4" height="16" rx="1.5"/><rect x="16" y="8" width="4" height="12" rx="1.5"/></svg>
+      <svg aria-hidden="true" class="ui-icon bottom-tab-icon icon-outline" viewBox="0 0 24 24" fill="none" fill-opacity="1" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" width="20" height="20"><rect x="4" y="12" width="4" height="8" rx="1.5"/><rect x="10" y="4" width="4" height="16" rx="1.5"/><rect x="16" y="8" width="4" height="12" rx="1.5"/></svg>
+      <svg aria-hidden="true" class="ui-icon bottom-tab-icon icon-filled" viewBox="0 0 24 24" fill="currentColor" fill-opacity=".14" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" width="20" height="20"><rect x="4" y="12" width="4" height="8" rx="1.5"/><rect x="10" y="4" width="4" height="16" rx="1.5"/><rect x="16" y="8" width="4" height="12" rx="1.5"/></svg>
     </div>
     <span>Оценки</span>
   </button>
   <button class="bottom-tab-btn" id="section-chat" data-action="tapTab('chat')">
     <div class="bottom-tab-icon-wrap">
       <span aria-hidden="true" class="tab-refresh-icon" data-loading-icon></span>
-      <svg aria-hidden="true" class="bottom-tab-icon icon-outline" viewBox="0 0 24 24" fill="none" fill-opacity="1" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 11a7 7 0 0 1-7 7H8l-4 3v-8a8 8 0 1 1 16-2Z"/><path d="M8 10h8m-8 4h5" fill="none"/></svg>
-      <svg aria-hidden="true" class="bottom-tab-icon icon-filled" viewBox="0 0 24 24" fill="currentColor" fill-opacity=".14" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 11a7 7 0 0 1-7 7H8l-4 3v-8a8 8 0 1 1 16-2Z"/><path d="M8 10h8m-8 4h5" fill="none"/></svg>
+      <svg aria-hidden="true" class="ui-icon bottom-tab-icon icon-outline" viewBox="0 0 24 24" fill="none" fill-opacity="1" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" width="20" height="20"><path d="M21 15a4 4 0 0 1-4 4H8l-5 3V7a4 4 0 0 1 4-4h10a4 4 0 0 1 4 4Z"/><path d="M8 10h8m-8 4h5" fill="none"/></svg>
+      <svg aria-hidden="true" class="ui-icon bottom-tab-icon icon-filled" viewBox="0 0 24 24" fill="currentColor" fill-opacity=".14" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" width="20" height="20"><path d="M21 15a4 4 0 0 1-4 4H8l-5 3V7a4 4 0 0 1 4-4h10a4 4 0 0 1 4 4Z"/><path d="M8 10h8m-8 4h5" fill="none"/></svg>
       <span class="message-badge" id="messageBadge" hidden aria-hidden="true"></span>
     </div>
     <span>Сообщения</span>
@@ -275,8 +275,8 @@
   <button class="bottom-tab-btn" id="section-profile" data-action="tapTab('profile')">
     <div class="bottom-tab-icon-wrap">
       <span aria-hidden="true" class="tab-refresh-icon" data-loading-icon></span>
-      <svg aria-hidden="true" class="bottom-tab-icon icon-outline" viewBox="0 0 24 24" fill="none" fill-opacity="1" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="4"/><path d="M4 21v-1a8 6 0 0 1 16 0v1"/></svg>
-      <svg aria-hidden="true" class="bottom-tab-icon icon-filled" viewBox="0 0 24 24" fill="currentColor" fill-opacity=".14" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="4"/><path d="M4 21v-1a8 6 0 0 1 16 0v1"/></svg>
+      <svg aria-hidden="true" class="ui-icon bottom-tab-icon icon-outline" viewBox="0 0 24 24" fill="none" fill-opacity="1" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" width="20" height="20"><circle cx="12" cy="8" r="4"/><path d="M4 21v-1a8 6 0 0 1 16 0v1"/></svg>
+      <svg aria-hidden="true" class="ui-icon bottom-tab-icon icon-filled" viewBox="0 0 24 24" fill="currentColor" fill-opacity=".14" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" width="20" height="20"><circle cx="12" cy="8" r="4"/><path d="M4 21v-1a8 6 0 0 1 16 0v1"/></svg>
       <span id="profileUpdateBadge" class="profile-update-badge" hidden aria-hidden="true"></span>
     </div>
     <span>Профиль</span>

@@ -884,7 +884,7 @@ if ('serviceWorker' in navigator) {
           </div>
           <div class="grade-metrics-grid">${metricsHtml}</div>
         </div>
-        <span class="grade-details-link">Контрольные точки <svg aria-hidden="true" class="profile-gpa-arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m9 6 6 6-6 6"/></svg></span>
+        <span class="grade-details-link">Контрольные точки <svg aria-hidden="true" class="ui-icon profile-gpa-arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" width="20" height="20"><path d="m9 6 6 6-6 6"/></svg></span>
         </summary>
         <div class="grade-details-body"></div>
       </details>
@@ -962,7 +962,7 @@ if ('serviceWorker' in navigator) {
 <details class="gpa-card profile-gpa" id="profileGpaDetails" ${gpaExpanded ? 'open' : ''}>
         <summary class="profile-gpa-summary" aria-label="Академический GPA ${gpaText} из 4: раскрыть остальные показатели">
           <span class="profile-gpa-copy"><span class="gpa-label">Средний балл</span><span class="profile-gpa-score">${gpaText}<span>/ 4,00</span></span>${!hasAcademicGpa ? '<span class="profile-gpa-unavailable">Показатель пока недоступен</span>' : ''}</span>
-          <span class="profile-gpa-toggle">GPA <svg aria-hidden="true" class="profile-chevron profile-gpa-arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m9 6 6 6-6 6"/></svg></span>
+          <span class="profile-gpa-toggle">GPA <svg aria-hidden="true" class="ui-icon profile-chevron profile-gpa-arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" width="20" height="20"><path d="m9 6 6 6-6 6"/></svg></span>
         </summary>
         <div class="profile-gpa-extra">
         <div class="gpa-row"><span class="gpa-label">Научный GPA</span><span class="gpa-value">${escapeHtml(s.scientificGpa ?? '—')}</span></div>
@@ -975,40 +975,40 @@ if ('serviceWorker' in navigator) {
       <h2 id="profileStudyHeading">Учёба</h2>
       <nav class="profile-study-tiles" aria-label="Учебные разделы">
         <button type="button" class="profile-study-tile" data-action="switchSection('umkd')">
-          <span class="profile-tile-icon"><svg aria-hidden="true" viewBox="0 0 24 24"><path d="M12 6v15M12 6C9 4 6 3 3 4v15c3-1 6 0 9 2 3-2 6-3 9-2V4c-3-1-6 0-9 2Z"/></svg></span>
+          <span class="profile-tile-icon"><svg class="ui-icon" aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" width="20" height="20"><path d="M12 6v15M12 6C9 4 6 3 3 4v15c3-1 6 0 9 2 3-2 6-3 9-2V4c-3-1-6 0-9 2Z"/></svg></span>
           <span class="profile-tile-title">УМКД</span><span class="profile-tile-caption">Учебные материалы</span>
-          <svg aria-hidden="true" class="profile-tile-arrow" viewBox="0 0 24 24"><path d="m9 6 6 6-6 6"/></svg>
+          <svg aria-hidden="true" class="ui-icon profile-tile-arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" width="20" height="20"><path d="m9 6 6 6-6 6"/></svg>
         </button>
         <button type="button" class="profile-study-tile" data-action="switchSection('exams')">
-          <span class="profile-tile-icon"><svg aria-hidden="true" viewBox="0 0 24 24"><rect x="4" y="5" width="16" height="16" rx="3"/><path d="M8 3v4m8-4v4M4 11h16m-12 5 2 2 5-5"/></svg></span>
+          <span class="profile-tile-icon"><svg class="ui-icon" aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" width="20" height="20"><rect x="4" y="5" width="16" height="16" rx="3"/><path d="M8 3v4m8-4v4M4 11h16m-12 5 2 2 5-5"/></svg></span>
           <span class="profile-tile-title">Экзамены</span><span class="profile-tile-caption">Расписание сессии</span>
-          <svg aria-hidden="true" class="profile-tile-arrow" viewBox="0 0 24 24"><path d="m9 6 6 6-6 6"/></svg>
+          <svg aria-hidden="true" class="ui-icon profile-tile-arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" width="20" height="20"><path d="m9 6 6 6-6 6"/></svg>
         </button>
         <button type="button" class="profile-study-tile" data-action="switchSection('calendar')" aria-label="Академический календарь">
-          <span class="profile-tile-icon"><svg aria-hidden="true" viewBox="0 0 24 24"><rect x="4" y="5" width="16" height="16" rx="3"/><path d="M8 3v4m8-4v4M4 11h16m-11 4h2m3 0h2m-7 3h2"/></svg></span>
+          <span class="profile-tile-icon"><svg class="ui-icon" aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" width="20" height="20"><rect x="4" y="5" width="16" height="16" rx="3"/><path d="M8 3v4m8-4v4M4 11h16m-11 4h2m3 0h2m-7 3h2"/></svg></span>
           <span class="profile-tile-title">Академкалендарь</span><span class="profile-tile-caption">Семестр, РК и сессия</span>
-          <svg aria-hidden="true" class="profile-tile-arrow" viewBox="0 0 24 24"><path d="m9 6 6 6-6 6"/></svg>
+          <svg aria-hidden="true" class="ui-icon profile-tile-arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" width="20" height="20"><path d="m9 6 6 6-6 6"/></svg>
         </button>
         <button type="button" class="profile-study-tile" data-action="switchSection('transcript')">
-          <span class="profile-tile-icon"><svg aria-hidden="true" viewBox="0 0 24 24"><path d="M14 3H6a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V9Z"/><path d="M14 3v6h6M8 13h8m-8 4h5"/></svg></span>
+          <span class="profile-tile-icon"><svg class="ui-icon" aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" width="20" height="20"><path d="M14 3H6a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V9Z"/><path d="M14 3v6h6M8 13h8m-8 4h5"/></svg></span>
           <span class="profile-tile-title">Транскрипт</span><span class="profile-tile-caption">Оценки за всё обучение</span>
-          <svg aria-hidden="true" class="profile-tile-arrow" viewBox="0 0 24 24"><path d="m9 6 6 6-6 6"/></svg>
+          <svg aria-hidden="true" class="ui-icon profile-tile-arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" width="20" height="20"><path d="m9 6 6 6-6 6"/></svg>
         </button>
       </nav>
       </section>
       <section class="profile-block" aria-labelledby="profileSemesterHeading">
         <h2 id="profileSemesterHeading">Мой семестр</h2>
-        <button type="button" class="profile-recap" data-action="openSemesterWrapped()"><svg aria-hidden="true" class="profile-row-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round"><path d="m12 3 2.3 6.7L21 12l-6.7 2.3L12 21l-2.3-6.7L3 12l6.7-2.3Z"/><path d="m20 2 .5 1.5L22 4l-1.5.5L20 6l-.5-1.5L18 4l1.5-.5Z"/></svg><span class="profile-row-copy"><strong>Итоги семестра</strong><small>Твой семестр в цифрах</small></span><svg aria-hidden="true" class="profile-chevron" viewBox="0 0 24 24"><path d="m9 6 6 6-6 6"/></svg></button>
-        <button type="button" class="profile-history" data-study-history><svg aria-hidden="true" class="profile-row-icon" viewBox="0 0 24 24"><path d="M3 11a9 9 0 1 1 2 7M3 4v7h7m2-4v5l3 2"/></svg><span class="profile-row-copy"><span>История обучения</span><small data-study-history-count>Оценки и расписание</small></span><svg aria-hidden="true" class="profile-chevron" viewBox="0 0 24 24"><path d="m9 6 6 6-6 6"/></svg></button>
+        <button type="button" class="profile-recap" data-action="openSemesterWrapped()"><svg aria-hidden="true" class="ui-icon profile-row-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round" stroke-linecap="round" width="20" height="20"><path d="m12 3 2.3 6.7L21 12l-6.7 2.3L12 21l-2.3-6.7L3 12l6.7-2.3Z"/><path d="m20 2 .5 1.5L22 4l-1.5.5L20 6l-.5-1.5L18 4l1.5-.5Z"/></svg><span class="profile-row-copy"><strong>Итоги семестра</strong><small>Твой семестр в цифрах</small></span><svg aria-hidden="true" class="ui-icon profile-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" width="20" height="20"><path d="m9 6 6 6-6 6"/></svg></button>
+        <button type="button" class="profile-history" data-study-history><svg aria-hidden="true" class="ui-icon profile-row-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" width="20" height="20"><path d="M3 11a9 9 0 1 1 2 7M3 4v7h7m2-4v5l3 2"/></svg><span class="profile-row-copy"><span>История обучения</span><small data-study-history-count>Оценки и расписание</small></span><svg aria-hidden="true" class="ui-icon profile-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" width="20" height="20"><path d="m9 6 6 6-6 6"/></svg></button>
       </section>
       <section class="profile-block" aria-labelledby="profileSettingsHeading">
       <h2 id="profileSettingsHeading">Настройки</h2>
       <div class="profile-settings">
       <div id="appUpdateAvailable" class="profile-update-available" role="status" hidden><span class="profile-update-dot" aria-hidden="true"></span>Доступна новая версия</div>
-      <button type="button" id="appUpdateButton" class="profile-settings-update" data-action="updateApplication(this)"><span aria-hidden="true" class="profile-row-icon profile-update-icon"><svg class="profile-update-arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20V4m-6 6 6-6 6 6"/></svg>${window.unilinkLoading.icon()}</span><span id="appUpdateLabel">Обновление приложения</span><span id="appUpdateHint">Проверить</span></button>
+      <button type="button" id="appUpdateButton" class="profile-settings-update" data-action="updateApplication(this)"><span aria-hidden="true" class="profile-row-icon profile-update-icon"><svg class="ui-icon profile-update-arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" width="20" height="20"><path d="M12 20V4m-6 6 6-6 6 6"/></svg>${window.unilinkLoading.icon()}</span><span id="appUpdateLabel">Обновление приложения</span><span id="appUpdateHint">Проверить</span></button>
       <p id="appUpdateStatus" class="profile-update-status" role="status"></p>
       <details class="profile-notifications" id="profileNotifications" ${notificationsExpanded ? 'open' : ''}>
-        <summary><svg aria-hidden="true" class="profile-row-icon" viewBox="0 0 24 24"><path d="M18 8a6 6 0 0 0-12 0c0 7-3 7-3 9h18c0-2-3-2-3-9M10 21h4"/></svg><span>Уведомления</span><svg aria-hidden="true" class="profile-chevron" viewBox="0 0 24 24"><path d="m6 9 6 6 6-6"/></svg></summary>
+        <summary><svg aria-hidden="true" class="ui-icon profile-row-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" width="20" height="20"><path d="M18 8a6 6 0 0 0-12 0c0 7-3 7-3 9h18c0-2-3-2-3-9M10 21h4"/></svg><span>Уведомления</span><svg aria-hidden="true" class="ui-icon profile-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" width="20" height="20"><path d="m6 9 6 6 6-6"/></svg></summary>
         <div class="profile-notifications-body">
         <label class="push-setting"><span>Push на этом устройстве<small>Сообщения на экране телефона, даже когда uniq. закрыт</small></span><input id="pushEnabled" type="checkbox" role="switch" disabled></label>
         <label class="push-setting"><span><span id="pushTelegramTitle">Сообщения в Telegram</span><small>Для подключённого бота. Новости версий не затрагивает</small></span><input id="pushTelegram" type="checkbox" role="switch" disabled></label>
@@ -1019,7 +1019,7 @@ if ('serviceWorker' in navigator) {
       </details>
       </div>
       </section>
-      <button type="button" class="profile-logout-btn" data-action="confirmLogout()"><svg aria-hidden="true" class="profile-row-icon" viewBox="0 0 24 24"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4m7 14 5-5-5-5m5 5H9"/></svg>Выйти из аккаунта</button>
+      <button type="button" class="profile-logout-btn" data-action="confirmLogout()"><svg aria-hidden="true" class="ui-icon profile-row-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" width="20" height="20"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4m7 14 5-5-5-5m5 5H9"/></svg>Выйти из аккаунта</button>
       </div>
     `;
 
@@ -1495,19 +1495,19 @@ if ('serviceWorker' in navigator) {
     return `<section class="smart-weather ${night ? 'weather-night' : 'weather-day'}" aria-label="Погода в городе ${escapeHtml(city)}">
       <div class="weather-sky-symbol ${night ? 'weather-moon' : 'weather-sun'}" aria-hidden="true"></div>
       <div class="weather-card-avatar" aria-hidden="true">${escapeHtml((platonusStudent?.studentName || '').split(' ').filter(Boolean).slice(0, 2).map(name => name[0]).join('') || 'U')}</div>
-      <div class="weather-location"><svg aria-hidden="true" viewBox="0 0 24 24"><path d="M20 10c0 6-8 11-8 11S4 16 4 10a8 8 0 1 1 16 0Z"/><circle cx="12" cy="10" r="2.5"/></svg><span>${escapeHtml(city)}</span></div>
+      <div class="weather-location"><svg class="ui-icon" aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" width="20" height="20"><path d="M20 10c0 6-8 11-8 11S4 16 4 10a8 8 0 1 1 16 0Z"/><circle cx="12" cy="10" r="2.5"/></svg><span>${escapeHtml(city)}</span></div>
       <div class="weather-scene">
         <div class="weather-solar-track" aria-hidden="true">
         <svg class="weather-solar-path" viewBox="0 0 320 165" preserveAspectRatio="none" aria-hidden="true"><path d="${arcPath}" vector-effect="non-scaling-stroke"/></svg>
-        ${validArc && !night ? `<svg class="weather-solar-sun" style="left:${(x / 320 * 100).toFixed(2)}%;top:${(y / 165 * 100).toFixed(2)}%" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="4"/><path d="M12 2v2m0 16v2M2 12h2m16 0h2M5 5l1.4 1.4m11.2 11.2L19 19M5 19l1.4-1.4M17.6 6.4 19 5"/></svg>` : ''}
+        ${validArc && !night ? `<svg class="ui-icon weather-solar-sun" style="left:${(x / 320 * 100).toFixed(2)}%;top:${(y / 165 * 100).toFixed(2)}%" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" width="20" height="20"><circle cx="12" cy="12" r="4"/><path d="M12 2v2m0 16v2M2 12h2m16 0h2M5 5l1.4 1.4m11.2 11.2L19 19M5 19l1.4-1.4M17.6 6.4 19 5"/></svg>` : ''}
         </div>
         <div class="weather-temperature">${metric(cur.temperature_2m)}°</div>
         <div class="weather-caption">${weatherDescription(cur.weather_code)}</div>
         <div class="weather-solar-times"><span>Восход ${clock(rise)}</span><span>Закат ${clock(set)}</span></div>
       </div>
       <div class="weather-data-panels">
-        <div class="weather-data-panel"><span class="weather-panel-heading">Качество воздуха <svg aria-hidden="true" viewBox="0 0 24 24"><circle cx="12" cy="12" r="4"/><path d="M12 2v2m0 16v2M2 12h2m16 0h2M5 5l1.4 1.4m11.2 11.2L19 19M5 19l1.4-1.4M17.6 6.4 19 5"/></svg></span><strong>${metric(aqi)}</strong><div class="weather-quality-row"><small>${quality}</small><div class="weather-aqi-scale">${hasAqi ? '<i style="left:' + Math.min(100, Math.max(0, aqi / 300 * 100)) + '%"></i>' : ''}</div></div></div>
-        <div class="weather-data-panel"><span class="weather-panel-heading">Облачность <svg aria-hidden="true" viewBox="0 0 24 24"><path d="M7 19a5 5 0 1 1 1-10 6 6 0 1 1 10 10Z"/></svg></span><strong>${metric(cur.cloud_cover)}%</strong><div class="weather-quality-row"><small>${Number.isFinite(cur.cloud_cover) ? cur.cloud_cover <= 20 ? 'Ясное небо' : cur.cloud_cover <= 70 ? 'Переменная' : 'Облачно' : 'Нет данных'}</small><div class="weather-cloud-scale"><i style="width:${Number.isFinite(cur.cloud_cover) ? Math.min(100, Math.max(0, cur.cloud_cover)) : 0}%"></i></div></div></div>
+        <div class="weather-data-panel"><span class="weather-panel-heading">Качество воздуха <svg class="ui-icon" aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" width="20" height="20"><circle cx="12" cy="12" r="4"/><path d="M12 2v2m0 16v2M2 12h2m16 0h2M5 5l1.4 1.4m11.2 11.2L19 19M5 19l1.4-1.4M17.6 6.4 19 5"/></svg></span><strong>${metric(aqi)}</strong><div class="weather-quality-row"><small>${quality}</small><div class="weather-aqi-scale">${hasAqi ? '<i style="left:' + Math.min(100, Math.max(0, aqi / 300 * 100)) + '%"></i>' : ''}</div></div></div>
+        <div class="weather-data-panel"><span class="weather-panel-heading">Облачность <svg class="ui-icon" aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" width="20" height="20"><path d="M7 19a5 5 0 1 1 1-10 6 6 0 1 1 10 10Z"/></svg></span><strong>${metric(cur.cloud_cover)}%</strong><div class="weather-quality-row"><small>${Number.isFinite(cur.cloud_cover) ? cur.cloud_cover <= 20 ? 'Ясное небо' : cur.cloud_cover <= 70 ? 'Переменная' : 'Облачно' : 'Нет данных'}</small><div class="weather-cloud-scale"><i style="width:${Number.isFinite(cur.cloud_cover) ? Math.min(100, Math.max(0, cur.cloud_cover)) : 0}%"></i></div></div></div>
       </div>
       <a class="weather-source" href="https://open-meteo.com/" target="_blank" rel="noopener noreferrer">Open-Meteo · CAMS</a>
     </section>`;
@@ -1688,7 +1688,7 @@ if ('serviceWorker' in navigator) {
     const colorThemes = ACCENT_THEMES.filter(t => t.id !== 'default');
     grid.innerHTML = colorThemes.map(t => `
       <button class="accent-swatch${t.id === pendingAccentId ? ' selected' : ''}" style="background:${t.hex}; color:${t.text};" data-action="selectAccentSwatch('${t.id}')">
-        <span class="accent-swatch-check">✓</span>
+        <span class="accent-swatch-check"><svg class="ui-icon" aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" width="20" height="20"><path d="m5 12 4 4L19 6"/></svg></span>
         <span class="accent-swatch-label">${t.name}</span>
         <span class="accent-swatch-hex">${t.hex}</span>
       </button>
@@ -2429,7 +2429,7 @@ if ('serviceWorker' in navigator) {
       itemsHtml += `
         <div class="umkd-subject-row row-enter" style="animation-delay:${Math.min(index, 8) * 0.04}s;" data-action="selectUmkdSubject(${index})">
           <span>${escapeHtml(rec.subjectName)}</span>
-          <svg aria-hidden="true" class="action-icon umkd-arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m9 6 6 6-6 6"/></svg>
+          <svg aria-hidden="true" class="ui-icon action-icon umkd-arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" width="20" height="20"><path d="m9 6 6 6-6 6"/></svg>
         </div>
       `;
     });
@@ -2472,7 +2472,7 @@ if ('serviceWorker' in navigator) {
       bodyHtml = UMKD_FILE_TYPES.map(type => `
         <div class="umkd-item" data-action="openUmkdFile(${type.id}, ${documentID})">
           <span>${type.label}</span>
-          <span class="umkd-document-action"><span>PDF</span><svg aria-hidden="true" class="action-icon umkd-arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m9 6 6 6-6 6"/></svg></span>
+          <span class="umkd-document-action"><span>PDF</span><svg aria-hidden="true" class="ui-icon action-icon umkd-arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" width="20" height="20"><path d="m9 6 6 6-6 6"/></svg></span>
         </div>
       `).join('');
     } else {
@@ -2480,7 +2480,7 @@ if ('serviceWorker' in navigator) {
     }
 
     swapContent(container, `
-      <button type="button" class="profile-back navigation-back" data-action="renderUmkdSubjects()"><svg aria-hidden="true" class="action-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m14 6-6 6 6 6"/></svg><span>Назад</span></button>
+      <button type="button" class="profile-back navigation-back" data-action="renderUmkdSubjects()"><svg aria-hidden="true" class="ui-icon action-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" width="20" height="20"><path d="m14 6-6 6 6 6"/></svg><span>Назад</span></button>
       <span class="masthead-eyebrow" style="margin-bottom:10px; display:block;">УМКД</span>
       <div class="notice-title" style="margin-bottom:6px;">${escapeHtml(rec.subjectName)}</div>
       <div class="row-meta" style="margin-bottom:12px;">${escapeHtml(rec.tutorName || '')}</div>
@@ -2550,8 +2550,8 @@ if ('serviceWorker' in navigator) {
   let currentUmkdPdf = null; // { buffer, fileName } — последний открытый PDF
   let currentUmkdRef = null; // { fileTypeID, umkdid } — для ссылки на скачивание через сервер
 
-  const SHARE_ICON = '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 15V3"/><path d="M8 7l4-4 4 4"/><path d="M5 12v7a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-7"/></svg>';
-  const DOWNLOAD_ICON = '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v12"/><path d="M8 11l4 4 4-4"/><path d="M5 21h14"/></svg>';
+  const SHARE_ICON = '<svg class="ui-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 15V3"/><path d="M8 7l4-4 4 4"/><path d="M5 12v7a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-7"/></svg>';
+  const DOWNLOAD_ICON = '<svg class="ui-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v12"/><path d="M8 11l4 4 4-4"/><path d="M5 21h14"/></svg>';
 
   function isMobilePlatform() {
     const p = tg && tg.initData && tg.platform;

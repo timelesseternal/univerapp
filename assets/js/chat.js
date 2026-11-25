@@ -4,8 +4,8 @@
   const root = document.getElementById('sectionChat');
   if (!root) return;
   const byID = id => document.getElementById(id);
-  const replyPath = 'm9 17-5-5 5-5M4 12h11a5 5 0 0 1 5 5v2';
-  const forwardPath = 'm15 17 5-5-5-5M20 12H9a5 5 0 0 0-5 5v2';
+  const replyPath = 'm9 17-5-5 5-5M4 12h9a7 7 0 0 1 7 7';
+  const forwardPath = 'm15 17 5-5-5-5M20 12h-9a7 7 0 0 0-7 7';
   const state = { profile: null, conversation: null, messages: new Map(), drafts: new Map(),
     epoch: 0, visible: false, sessionWork: null, timer: null, searchTimer: null,
     searchVersion: 0, refreshing: false, sending: false, hasOlder: false,
@@ -77,11 +77,11 @@
     button.type = 'button';
     const paths = { 'Ответить':replyPath,
       'Переслать':forwardPath,
-      'Удалить':'M3 6h18M9 6V3h6v3M5 6l1 15h12l1-15M10 10v7m4-7v7',
+      'Удалить':'M3 6h18M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2M5 6l1 13a2 2 0 0 0 2 2h8a2 2 0 0 0 2-2l1-13M10 10v7m4-7v7',
       'Выбрать':'M20 12a8 8 0 1 1-5-7M8 11l4 4 9-10' };
     if (paths[text]) {
       const icon = node('span','chat-action-symbol'); icon.setAttribute('aria-hidden','true');
-      icon.innerHTML = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="${paths[text]}"/></svg>`;
+      icon.innerHTML = `<svg class="ui-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" width="20" height="20"><path d="${paths[text]}"/></svg>`;
       button.append(icon);
     }
     button.addEventListener('click', callback);
@@ -222,7 +222,7 @@
     const valid = () => !stale(epoch) && state.visible && state.conversation?.id === conversationID && !deletedMessages.has(message.id);
     let start = null, hold = null, direction = null, distance = 0, suppressClick = false, returnMotion = null;
     const indicator = node('span','chat-swipe-reply'); indicator.setAttribute('aria-hidden','true');
-    indicator.innerHTML = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="${replyPath}"/></svg>`;
+    indicator.innerHTML = `<svg class="ui-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" width="20" height="20"><path d="${replyPath}"/></svg>`;
     article.append(indicator);
     const reset = (animate = true) => {
       clearTimeout(hold); start = null; direction = null; distance = 0;

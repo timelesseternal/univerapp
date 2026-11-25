@@ -27,11 +27,11 @@
 #profileContainer .profile-study-tiles { margin:0; gap:var(--card-gap); }
 #profileContainer .profile-study-tile { padding:16px 14px; gap:6px; border-radius:var(--card-radius); min-height:130px; }
 #profileContainer .profile-tile-icon { width:24px; height:24px; border-radius:0; background:none; margin-bottom:5px; }
-#profileContainer .profile-study-tile svg { width:22px; height:22px; stroke-width:1.7; }
+#profileContainer .profile-study-tile svg { width:22px; height:22px; }
 #profileContainer .profile-tile-title { font-size:14px; line-height:1.45; font-weight:700; overflow-wrap:anywhere; }
 #profileContainer .profile-tile-caption { font-size:11px; color:var(--text-secondary); line-height:1.5; margin-top:0; }
 #profileContainer .profile-tile-arrow { display:none; }
-#profileContainer .profile-row-icon, #profileContainer .profile-chevron { width:20px; height:20px; fill:none; stroke:currentColor; stroke-width:1.7; stroke-linecap:round; stroke-linejoin:round; flex:0 0 20px; }
+#profileContainer .profile-row-icon, #profileContainer .profile-chevron { width:20px; height:20px; fill:none; stroke:currentColor; stroke-linecap:round; stroke-linejoin:round; flex:0 0 20px; }
 #profileContainer .profile-chevron { width:16px; height:16px; flex-basis:16px; margin-left:auto; color:var(--text-secondary); transition:transform var(--motion-normal) var(--motion-ease); transform-origin:center; }
 #profileContainer .profile-row-copy { display:grid; gap:4px; min-width:0; }
 #profileContainer .profile-row-copy strong { font-size:14px; font-weight:700; }
