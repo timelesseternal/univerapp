@@ -3,7 +3,7 @@
 .app-booting .boot-screen { position:fixed; inset:0; z-index:2100; display:grid; place-items:center; overflow:hidden; isolation:isolate; }
 .app-booting .login-overlay { visibility:hidden; }
 .boot-backdrop { position:absolute; inset:0; background:var(--paper); }
-.boot-wordmark { position:relative; display:flex; align-items:baseline; color:var(--ink); font-family:var(--font-body); font-size:48px; font-weight:800; letter-spacing:-.06em; line-height:1; animation:bootWordmarkEnter 700ms cubic-bezier(.22,1,.36,1) both; }
+.boot-wordmark { position:relative; top:-16px; display:flex; align-items:baseline; color:var(--ink); font-family:var(--font-body); font-size:48px; font-weight:800; letter-spacing:-.06em; line-height:1; animation:bootWordmarkEnter 700ms cubic-bezier(.22,1,.36,1) both; }
 .boot-dot { display:block; flex:0 0 .17em; width:.17em; height:.17em; margin-left:.06em; border-radius:50%; background:var(--accent); }
 .boot-bloom { display:none; position:absolute; left:var(--boot-x); top:var(--boot-y); width:var(--boot-dot-size); height:var(--boot-dot-size); border-radius:50%; background:var(--accent); transform:translate(-50%,-50%); }
 .boot-screen.is-revealing .boot-bloom { display:block; animation:bootDotReveal var(--boot-reveal-duration,1200ms) cubic-bezier(.45,0,.2,1) both; }
